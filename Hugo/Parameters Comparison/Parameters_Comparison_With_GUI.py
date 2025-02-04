@@ -29,12 +29,12 @@ def process_files():
     b_parameters_values = []
 
     for line in e_files_variables:
-        elements = line.strip().split(';')
+        elements = line.strip().split(',')
         e_parameters.append(elements[0])
         e_parameters_values.append(elements[1])
 
     for line1 in b_files_variables:
-        elements1 = line1.strip().split(';')
+        elements1 = line1.strip().split(',')
         b_parameters.append(elements1[0])
         b_parameters_values.append(elements1[1])
 
