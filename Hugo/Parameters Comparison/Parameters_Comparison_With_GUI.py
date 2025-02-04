@@ -9,7 +9,7 @@ def read_file(file_path):
     lines = []
     with open(file_path, 'r') as file:
         lines = file.readlines()
-    return lines[1:]  # Skip the header row
+    return lines[2:]  # Skip the header row
 
 # Function to process files and display parameters
 def process_files():
