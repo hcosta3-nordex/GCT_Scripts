@@ -1,2 +1,2 @@
 Script used to compare initial parameters (before testing) and end parameters (after the test was performed)
-Only works for ',' separated files
+Only works for ',' separated files! If you have a ';' separated file, please correct lines 32 and 37 (replace the , for ;)
