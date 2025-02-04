@@ -29,12 +29,12 @@ def process_files():
     b_parameters_values = []
 
     for line in e_files_variables:
-        elements = line.strip().split(',')
+        elements = line.strip().split(';')
         e_parameters.append(elements[0])
         e_parameters_values.append(elements[1])
 
     for line1 in b_files_variables:
-        elements1 = line1.strip().split(',')
+        elements1 = line1.strip().split(';')
         b_parameters.append(elements1[0])
         b_parameters_values.append(elements1[1])
 
@@ -48,8 +48,12 @@ def process_files():
         for j in range(len(b_parameters)):
             if e_parameters[i] == b_parameters[j]:
                 matched_params.add(e_parameters[i])
-                if e_parameters_values[i] != b_parameters_values[j]:
-                    output_tree.insert("", "end", values=(e_parameters[i], b_parameters_values[j], e_parameters_values[i]))
+                try:
+                    if float(e_parameters_values[i]) != float(b_parameters_values[j]):
+                        output_tree.insert("", "end", values=(e_parameters[i], b_parameters_values[j], e_parameters_values[i]))
+                except ValueError:
+                    if e_parameters_values[i] != b_parameters_values[j]:
+                        output_tree.insert("", "end", values=(e_parameters[i], b_parameters_values[j], e_parameters_values[i]))
                 break
 
     # Add a separator row
@@ -123,3 +127,4 @@ output_tree.pack(fill='both', expand=True)
 
 # Run the application
 root.mainloop()
+
