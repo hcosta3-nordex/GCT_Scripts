@@ -1,1 +1,2 @@
 Script used to compare initial parameters (before testing) and end parameters (after the test was performed)
+Only works for ',' separated files
