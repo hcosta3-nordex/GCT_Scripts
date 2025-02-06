@@ -15,10 +15,10 @@ def extract_nested_zip(zipped_file, extract_to='.'):
 # Function to combine CSV files into a single CSV file
 def combine_csv(extract_to, output_file):
     header_written = False
-    
+
     with open(output_file, mode='w', newline='', encoding='utf-8') as outfile:
         writer = csv.writer(outfile)
-        
+
         for root, dirs, files in os.walk(extract_to):
             for file in files:
                 if file.endswith('.csv'):
@@ -26,12 +26,15 @@ def combine_csv(extract_to, output_file):
                     with open(file_path, newline='', encoding='utf-8') as infile:
                         reader = csv.reader(infile)
                         if not header_written:
-                            # Write header
-                            headers = next(reader)
-                            writer.writerow(headers)
+                            # Write all 3 headers
+                            headers = [next(reader) for _ in range(3)]
+                            for header in headers:
+                                writer.writerow(header)
                             header_written = True
                         else:
-                            next(reader)  # Skip header
+                            # Skip all 3 headers
+                            for _ in range(3):
+                                next(reader)
                         for row in reader:
                             writer.writerow(row)
 
