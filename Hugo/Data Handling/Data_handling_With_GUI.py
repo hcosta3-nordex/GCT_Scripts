@@ -9,10 +9,15 @@ def get_xml_variables(path_xml):
     try:
         tree = ET.parse(path_xml)
         root = tree.getroot()
-        return [text.text for text in root.findall('.//text') if 'id' in text.attrib]
+        return [param.text for param in root.findall('.//text')]
     except Exception as e:
         print(f"Error reading XML: {e}")
         return []
+
+# Function to normalize header text
+def normalize_header(header):
+    # Remove any units in brackets and double quotes
+    return header.split('[')[0].strip().replace('"', '')
 
 # Function to read and process CSV and XML
 def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
@@ -23,33 +28,35 @@ def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
         print("Check csv path")
         return
     
-    print("Csv file correctly read")
+    print("CSV file correctly read")
 
     tree = ET.parse(path_xml)
     root = tree.getroot()
 
-    text_nodes = root.findall('.//text')
-    data = {text.attrib['id']: text.text for text in text_nodes if 'id' in text.attrib}
+    param_nodes = root.findall('.//text')
+    data = {param.text: param.text for param in param_nodes}
 
     if not data:
-        print("Check xml path")
+        print("Check XML path")
         return
 
     print("XML file correctly read")
 
-    headers = csv_lines[0].strip().split(',')
-    headers = [data.get(header, header) for header in headers]
+    headers = csv_lines[2].strip().split(';')
+    normalized_headers = [normalize_header(header) for header in headers]
+    headers = [data.get(header, header) for header in normalized_headers]
 
-    column_numbers = [0]
+    # Always include the first two columns
+    column_numbers = [0, 1]
     for i, header in enumerate(headers):
-        if header in variables:
+        if header in variables and i >= 2:  # Ensure first two columns are always included
             column_numbers.append(i)
 
     new_csv_lines = []
     new_csv_lines.append(','.join([headers[i] for i in column_numbers]))
 
-    for line in csv_lines[1:]:
-        columns = line.strip().split(',')
+    for line in csv_lines[3:]:
+        columns = line.strip().split(';')
         new_line = [columns[i] for i in column_numbers]
         new_csv_lines.append(','.join(new_line))
 
