@@ -1,1 +1,2 @@
-Code used to delete unwanted signals from an .csv file (this file needs to use the same names as the xml namespaces file) using CWE namespaces
+Code used to delete unwanted signals from an .csv file (this file needs to use the same names as the xml namespaces file) using CWE namespaces.
+This code is programmed for the compiled version of CWE csv file meaning that the headers start on the 3rd row. If this is not the case
