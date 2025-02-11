@@ -9,70 +9,69 @@ def get_xml_variables(path_xml):
     try:
         tree = ET.parse(path_xml)
         root = tree.getroot()
-        return [param.text for param in root.findall('.//text')]
+        return [f"{param.attrib['id']} {param.text}" for param in root.findall('.//text')]
     except Exception as e:
         print(f"Error reading XML: {e}")
         return []
 
-# Function to normalize header text
+# Function to normalize header text for comparison
 def normalize_header(header):
     # Remove any units in brackets and double quotes
     return header.split('[')[0].strip().replace('"', '')
 
 # Function to read and process CSV and XML
 def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
-    with open(path_csv, 'r') as file:
-        csv_lines = file.readlines()
-    
-    if len(csv_lines) == 0:
-        print("Check csv path")
-        return
-    
-    print("CSV file correctly read")
-
-    tree = ET.parse(path_xml)
-    root = tree.getroot()
-
-    param_nodes = root.findall('.//text')
-    data = {param.text: param.text for param in param_nodes}
-
-    if not data:
-        print("Check XML path")
-        return
-
-    print("XML file correctly read")
-
-    headers = csv_lines[2].strip().split(';')
-    normalized_headers = [normalize_header(header) for header in headers]
-    headers = [data.get(header, header) for header in normalized_headers]
-
-    # Always include the first two columns
-    column_numbers = [0, 1]
-    for i, header in enumerate(headers):
-        if header in variables and i >= 2:  # Ensure first two columns are always included
-            column_numbers.append(i)
-
-    new_csv_lines = []
-    new_csv_lines.append(','.join([headers[i] for i in column_numbers]))
-
-    for line in csv_lines[3:]:
-        columns = line.strip().split(';')
-        new_line = [columns[i] for i in column_numbers]
-        new_csv_lines.append(','.join(new_line))
-
-    final_file_name = os.path.join(final_path, f"{final_name}.csv")
-
-    if not os.path.exists(final_path):
-        print(f"The directory {final_path} does not exist.")
-        return
-
     try:
-        with open(final_file_name, 'w') as file:
-            for line in new_csv_lines:
-                file.write(line + '\n')
-        print(f"Data written successfully to {final_file_name}")
+        with open(path_csv, 'r') as file:
+            new_csv_lines = []
+
+            # Read the first three lines for headers
+            headers_line_1 = file.readline().strip()
+            headers_line_2 = file.readline().strip()
+            headers_line_3 = file.readline().strip()
+
+            headers = headers_line_3.split(';')
+            normalized_headers = [normalize_header(header) for header in headers]
+            original_headers = [header for header in headers]
+
+            # Extract text content from variables for comparison
+            text_content_vars = [var.split(' ', 1)[1] for var in variables]
+            headers = [var.split(' ', 1)[1] for var in variables]
+
+            # Always include the first two columns
+            column_numbers = [0, 1]
+            for i, header in enumerate(headers):
+                if header in text_content_vars and i >= 2:  # Ensure first two columns are always included
+                    column_numbers.append(i)
+
+            # Add the headers to the new CSV lines
+            new_csv_lines.append(';'.join([original_headers[i] for i in column_numbers]))
+
+            print("Headers:", original_headers)
+            print("Column Numbers:", column_numbers)
+
+            # Process the data lines
+            for line in file:
+                columns = line.strip().split(';')
+                new_line = [columns[i] for i in column_numbers]
+                new_csv_lines.append(';'.join(new_line))
+
+            # Debugging: Print the number of lines written to the output file
+            print(f"Number of lines in output file (excluding header line): {len(new_csv_lines) - 1}")
+
+            final_file_name = os.path.join(final_path, f"{final_name}.csv")
+
+            if not os.path.exists(final_path):
+                print(f"The directory {final_path} does not exist.")
+                return
+
+            with open(final_file_name, 'w') as file:
+                for line in new_csv_lines:
+                    print(line)
+                    file.write(line + '\n')
+            print(f"Data written successfully to {final_file_name}")
     except Exception as e:
-        print(f"Error writing to file: {e}")
+        print(f"Error processing file: {e}")
 
 # GUI functions
 def process_files():
