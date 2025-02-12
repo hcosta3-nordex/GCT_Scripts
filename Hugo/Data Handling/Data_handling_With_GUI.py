@@ -9,7 +9,7 @@ def get_xml_variables(path_xml):
     try:
         tree = ET.parse(path_xml)
         root = tree.getroot()
-        return [f"{param.attrib['id']} {param.text}" for param in root.findall('.//text')]
+        return [f"{param.attrib['id']} {normalize_header(param.text)}" for param in root.findall('.//text')]
     except Exception as e:
         print(f"Error reading XML: {e}")
         return []
@@ -36,18 +36,18 @@ def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
 
             # Extract text content from variables for comparison
             text_content_vars = [var.split(' ', 1)[1] for var in variables]
-            headers = [var.split(' ', 1)[1] for var in variables]
 
             # Always include the first two columns
             column_numbers = [0, 1]
-            for i, header in enumerate(headers):
+            for i, header in enumerate(normalized_headers):
                 if header in text_content_vars and i >= 2:  # Ensure first two columns are always included
                     column_numbers.append(i)
 
             # Add the headers to the new CSV lines
+            new_csv_lines.append(headers_line_1)
+            new_csv_lines.append(headers_line_2)
             new_csv_lines.append(';'.join([original_headers[i] for i in column_numbers]))
 
-            print("Headers:", original_headers)
             print("Column Numbers:", column_numbers)
 
             # Process the data lines
@@ -57,7 +57,7 @@ def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
                 new_csv_lines.append(';'.join(new_line))
 
             # Debugging: Print the number of lines written to the output file
-            print(f"Number of lines in output file (excluding header line): {len(new_csv_lines) - 1}")
+            print(f"Number of lines in output file (excluding header lines): {len(new_csv_lines) - 3}")
 
             final_file_name = os.path.join(final_path, f"{final_name}.csv")
 
@@ -67,7 +67,6 @@ def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
 
             with open(final_file_name, 'w') as file:
                 for line in new_csv_lines:
-                    print(line)
                     file.write(line + '\n')
             print(f"Data written successfully to {final_file_name}")
     except Exception as e:
