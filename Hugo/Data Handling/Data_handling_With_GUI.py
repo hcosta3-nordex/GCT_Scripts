@@ -16,23 +16,22 @@ def get_xml_variables(path_xml):
 
 # Function to normalize header text for comparison
 def normalize_header(header):
-    # Remove any units in brackets and double quotes
     return header.split('[')[0].strip().replace('"', '')
 
 # Function to read and process CSV and XML
 def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
     try:
-        with open(path_csv, 'r') as file:
+        with open(path_csv, 'r', encoding='utf-8') as file:
             new_csv_lines = []
 
             # Read the first three lines for headers
-            headers_line_1 = file.readline().strip()
-            headers_line_2 = file.readline().strip()
-            headers_line_3 = file.readline().strip()
+            headers_line_1 = file.readline().strip().replace('\r', '')
+            headers_line_2 = file.readline().strip().replace('\r', '')
+            headers_line_3 = file.readline().strip().replace('\r', '')
 
             headers = headers_line_3.split(';')
             normalized_headers = [normalize_header(header) for header in headers]
-            original_headers = [header for header in headers]
+            original_headers = [header.replace('""', '"') for header in headers]  # Handle double quotes
 
             # Extract text content from variables for comparison
             text_content_vars = [var.split(' ', 1)[1] for var in variables]
@@ -44,19 +43,20 @@ def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
                     column_numbers.append(i)
 
             # Add the headers to the new CSV lines
-            new_csv_lines.append(headers_line_1)
-            new_csv_lines.append(headers_line_2)
+            new_csv_lines.append(headers_line_1.replace('""', '"'))
+            new_csv_lines.append(headers_line_2.replace('""', '"'))
             new_csv_lines.append(';'.join([original_headers[i] for i in column_numbers]))
 
-            print("Column Numbers:", column_numbers)
-
             # Process the data lines
+            line_count = 0
             for line in file:
-                columns = line.strip().split(';')
+                line_count += 1
+                # Handle double quotes and ensure each line is properly formatted
+                columns = line.strip().replace('\r', '').replace('""', '"').split(';')
                 new_line = [columns[i] for i in column_numbers]
                 new_csv_lines.append(';'.join(new_line))
 
-            # Debugging: Print the number of lines written to the output file
+            # Print the number of lines written to the output file
             print(f"Number of lines in output file (excluding header lines): {len(new_csv_lines) - 3}")
 
             final_file_name = os.path.join(final_path, f"{final_name}.csv")
@@ -65,9 +65,10 @@ def read_csv_xml(path_csv, path_xml, variables, final_path, final_name):
                 print(f"The directory {final_path} does not exist.")
                 return
 
-            with open(final_file_name, 'w') as file:
-                for line in new_csv_lines:
-                    file.write(line + '\n')
+            with open(final_file_name, 'w', encoding='utf-8', newline='\n') as file:
+                for idx, line in enumerate(new_csv_lines):
+                    file.write(line + '\n')  # Ensure each line ends with a newline character
+                    print(f"Writing line {idx + 1}: {line}")  # Debugging: Print each line being written
             print(f"Data written successfully to {final_file_name}")
     except Exception as e:
         print(f"Error processing file: {e}")
@@ -168,3 +169,4 @@ root.grid_rowconfigure(2, weight=1)
 root.grid_columnconfigure(1, weight=1)
 
 root.mainloop()
+
