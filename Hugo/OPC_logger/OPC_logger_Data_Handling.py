@@ -112,11 +112,6 @@ def read_csv_xml(path_csv, xml_vars, selected_indices, final_path, final_name):
                 else:
                     print(f"[{xml_vars[idx][1]}] not present in CSV file. Skipping column.")
 
-            # Debugging info
-            print(f"Original CSV headers: {original_headers}")
-            print(f"Valid column indices: {valid_indices}")
-            print(f"Final column headers: {column_names}")
-
             # Process the selected rows
             processed_data = []
             for row_num, row in enumerate(reader):
@@ -132,9 +127,6 @@ def read_csv_xml(path_csv, xml_vars, selected_indices, final_path, final_name):
                         print(f"Row {row_num + 1}: Invalid EPOCH time '{row[0]}'. Skipping column.")
                 else:
                     print(f"Row {row_num + 1}: Insufficient columns. Continuing with valid data.")
-
-            # Debugging info
-            print(f"Processed {len(processed_data)} rows for the final output.")
 
         # Write the filtered data to the output CSV
         final_file_name = os.path.join(final_path, f"{final_name}.csv")
@@ -251,4 +243,3 @@ Label(root, text="Select Variables:").grid(row=4, column=0, pady=(10, 0), padx=1
 Button(root, text="Process Files", command=process_files).grid(row=5, column=1, pady=(20, 0))
 
 root.mainloop()
-
