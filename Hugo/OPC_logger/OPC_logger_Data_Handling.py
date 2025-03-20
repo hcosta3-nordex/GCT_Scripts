@@ -210,13 +210,7 @@ def update_variable_choices():
 # GUI setup
 root = Tk()
 root.title("CWE Data Preparation")
-root.geometry("800x600")
-
-# Frame for variables
-vars_frame = ttk.Frame(root)
-vars_frame.grid(row=4, column=1, pady=(10, 0), padx=10, sticky="nsew")
-root.grid_rowconfigure(4, weight=1)
-root.grid_columnconfigure(1, weight=1)
+root.geometry("800x500")  # Reduced window height for better alignment
 
 # Labels and input fields
 Label(root, text="CWE data .zip file:").grid(row=0, column=0, pady=(10, 0), padx=10)
@@ -229,17 +223,22 @@ xml_entry = Entry(root, width=60)
 xml_entry.grid(row=1, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=select_xml_file).grid(row=1, column=2, pady=(10, 0), padx=10)
 
-Label(root, text="Final Output Path:").grid(row=2, column=0, pady=(10, 0), padx=10)
+Label(root, text="Select Variables:").grid(row=2, column=0, pady=(10, 0), padx=10)
+vars_frame = ttk.Frame(root)
+vars_frame.grid(row=2, column=1, pady=(10, 0), padx=10, sticky="nsew")
+root.grid_rowconfigure(2, weight=1)
+root.grid_columnconfigure(1, weight=1)
+
+Label(root, text="Final Output Path:").grid(row=3, column=0, pady=(10, 0), padx=10)
 final_path_entry = Entry(root, width=60)
-final_path_entry.grid(row=2, column=1, pady=(10, 0))
-Button(root, text="Browse...", command=select_final_path).grid(row=2, column=2, pady=(10, 0), padx=10)
+final_path_entry.grid(row=3, column=1, pady=(10, 0))
+Button(root, text="Browse...", command=select_final_path).grid(row=3, column=2, pady=(10, 0), padx=10)
 
-Label(root, text="Final File Name (without .csv):").grid(row=3, column=0, pady=(10, 0), padx=10)
-final_name_entry = Entry(root, width=60)  # Define the missing final_name_entry
-final_name_entry.grid(row=3, column=1, pady=(10, 0))
+Label(root, text="Final File Name (without .csv):").grid(row=4, column=0, pady=(10, 0), padx=10)
+final_name_entry = Entry(root, width=60)
+final_name_entry.grid(row=4, column=1, pady=(10, 0))
 
-Label(root, text="Select Variables:").grid(row=4, column=0, pady=(10, 0), padx=10)
-
-Button(root, text="Process Files", command=process_files).grid(row=5, column=1, pady=(20, 0))
+# Process Files button placed closer
+Button(root, text="Process Files", command=process_files).grid(row=5, column=1, pady=(20, 10))
 
 root.mainloop()
