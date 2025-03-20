@@ -234,7 +234,7 @@ final_path_entry = Entry(root, width=60)
 final_path_entry.grid(row=2, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=select_final_path).grid(row=2, column=2, pady=(10, 0), padx=10)
 
-Label(root, text="Final File Name:").grid(row=3, column=0, pady=(10, 0), padx=10)
+Label(root, text="Final File Name (without .csv):").grid(row=3, column=0, pady=(10, 0), padx=10)
 final_name_entry = Entry(root, width=60)  # Define the missing final_name_entry
 final_name_entry.grid(row=3, column=1, pady=(10, 0))
 
