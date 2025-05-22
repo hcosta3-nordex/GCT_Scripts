@@ -40,7 +40,7 @@ def filter_csv():
 
             # Always include the first three rows
             for i, row in enumerate(reader, start=1):
-                if i <= 2:
+                if i <= 3:
                     filtered_data.append(row)
                     continue
 
