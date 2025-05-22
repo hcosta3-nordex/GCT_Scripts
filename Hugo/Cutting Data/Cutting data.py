@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import re
 
-# Function to check if the time is within the range
+# Function to split and compare time components directly
 def is_within_time_range(time_str, start_time_str, end_time_str):
     try:
         hh, mm, ss_ms = time_str.split(':')
@@ -22,7 +22,7 @@ def is_within_time_range(time_str, start_time_str, end_time_str):
     except ValueError:
         return False
 
-# Function to filter rows in the CSV file
+# Function to filter rows
 def filter_csv():
     try:
         start_time = start_time_var.get().strip().replace('"', '').replace('\r', '').replace('\n', '')
@@ -40,16 +40,13 @@ def filter_csv():
 
             # Always include the first three rows
             for i, row in enumerate(reader, start=1):
-                if i <= 3:
+                if i <= 2:
                     filtered_data.append(row)
                     continue
 
-                # Ensure the row contains enough columns
-                if len(row) < 2:
-                    print(f"Skipping malformed row: {row}")
-                    continue
-
-                time_part = row[1].strip().replace('"', '').replace('\r', '').replace('\n', '')
+                # Apply filtering logic to rows starting from the 4th row
+                date_time = row[0]
+                time_part = date_time.split(';')[1].strip().replace('"', '').replace('\r', '').replace('\n', '')
 
                 if not re.match(time_pattern, time_part):
                     continue
@@ -65,13 +62,12 @@ def filter_csv():
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-# Function to browse input file
+# Function to browse files
 def browse_file(var):
     filepath = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
     if filepath:
         var.set(filepath)
 
-# Function to save output file
 def save_file(var):
     filepath = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
     if filepath:
