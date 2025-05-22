@@ -3,24 +3,25 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import re
 
-# Function to split and compare time components directly
-def is_within_time_range(time_str, start_time_str, end_time_str):
+# Function to convert time string to an integer for comparison
+def time_to_int(time_str):
     try:
         hh, mm, ss_ms = time_str.split(':')
         ss, ms = ss_ms.split('.')
-        time_components = (int(hh), int(mm), int(ss), int(ms))
-
-        start_hh, start_mm, start_ss_ms = start_time_str.split(':')
-        start_ss, start_ms = start_ss_ms.split('.')
-        start_components = (int(start_hh), int(start_mm), int(start_ss), int(start_ms))
-
-        end_hh, end_mm, end_ss_ms = end_time_str.split(':')
-        end_ss, end_ms = end_ss_ms.split('.')
-        end_components = (int(end_hh), int(end_mm), int(end_ss), int(end_ms))
-
-        return start_components <= time_components <= end_components
+        return int(hh) * 10000000 + int(mm) * 100000 + int(ss) * 1000 + int(ms)  # Convert to HHMMSSMMM format
     except ValueError:
+        return None
+
+# Function to check if the time is within the range
+def is_within_time_range(time_str, start_time_str, end_time_str):
+    time_int = time_to_int(time_str)
+    start_int = time_to_int(start_time_str)
+    end_int = time_to_int(end_time_str)
+
+    if time_int is None or start_int is None or end_int is None:
         return False
+
+    return start_int <= time_int <= end_int
 
 # Function to filter rows
 def filter_csv():
@@ -40,7 +41,7 @@ def filter_csv():
 
             # Always include the first three rows
             for i, row in enumerate(reader, start=1):
-                if i <= 3:
+                if i <= 2:
                     filtered_data.append(row)
                     continue
 
