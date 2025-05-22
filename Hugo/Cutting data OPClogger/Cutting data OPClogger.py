@@ -27,8 +27,6 @@ def filter_csv():
         start_time = start_time_var.get().strip()
         end_time = end_time_var.get().strip()
 
-        print(f"Start Time (int): {time_to_int(start_time)}, End Time (int): {time_to_int(end_time)}")  # Debugging
-
         with open(input_file_var.get(), mode='r', newline='', encoding='utf-8') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')  # Use comma as delimiter
             filtered_data = []
@@ -50,10 +48,8 @@ def filter_csv():
                     continue  # Skip malformed rows
 
                 time_int = time_to_int(time_str)
-                print(f"Processing row: {row}, Extracted Time (int): {time_int}, Raw Time: {time_str}")  # Debugging
 
                 if time_int is None:
-                    print(f"Skipping due to invalid time: {time_str}")  # Debugging
                     continue
 
                 if is_within_time_range(time_str, start_time, end_time):
