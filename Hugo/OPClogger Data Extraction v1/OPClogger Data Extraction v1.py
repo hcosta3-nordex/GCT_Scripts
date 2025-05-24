@@ -92,7 +92,7 @@ def create_raw_file(combined_csv, xml_path, raw_output_file):
                     raw_data = [formatted_dt]  # Store formatted Date Time as first column
 
                     # Store ANA signals only once (skip duplicates in combined file)
-                    raw_data.extend(row[1:ana_limit_index])  
+                    raw_data.extend(row[1:ana_limit_index+1])  
 
                     # Determine starting index for binary conversion (Skipping Excel columns 770-1537 → Python indices 769-1536)
                     conversion_start_index = ana_limit_index*2 +1
