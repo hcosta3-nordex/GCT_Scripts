@@ -96,7 +96,6 @@ def create_raw_file(combined_csv, xml_path, raw_output_file):
 
                     # Determine starting index for binary conversion (Skipping Excel columns 770-1537 → Python indices 769-1536)
                     conversion_start_index = ana_limit_index*2 +1
-                    print(f"Starting binary conversion at index: {conversion_start_index}")  # Debugging output
 
                     # Convert values **after** ANA signals to binary (each bit stored separately)
                     binary_values = []
