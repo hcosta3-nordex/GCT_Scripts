@@ -155,18 +155,21 @@ def create_final_file(combined_csv, raw_file, xml_variables, selected_indices, f
             # Write headers to final file
             writer.writerow(chosen_headers)
 
+            # Write back the first row before processing the rest
+            filtered_data = [first_row[0]]  # Keep Date Time column
+            filtered_data += [first_row[idx] for idx in adjusted_indices]  # Select indexed columns
+            writer.writerow(filtered_data)
+
             # Process remaining data rows
             for raw_row in raw_reader:
                 filtered_data = [raw_row[0]]  # Keep Date Time column
                 filtered_data += [raw_row[idx] for idx in adjusted_indices]  # Select indexed columns
-
                 writer.writerow(filtered_data)
 
         print(f"Final file '{final_output}' created successfully.")
 
     except Exception as e:
         print(f"Error creating final file: {e}")
-
 
 # GUI functions
 # Function to delete extracted files
