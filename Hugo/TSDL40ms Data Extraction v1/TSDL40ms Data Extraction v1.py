@@ -86,37 +86,43 @@ def create_raw_file(combined_csv, xml_path, raw_output_file):
     if ana_limit_index is None:
         print("Failed to determine ANA limit index. Aborting process.")
         return
+    
+    print(f"Ana limit: {ana_limit_index}")
+    print(f"Binary conversion start: {ana_limit_index+1}")
 
+    
     try:
         with open(combined_csv, 'r', encoding='utf-8') as infile, open(raw_output_file, 'w', encoding='utf-8', newline='') as outfile:
             reader = csv.reader(infile, delimiter=';')
             writer = csv.writer(outfile, delimiter=';')
 
-            # Skip metadata & headers
-            next(reader)
-            next(reader)
-            headers = next(reader)
+            # Skip all three headers
+            for _ in range(3):
+                next(reader)
 
             for row in reader:
-                raw_data = row[:ana_limit_index]  # Preserve initial columns
-
-                for value in row[ana_limit_index:]:
+                raw_data = row[:ana_limit_index]  # Preserve initial columns (Date, Time, ANA signals)
+                
+                # Convert remaining values (after ANA signals) to binary
+                binary_values = []
+                for value in row[ana_limit_index+1:]:  
                     try:
-                        int_value = int(value)  # Ensure conversion from string
-                        binary_representation = f"{int_value:016b}"  # Convert to fixed 16-bit binary
-                        binary_representation = binary_representation[::-1]  # Reverse binary representation
-                        raw_data.append(binary_representation)
+                        int_value = int(float(value))  # Convert properly
+                        binary_representation = f"{int_value:016b}"[::-1]  # Reverse binary for LSB first
+                        binary_values.extend(binary_representation)  # Store each bit separately
                     except ValueError:
-                        print(f"Skipping non-numeric value '{value}'")
                         continue
 
+                raw_data.extend(binary_values)  # Append binary values **after** ANA signals
+
                 writer.writerow(raw_data)
+
+            print(f"Final number of columns in last processed row: {len(raw_data)}")
 
             print(f"Raw file '{raw_output_file}' created successfully.")
 
     except Exception as e:
         print(f"Error processing raw file: {e}")
-
 
 # Function to create final file using metadata, chosen headers, and raw file data
 def create_final_file(combined_csv, raw_file, xml_variables, selected_indices, final_output):
@@ -168,8 +174,6 @@ def create_final_file(combined_csv, raw_file, xml_variables, selected_indices, f
                 # Check for out-of-range indices
                 for idx in adjusted_indices:
                     if idx >= len(raw_row):
-                        print(f"Error: Index {idx} is out of range! Raw row has {len(raw_row)} columns.")
-                        print(f"Raw row content: {raw_row}")  # Debugging full row content
                         return  # Exit to prevent writing incorrect data
 
                 filtered_data = [raw_row[idx] for idx in adjusted_indices]
