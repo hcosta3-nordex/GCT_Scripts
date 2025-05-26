@@ -101,7 +101,7 @@ def create_raw_file(combined_csv, xml_path, raw_output_file):
                 next(reader)
 
             for row in reader:
-                raw_data = row[:ana_limit_index]  # Preserve initial columns (Date, Time, ANA signals)
+                raw_data = row[:ana_limit_index+1]  # Preserve initial columns (Date, Time, ANA signals)
                 
                 # Convert remaining values (after ANA signals) to binary
                 binary_values = []
@@ -117,6 +117,7 @@ def create_raw_file(combined_csv, xml_path, raw_output_file):
 
                 writer.writerow(raw_data)
 
+            print(f"Binary conversion start index: {ana_limit_index+1}")
             print(f"Final number of columns in last processed row: {len(raw_data)}")
 
             print(f"Raw file '{raw_output_file}' created successfully.")
