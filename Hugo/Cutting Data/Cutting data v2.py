@@ -41,13 +41,13 @@ def filter_csv():
 
             # Always include the first three rows
             for i, row in enumerate(reader, start=1):
-                if i <= 2:
+                if i <= 3:
                     filtered_data.append(row)
                     continue
 
                 # Apply filtering logic to rows starting from the 4th row
                 if len(row) > 1:  # Ensure the row has enough columns
-                    time_part = row[0].split(';')[1].strip().replace('"', '')
+                    time_part = row[1].strip().replace('"', '').replace('\r', '').replace('\n', '')
 
                     if not re.match(time_pattern, time_part):
                         continue
