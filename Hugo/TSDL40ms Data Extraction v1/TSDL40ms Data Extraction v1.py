@@ -253,6 +253,14 @@ def process_files():
     except Exception as e:
         messagebox.showerror("Error", f"Failed to create final file: {e}")
         print(f"Error creating final file: {e}")
+    
+    # Final step: Cleanup intermediate files
+    try:
+        os.remove(combined_csv_path)
+        os.remove(raw_output_file)
+        print("Temporary files removed: combined.csv and raw_file.csv")
+    except Exception as e:
+        print(f"Error deleting temporary files: {e}")
 
 
 def select_zip_file():
