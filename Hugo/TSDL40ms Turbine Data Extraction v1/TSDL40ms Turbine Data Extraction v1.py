@@ -329,7 +329,7 @@ root.title("TSDL40ms Turbine Data Extraction v1")
 root.geometry("800x500")
 
 # Labels and input fields
-Label(root, text="CWE data .zip file:").grid(row=0, column=0, pady=(10, 0), padx=10)
+Label(root, text="WTG data .zip file:").grid(row=0, column=0, pady=(10, 0), padx=10)
 zip_path_entry = Entry(root, width=60)
 zip_path_entry.grid(row=0, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=select_zip_file).grid(row=0, column=2, pady=(10, 0), padx=10)
