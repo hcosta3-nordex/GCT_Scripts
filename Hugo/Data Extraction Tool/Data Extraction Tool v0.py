@@ -6,6 +6,7 @@ import stat
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from tkinter import Tk, Label, Entry, Button, filedialog, messagebox, Listbox, ttk, END
+import time
 
 # Global variables
 selected_indices = []
@@ -306,31 +307,55 @@ def process_files():
         return
 
     extract_to = "extracted_files"
+
+    print("⏳ Extracting ZIP files...")
+    t0 = time.time()
     extract_nested_zip(zip_path, extract_to)
+    print(f"✅ Extraction completed in {time.time() - t0:.2f} seconds")
 
     if source_selected == "TSDL":
+        print("🔄 Combining CSV files (TSDL)...")
+        t1 = time.time()
         combined_csv_path = os.path.join(final_path, "combined.csv")
         combine_csv_tsdl(extract_to, combined_csv_path)
+        print(f"✅ Combined in {time.time() - t1:.2f} seconds")
+
         delete_extracted_files(extract_to)
 
-        raw_output_file = os.path.join(final_path, "raw_file.csv")
+        print("🔄 Creating raw file (TSDL)...")
+        t2 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
+        raw_output_file = os.path.join(final_path, "raw_file.csv")
         create_raw_file_tsdl(combined_csv_path, xml_path, raw_output_file, prefix)
+        print(f"✅ Raw file created in {time.time() - t2:.2f} seconds")
 
+        print("🔄 Creating final file (TSDL)...")
+        t3 = time.time()
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_tsdl(combined_csv_path, raw_output_file, xml_variables, selected_indices, final_output_file)
+        print(f"✅ Final file created in {time.time() - t3:.2f} seconds")
 
     elif source_selected == "OPClogger":
+        print("🔄 Combining CSV files (OPClogger)...")
+        t1 = time.time()
         combined_csv_path = os.path.join(final_path, "combined_opc.csv")
         combine_csv_opc(extract_to, combined_csv_path)
+        print(f"✅ Combined in {time.time() - t1:.2f} seconds")
+
         delete_extracted_files(extract_to)
 
-        raw_output_file = os.path.join(final_path, "raw_opc.csv")
+        print("🔄 Creating raw file (OPClogger)...")
+        t2 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
-        create_raw_file_opc(combined_csv_path, xml_path, raw_output_file,prefix)
+        raw_output_file = os.path.join(final_path, "raw_opc.csv")
+        create_raw_file_opc(combined_csv_path, xml_path, raw_output_file, prefix)
+        print(f"✅ Raw file created in {time.time() - t2:.2f} seconds")
 
+        print("🔄 Creating final file (OPClogger)...")
+        t3 = time.time()
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_opc(combined_csv_path, raw_output_file, xml_variables, selected_indices, final_output_file)
+        print(f"✅ Final file created in {time.time() - t3:.2f} seconds")
 
     else:
         messagebox.showerror("Error", f"Unknown source selected: {source_selected}")
