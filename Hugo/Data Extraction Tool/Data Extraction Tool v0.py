@@ -5,7 +5,7 @@ import shutil
 import stat
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from tkinter import Tk, Label, Entry, Button, filedialog, messagebox, Listbox, ttk
+from tkinter import Tk, Label, Entry, Button, filedialog, messagebox, Listbox, ttk, END
 
 # Global variables
 selected_indices = []
@@ -200,7 +200,7 @@ def create_final_file_opc(combined_csv, raw_file, xml_variables, selected_indice
     except Exception as e:
         print(f"Error creating final file: {e}")
 
-##GUI##
+# GUI 
 
 def extract_nested_zip(zipped_file, extract_to='.'):
     try:
@@ -351,13 +351,14 @@ root.geometry("1000x600")
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(10, 0), padx=10)
 zip_path_entry = Entry(root, width=60)
 zip_path_entry.grid(row=0, column=1, pady=(10, 0))
-Button(root, text="Browse...", command=lambda: zip_path_entry.insert(0, filedialog.askopenfilename(filetypes=[("ZIP Files", "*.zip")]))).grid(row=0, column=2, pady=(10, 0), padx=10)
+Button(root, text="Browse...", command=lambda: [zip_path_entry.delete(0, END), zip_path_entry.insert(0, filedialog.askopenfilename(filetypes=[("ZIP Files", "*.zip")]))]).grid(row=0, column=2, pady=(10, 0), padx=10)
 
 # XML file input (row 1)
 Label(root, text="XML File:").grid(row=1, column=0, pady=(10, 0), padx=10)
 xml_entry = Entry(root, width=60)
+xml_entry.bind("<FocusOut>", lambda e: update_variable_choices())
 xml_entry.grid(row=1, column=1, pady=(10, 0))
-Button(root, text="Browse...", command=lambda: [xml_entry.insert(0, filedialog.askopenfilename(filetypes=[("XML Files", "*.xml")])), update_variable_choices()]).grid(row=1, column=2, pady=(10, 0), padx=10)
+Button(root, text="Browse...", command=lambda: [xml_entry.delete(0, END), xml_entry.insert(0, filedialog.askopenfilename(filetypes=[("XML Files", "*.xml")])), update_variable_choices()]).grid(row=1, column=2, pady=(10, 0), padx=10)
 
 # Mode and Source selectors (row 2, subtly shifted right and close together)
 selector_frame = ttk.Frame(root)
@@ -390,7 +391,7 @@ root.grid_columnconfigure(1, weight=1)
 Label(root, text="Final Output Path:").grid(row=5, column=0, pady=(10, 0), padx=10)
 final_path_entry = Entry(root, width=60)
 final_path_entry.grid(row=5, column=1, pady=(10, 0))
-Button(root, text="Browse...", command=lambda: final_path_entry.insert(0, filedialog.askdirectory())).grid(row=5, column=2, pady=(10, 0), padx=10)
+Button(root, text="Browse...", command=lambda: [final_path_entry.delete(0, END), final_path_entry.insert(0, filedialog.askdirectory())]).grid(row=5, column=2, pady=(10, 0), padx=10)
 
 # Output file name
 Label(root, text="Final File Name (without .csv):").grid(row=6, column=0, pady=(10, 0), padx=10)
