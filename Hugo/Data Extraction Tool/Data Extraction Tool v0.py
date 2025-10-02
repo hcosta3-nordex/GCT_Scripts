@@ -114,12 +114,12 @@ def create_final_file_tsdl(combined_csv, raw_file, xml_variables, selected_indic
 
 # ─── OPCLOGGER FUNCTIONS ────────────────────────────────────────────────────────
 
-def get_ana_limit_index_opc(xml_path):
+def get_ana_limit_index_opc(xml_path,prefix="ANA"):
     try:
         tree = ET.parse(xml_path)
         root = tree.getroot()
         headers = [param.attrib['id'] for param in root.findall('.//text')]
-        ana_indices = [i for i, header in enumerate(headers) if header.startswith("ANA")]
+        ana_indices = [i for i, header in enumerate(headers) if header.startswith(prefix)]
         return max(ana_indices, default=0) + 1
     except Exception as e:
         print(f"Error reading XML: {e}")
@@ -152,8 +152,8 @@ def combine_csv_opc(extract_to, output_file):
                             for row in reader:
                                 writer.writerow(row)
 
-def create_raw_file_opc(combined_csv, xml_path, raw_output_file):
-    ana_limit_index = get_ana_limit_index_opc(xml_path)
+def create_raw_file_opc(combined_csv, xml_path, raw_output_file,prefix="ANA"):
+    ana_limit_index = get_ana_limit_index_opc(xml_path,prefix)
     if ana_limit_index is None:
         return
     try:
@@ -326,7 +326,8 @@ def process_files():
         delete_extracted_files(extract_to)
 
         raw_output_file = os.path.join(final_path, "raw_opc.csv")
-        create_raw_file_opc(combined_csv_path, xml_path, raw_output_file)
+        prefix = "ANA" if mode_selected == "CWE" else "TR"
+        create_raw_file_opc(combined_csv_path, xml_path, raw_output_file,prefix)
 
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_opc(combined_csv_path, raw_output_file, xml_variables, selected_indices, final_output_file)
