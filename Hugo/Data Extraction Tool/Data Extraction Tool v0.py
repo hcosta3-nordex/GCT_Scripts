@@ -8,7 +8,6 @@ from datetime import datetime
 from tkinter import Tk, Label, Entry, Button, filedialog, messagebox, Listbox, ttk, END
 import time
 
-# Global variables
 selected_indices = []
 xml_variables = []
 filter_options = []
@@ -113,7 +112,7 @@ def create_final_file_tsdl(combined_csv, raw_file, xml_variables, selected_indic
     except Exception as e:
         print(f"Error creating final file: {e}")
 
-# ─── OPCLOGGER FUNCTIONS ────────────────────────────────────────────────────────
+# ─── OPCLOGGER ────────────────────────────────────────────────────────
 
 def get_ana_limit_index_opc(xml_path,prefix="ANA"):
     try:
@@ -201,7 +200,7 @@ def create_final_file_opc(combined_csv, raw_file, xml_variables, selected_indice
     except Exception as e:
         print(f"Error creating final file: {e}")
 
-# GUI 
+# ─── GUI functions ─────────────────────────────────────────────────────────────
 
 def extract_nested_zip(zipped_file, extract_to='.'):
     try:
@@ -368,27 +367,24 @@ def process_files():
     except Exception as e:
         print(f"Error deleting temporary files: {e}")
 
-# GUI window
+# ─── GUI Window ─────────────────────────────────────────────────────────────
 root = Tk()
 root.title("Data Extraction Tool")
 root.geometry("1000x600")
 
-# ZIP file input
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(10, 0), padx=10)
 zip_path_entry = Entry(root, width=60)
 zip_path_entry.grid(row=0, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=lambda: [zip_path_entry.delete(0, END), zip_path_entry.insert(0, filedialog.askopenfilename(filetypes=[("ZIP Files", "*.zip")]))]).grid(row=0, column=2, pady=(10, 0), padx=10)
 
-# XML file input (row 1)
 Label(root, text="XML File:").grid(row=1, column=0, pady=(10, 0), padx=10)
 xml_entry = Entry(root, width=60)
 xml_entry.bind("<FocusOut>", lambda e: update_variable_choices())
 xml_entry.grid(row=1, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=lambda: [xml_entry.delete(0, END), xml_entry.insert(0, filedialog.askopenfilename(filetypes=[("XML Files", "*.xml")])), update_variable_choices()]).grid(row=1, column=2, pady=(10, 0), padx=10)
 
-# Mode and Source selectors (row 2, subtly shifted right and close together)
 selector_frame = ttk.Frame(root)
-selector_frame.grid(row=2, column=1, padx=(230, 0), pady=(5, 0), sticky='w')  # Slight right shift
+selector_frame.grid(row=2, column=1, padx=(230, 0), pady=(5, 0), sticky='w') 
 
 Label(selector_frame, text="Mode:").grid(row=0, column=0, padx=(0, 5))
 mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA"], state="readonly", width=10)
@@ -400,35 +396,28 @@ source_var = ttk.Combobox(selector_frame, values=["TSDL", "OPClogger"], state="r
 source_var.grid(row=0, column=3, padx=(0, 0))
 source_var.set("TSDL")
 
-# Filter selector
 Label(root, text="Apply Filter:").grid(row=3, column=0, pady=(10, 0), padx=10)
 filter_var = ttk.Combobox(root, state="readonly", width=20)
 filter_var.grid(row=3, column=1, pady=(10, 0), sticky="w")
 filter_var.set("Manual")
 
-# Variable selection
 Label(root, text="Select Variables:").grid(row=4, column=0, pady=(10, 0), padx=10)
 vars_frame = ttk.Frame(root)
 vars_frame.grid(row=4, column=1, columnspan=2, pady=(10, 0), padx=10, sticky="nsew")
 root.grid_rowconfigure(4, weight=1)
 root.grid_columnconfigure(1, weight=1)
 
-# Output path
 Label(root, text="Final Output Path:").grid(row=5, column=0, pady=(10, 0), padx=10)
 final_path_entry = Entry(root, width=60)
 final_path_entry.grid(row=5, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=lambda: [final_path_entry.delete(0, END), final_path_entry.insert(0, filedialog.askdirectory())]).grid(row=5, column=2, pady=(10, 0), padx=10)
 
-# Output file name
 Label(root, text="Final File Name (without .csv):").grid(row=6, column=0, pady=(10, 0), padx=10)
 final_name_entry = Entry(root, width=60)
 final_name_entry.grid(row=6, column=1, pady=(10, 0))
 
-# Process button
 Button(root, text="Process Files", command=process_files).grid(row=7, column=1, pady=(20, 10))
 
-# Load filters on startup
 load_filters()
 
-# Start GUI loop
 root.mainloop()
