@@ -312,8 +312,8 @@ def process_files():
     extract_nested_zip(zip_path, extract_to)
     print(f"✅ Extraction completed in {time.time() - t0:.2f} seconds")
 
-    if source_selected == "TSDL":
-        print("🔄 Combining CSV files (TSDL)...")
+    if source_selected == "TSDL (Export CSV)":
+        print("🔄 Combining CSV files...")
         t1 = time.time()
         combined_csv_path = os.path.join(final_path, "combined.csv")
         combine_csv_tsdl(extract_to, combined_csv_path)
@@ -321,21 +321,21 @@ def process_files():
 
         delete_extracted_files(extract_to)
 
-        print("🔄 Creating raw file (TSDL)...")
+        print("🔄 Creating raw file...")
         t2 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         raw_output_file = os.path.join(final_path, "raw_file.csv")
         create_raw_file_tsdl(combined_csv_path, xml_path, raw_output_file, prefix)
         print(f"✅ Raw file created in {time.time() - t2:.2f} seconds")
 
-        print("🔄 Creating final file (TSDL)...")
+        print("🔄 Creating final file...")
         t3 = time.time()
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_tsdl(combined_csv_path, raw_output_file, xml_variables, selected_indices, final_output_file)
         print(f"✅ Final file created in {time.time() - t3:.2f} seconds")
 
     elif source_selected == "OPClogger":
-        print("🔄 Combining CSV files (OPClogger)...")
+        print("🔄 Combining CSV files...")
         t1 = time.time()
         combined_csv_path = os.path.join(final_path, "combined_opc.csv")
         combine_csv_opc(extract_to, combined_csv_path)
@@ -343,14 +343,14 @@ def process_files():
 
         delete_extracted_files(extract_to)
 
-        print("🔄 Creating raw file (OPClogger)...")
+        print("🔄 Creating raw file...")
         t2 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         raw_output_file = os.path.join(final_path, "raw_opc.csv")
         create_raw_file_opc(combined_csv_path, xml_path, raw_output_file, prefix)
         print(f"✅ Raw file created in {time.time() - t2:.2f} seconds")
 
-        print("🔄 Creating final file (OPClogger)...")
+        print("🔄 Creating final file...")
         t3 = time.time()
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_opc(combined_csv_path, raw_output_file, xml_variables, selected_indices, final_output_file)
@@ -384,7 +384,7 @@ xml_entry.grid(row=1, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=lambda: [xml_entry.delete(0, END), xml_entry.insert(0, filedialog.askopenfilename(filetypes=[("XML Files", "*.xml")])), update_variable_choices()]).grid(row=1, column=2, pady=(10, 0), padx=10)
 
 selector_frame = ttk.Frame(root)
-selector_frame.grid(row=2, column=1, padx=(230, 0), pady=(5, 0), sticky='w') 
+selector_frame.grid(row=2, column=1, padx=(210, 0), pady=(5, 0), sticky='w') 
 
 Label(selector_frame, text="Mode:").grid(row=0, column=0, padx=(0, 5))
 mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA"], state="readonly", width=10)
@@ -392,9 +392,9 @@ mode_var.grid(row=0, column=1, padx=(0, 8))
 mode_var.set("CWE")
 
 Label(selector_frame, text="Source:").grid(row=0, column=2, padx=(5, 5))
-source_var = ttk.Combobox(selector_frame, values=["TSDL", "OPClogger"], state="readonly", width=10)
+source_var = ttk.Combobox(selector_frame, values=["TSDL (Export CSV)", "OPClogger"], state="readonly", width=16)
 source_var.grid(row=0, column=3, padx=(0, 0))
-source_var.set("TSDL")
+source_var.set("TSDL (Export CSV)")
 
 Label(root, text="Apply Filter:").grid(row=3, column=0, pady=(10, 0), padx=10)
 filter_var = ttk.Combobox(root, state="readonly", width=20)
