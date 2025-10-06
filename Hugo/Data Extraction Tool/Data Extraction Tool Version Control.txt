@@ -1,0 +1,13 @@
+V 0
+
+Merge of TDSL40ms, OPClogger for both WEA and CWE
+Filters for signals created. This feature relies on Filters.txt file, so please don't change the name and have it configured in the .bat/.py folder.
+Filters should follow the example below. This is meant to be added to Filters.txt.
+
+Test1,Test2,...
+Signal1_Test1,Signal2_Test1,...
+Signal1_Test2,Signal2_Test2,...
+
+Notes: 
+1)For turbine extraction check xml file. If in there the first FM is a spare you need to delete that line since that should be WEA system OK. Until bug is fixed, please have this in mind.
+2)Older turbine Softwares only have, according to xml, 300 ana signals which might not be the case. If that's not the case just use a xml from a newer version with 768 ANA signals (this creates no problems with the extraction)
