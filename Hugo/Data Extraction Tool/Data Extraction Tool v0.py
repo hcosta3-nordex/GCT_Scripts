@@ -200,7 +200,7 @@ def create_final_file_opc(combined_csv, raw_file, xml_variables, selected_indice
     except Exception as e:
         print(f"Error creating final file: {e}")
 
-# ─── GUI functions ─────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────
 
 def extract_nested_zip(zipped_file, extract_to='.'):
     try:
@@ -367,7 +367,7 @@ def process_files():
     except Exception as e:
         print(f"Error deleting temporary files: {e}")
 
-# ─── GUI Window ─────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────
 root = Tk()
 root.title("Data Extraction Tool")
 root.geometry("1000x600")
