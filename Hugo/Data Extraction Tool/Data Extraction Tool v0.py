@@ -386,12 +386,12 @@ Button(root, text="Browse...", command=lambda: [xml_entry.delete(0, END), xml_en
 selector_frame = ttk.Frame(root)
 selector_frame.grid(row=2, column=1, padx=(210, 0), pady=(5, 0), sticky='w') 
 
-Label(selector_frame, text="Mode:").grid(row=0, column=0, padx=(0, 5))
+Label(selector_frame, text="Source:").grid(row=0, column=0, padx=(0, 5))
 mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA"], state="readonly", width=10)
 mode_var.grid(row=0, column=1, padx=(0, 8))
 mode_var.set("CWE")
 
-Label(selector_frame, text="Source:").grid(row=0, column=2, padx=(5, 5))
+Label(selector_frame, text="Export:").grid(row=0, column=2, padx=(5, 5))
 source_var = ttk.Combobox(selector_frame, values=["TSDL (Export CSV)", "OPClogger"], state="readonly", width=16)
 source_var.grid(row=0, column=3, padx=(0, 0))
 source_var.set("TSDL (Export CSV)")
