@@ -115,7 +115,7 @@ def update_treeview_columns(mode):
         output_tree.column(col, width=0)
 
     if mode == "NC2-NC2":
-        columns = ("Parameter/Alarm", "Value at the beginning", "Value at the end")
+        columns = ("Parameter", "Value at the beginning", "Value at the end")
     else:
         columns = ("Parameter", "NC2 value", "PCMS value")
 
@@ -134,18 +134,18 @@ def load_mode_specific_ui(*args):
     dynamic_frame.grid_columnconfigure(1, weight=1)
 
     if mode == "NC2-NC2":
-        tk.Label(dynamic_frame, text="End Parameters File:").grid(row=0, column=0, padx=10, pady=(10, 0), sticky='w')
+        tk.Label(dynamic_frame, text="End Parameters CSV File:").grid(row=0, column=0, padx=10, pady=(10, 0), sticky='w')
         e_file_entry = tk.Entry(dynamic_frame)
         e_file_entry.grid(row=0, column=1, sticky='nsew', pady=(10, 0))
         tk.Button(dynamic_frame, text="Browse...", command=select_e_file).grid(row=0, column=2, padx=10, pady=(10, 0))
 
-        tk.Label(dynamic_frame, text="Beginning Parameters File:").grid(row=1, column=0, padx=10, pady=(10, 0), sticky='w')
+        tk.Label(dynamic_frame, text="Beginning Parameters CSV File:").grid(row=1, column=0, padx=10, pady=(10, 0), sticky='w')
         b_file_entry = tk.Entry(dynamic_frame)
         b_file_entry.grid(row=1, column=1, sticky='nsew', pady=(10, 0))
         tk.Button(dynamic_frame, text="Browse...", command=select_b_file).grid(row=1, column=2, padx=10, pady=(10, 0))
 
     elif mode == "NC2-PCMS":
-        tk.Label(dynamic_frame, text="NC2 Parameter File:").grid(row=0, column=0, padx=10, pady=(10, 0), sticky='w')
+        tk.Label(dynamic_frame, text="NC2 Parameter CSV File:").grid(row=0, column=0, padx=10, pady=(10, 0), sticky='w')
         e_file_entry = tk.Entry(dynamic_frame)
         e_file_entry.grid(row=0, column=1, sticky='nsew', pady=(10, 0))
         tk.Button(dynamic_frame, text="Browse...", command=select_e_file).grid(row=0, column=2, padx=10, pady=(10, 0))
