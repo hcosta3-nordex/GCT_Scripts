@@ -13,7 +13,7 @@ xml_variables = []
 filter_options = []
 filter_signals = []
 
-# ─── TSDL FUNCTIONS ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────── TSDL FUNCTIONS ─────────────────────────────────────────────────────────────
 
 def get_ana_limit_index_tsdl(xml_path, prefix="ANA"):
     try:
@@ -112,7 +112,7 @@ def create_final_file_tsdl(combined_csv, raw_file, xml_variables, selected_indic
     except Exception as e:
         print(f"Error creating final file: {e}")
 
-# ─── OPCLOGGER ────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────── OPCLOGGER ──────────────────────────────────────────────────────────────────
 
 def get_ana_limit_index_opc(xml_path,prefix="ANA"):
     try:
