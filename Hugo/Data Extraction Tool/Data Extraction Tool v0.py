@@ -337,7 +337,7 @@ def process_files():
     elif source_selected == "OPClogger":
         print("🔄 Combining CSV files...")
         t1 = time.time()
-        combined_csv_path = os.path.join(final_path, "combined_opc.csv")
+        combined_csv_path = os.path.join(final_path, "combined.csv")
         combine_csv_opc(extract_to, combined_csv_path)
         print(f"✅ Combined in {time.time() - t1:.2f} seconds")
 
@@ -346,7 +346,7 @@ def process_files():
         print("🔄 Creating raw file...")
         t2 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
-        raw_output_file = os.path.join(final_path, "raw_opc.csv")
+        raw_output_file = os.path.join(final_path, "raw_file.csv")
         create_raw_file_opc(combined_csv_path, xml_path, raw_output_file, prefix)
         print(f"✅ Raw file created in {time.time() - t2:.2f} seconds")
 
