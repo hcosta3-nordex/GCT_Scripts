@@ -187,13 +187,5 @@ output_frame.grid_columnconfigure(0, weight=1)
 output_tree = ttk.Treeview(output_frame, show="headings")
 output_tree.pack(fill='both', expand=True)
 
-vsb = ttk.Scrollbar(output_frame, orient="vertical", command=output_tree.yview)
-output_tree.configure(yscrollcommand=vsb.set)
-vsb.pack(side='right', fill='y')
-
-hsb = ttk.Scrollbar(output_frame, orient="horizontal", command=output_tree.xview)
-output_tree.configure(xscrollcommand=hsb.set)
-hsb.pack(side='bottom', fill='x')
-
 load_mode_specific_ui()
 root.mainloop()
