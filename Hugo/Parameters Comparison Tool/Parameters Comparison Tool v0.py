@@ -160,7 +160,7 @@ def load_mode_specific_ui(*args):
     output_tree.delete(*output_tree.get_children())
 
 root = tk.Tk()
-root.title("Parameter Comparison")
+root.title("Parameter Comparison Tool")
 root.geometry("800x600")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
