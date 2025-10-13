@@ -183,8 +183,7 @@ def load_mode_specific_ui(*args):
     save_button=tk.Button(dynamic_frame,text="Save", command=lambda:save(output_tree),state=tk.DISABLED) # disable SAVE button initially
     save_button.grid(row=2, column=2, pady=10)
 
-def save(output_tree):
-        
+def save(output_tree): 
     file_path = filedialog.asksaveasfilename(
         defaultextension=".csv",
         filetypes=[("Excel", "*.csv"), ("All files", "*.*")] 
@@ -200,7 +199,6 @@ def save(output_tree):
             row = output_tree.item(row_id)["values"]
             writer.writerow(row)
     messagebox.showinfo("Completed", "Saved sucessfully.")
-
 
 root = tk.Tk()
 root.title("Parameter Comparison Tool")
