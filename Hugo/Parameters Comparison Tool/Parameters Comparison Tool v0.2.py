@@ -190,14 +190,13 @@ def save(output_tree):
     )
     with open(file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
-        
         columns = output_tree["columns"]
         writer.writerow(columns)
-        
-        
+
         for row_id in output_tree.get_children():
             row = output_tree.item(row_id)["values"]
             writer.writerow(row)
+            
     messagebox.showinfo("Completed", "Saved sucessfully.")
 
 root = tk.Tk()
