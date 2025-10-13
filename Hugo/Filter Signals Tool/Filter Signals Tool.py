@@ -11,8 +11,8 @@ input_file_var = tk.StringVar()
 output_file_var = tk.StringVar()
 start_time_var = tk.StringVar()
 end_time_var = tk.StringVar()
-mode_var = tk.StringVar(value="TSDL")  
-last_mode = [mode_var.get()] 
+mode_var = tk.StringVar(value="TSDL")
+last_mode = [None]  # Ensures update_time_examples runs on startup
 
 def update_time_examples(*args):
     current_mode = mode_var.get()
@@ -21,7 +21,7 @@ def update_time_examples(*args):
             start_time_var.set("10:00:00.000")
             end_time_var.set("12:00:00.000")
         elif current_mode == "OPClogger":
-            start_time_var.set("08:00:00")
+            start_time_var.set("10:00:00")
             end_time_var.set("12:00:00")
         last_mode[0] = current_mode
 
