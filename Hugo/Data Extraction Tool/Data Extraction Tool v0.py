@@ -4,7 +4,7 @@ import zipfile
 import shutil
 import stat
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timezone
 from tkinter import Tk, Label, Entry, Button, filedialog, messagebox, Listbox, ttk, END
 import time
 
@@ -164,7 +164,7 @@ def create_raw_file_opc(combined_csv, xml_path, raw_output_file,prefix="ANA"):
             for row in reader:
                 try:
                     epoch_time = int(float(row[0]))
-                    dt_obj = datetime.utcfromtimestamp(epoch_time)
+                    dt_obj = datetime.fromtimestamp(epoch_time, tz=timezone.utc)
                     formatted_dt = dt_obj.strftime("%Y-%m-%d %H:%M:%S")
                     raw_data = [formatted_dt] + row[1:ana_limit_index+1]
                     conversion_start_index = ana_limit_index * 2 + 1
