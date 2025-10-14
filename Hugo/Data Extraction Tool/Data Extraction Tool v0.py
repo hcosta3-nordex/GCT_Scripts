@@ -187,7 +187,7 @@ def create_final_file_opc(combined_csv, raw_file, xml_variables, selected_indice
     try:
         with open(raw_file, 'r', encoding='utf-8') as raw, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
             raw_reader = csv.reader(raw, delimiter=',')
-            writer = csv.writer(outfile, delimiter=',')
+            writer = csv.writer(outfile, delimiter=';')
             first_row = next(raw_reader, None)
             if not selected_indices or not first_row:
                 return
