@@ -19,7 +19,7 @@ def process_tsdl(input_path, output_path, start_time_str, increment_ms):
             reader = csv.reader(infile, delimiter=';')
             writer = csv.writer(outfile, delimiter=';')
 
-            for _ in range(3):  # TSDL has 3 header rows
+            for _ in range(3): 
                 writer.writerow(next(reader))
 
             for i, row in enumerate(reader):
@@ -48,7 +48,7 @@ def process_opclogger(input_path, output_path, start_time_str):
             reader = csv.reader(infile)
             writer = csv.writer(outfile)
 
-            writer.writerow(next(reader))  # OPCLogger has 1 header row
+            writer.writerow(next(reader))  
 
             for i, row in enumerate(reader):
                 if row and len(row[0].split()) == 2:
@@ -103,13 +103,11 @@ def run_processing():
     else:
         process_opclogger(input_path, output_path, start_time)
 
-# GUI setup
 root = tk.Tk()
-root.title("CSV Time Replacer")
+root.title("Timestamp Correction Tool")
 root.geometry("800x300")
 root.resizable(True, True)
 
-# Top format selector centered
 top_frame = tk.Frame(root)
 top_frame.pack(pady=10)
 tk.Label(top_frame, text="Format:").pack(side=tk.LEFT, padx=5)
@@ -118,36 +116,30 @@ mode_selector.pack(side=tk.LEFT)
 mode_selector.current(0)
 mode_selector.bind("<<ComboboxSelected>>", toggle_mode)
 
-# Main form frame
 form_frame = tk.Frame(root)
 form_frame.pack(fill="both", expand=True, padx=20)
 form_frame.grid_columnconfigure(1, weight=1)
 
-# Input file
 tk.Label(form_frame, text="Input CSV File:").grid(row=0, column=0, sticky="w", pady=5)
 input_entry = tk.Entry(form_frame)
 input_entry.grid(row=0, column=1, sticky="ew", padx=5)
 tk.Button(form_frame, text="Browse", command=browse_input).grid(row=0, column=2, padx=5)
 
-# Start time
 time_label = tk.Label(form_frame, text="Start Time (HH:MM:SS.sss):")
 time_label.grid(row=1, column=0, sticky="w", pady=5)
 time_entry = tk.Entry(form_frame)
 time_entry.grid(row=1, column=1, sticky="ew", padx=5)
 
-# Increment (TSDL only)
 increment_label = tk.Label(form_frame, text="Increment (ms):")
 increment_label.grid(row=2, column=0, sticky="w", pady=5)
 increment_entry = tk.Entry(form_frame)
 increment_entry.grid(row=2, column=1, sticky="ew", padx=5)
 
-# Output file
 tk.Label(form_frame, text="Output CSV File:").grid(row=3, column=0, sticky="w", pady=5)
 output_entry = tk.Entry(form_frame)
 output_entry.grid(row=3, column=1, sticky="ew", padx=5)
 tk.Button(form_frame, text="Browse", command=browse_output).grid(row=3, column=2, padx=5)
 
-# Process button
 tk.Button(root, text="Process CSV", command=run_processing).pack(pady=20)
 
 toggle_mode()
