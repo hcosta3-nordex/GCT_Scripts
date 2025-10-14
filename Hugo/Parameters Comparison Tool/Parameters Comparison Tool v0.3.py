@@ -147,7 +147,7 @@ def update_treeview_columns(mode):
     elif mode == "NC2-PCMS":
         columns = ("Parameter", "Description", "NC2 value", "PCMS value")
     else:
-        columns = ("Parameter", "Description", "PCMS A value", "PCMS B value")
+        columns = ("Parameter", "Description", "PCMS File A value", "PCMS File B value")
 
     output_tree["columns"] = columns
     for col in columns:
