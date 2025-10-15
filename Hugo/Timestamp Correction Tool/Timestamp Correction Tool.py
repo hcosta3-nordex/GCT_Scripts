@@ -13,16 +13,25 @@ def process_tsdl(input_path, output_path, start_time_str, increment_ms):
         return
 
     try:
-        with open(input_path, mode="r", newline="", encoding="utf-8") as infile, \
-             open(output_path, mode="w", newline="", encoding="utf-8") as outfile:
-
+        with open(input_path, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=';')
+            header = [next(reader) for _ in range(3)]
+            data = list(reader)
+
+        seen = set()
+        unique_data = []
+        for row in data:
+            row_tuple = tuple(row)
+            if row_tuple not in seen:
+                seen.add(row_tuple)
+                unique_data.append(row)
+
+        with open(output_path, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=';')
+            for h in header:
+                writer.writerow(h)
 
-            for _ in range(3): 
-                writer.writerow(next(reader))
-
-            for i, row in enumerate(reader):
+            for i, row in enumerate(unique_data):
                 timestamp = start_time + i * increment
                 formatted_time = timestamp.strftime("%H:%M:%S.%f")[:-3]
                 if len(row) >= 2:
@@ -42,15 +51,24 @@ def process_opclogger(input_path, output_path, start_time_str):
         return
 
     try:
-        with open(input_path, mode="r", newline="", encoding="utf-8") as infile, \
-             open(output_path, mode="w", newline="", encoding="utf-8") as outfile:
-
+        with open(input_path, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile)
+            header = next(reader)
+            data = list(reader)
+
+        seen = set()
+        unique_data = []
+        for row in data:
+            row_tuple = tuple(row)
+            if row_tuple not in seen:
+                seen.add(row_tuple)
+                unique_data.append(row)
+
+        with open(output_path, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile)
+            writer.writerow(header)
 
-            writer.writerow(next(reader))  
-
-            for i, row in enumerate(reader):
+            for i, row in enumerate(unique_data):
                 if row and len(row[0].split()) == 2:
                     original_date, _ = row[0].split()
                     new_time = (start_time + i * increment).strftime("%H:%M:%S")
