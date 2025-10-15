@@ -93,10 +93,16 @@ def browse_output():
 
 def toggle_mode(event=None):
     mode = mode_selector.get()
+
+    input_entry.delete(0, tk.END)
+    output_entry.delete(0, tk.END)
+    time_entry.delete(0, tk.END)
+    increment_entry.delete(0, tk.END)
+
     if mode == "TSDL":
         increment_label.grid()
         increment_entry.grid()
-        time_label.config(text="Start Time (HH:MM:SS.sss):")
+        time_label.config(text="Start Time (HH:MM:SS.mss):")
     else:
         increment_label.grid_remove()
         increment_entry.grid_remove()
