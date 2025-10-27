@@ -224,7 +224,6 @@ def get_ana_fm_st_number(xml_path):
     num_ST = int(num_ST / 16)
     num_FM = sum(1 for h in headers if h.startswith("FM"))
     num_FM = int(num_FM / 16)
-    print(f"🔍 Signals from XML — ANA: {num_ANA}, ST: {num_ST}, FM: {num_FM}")
     return num_ANA, num_ST, num_FM
 
     
