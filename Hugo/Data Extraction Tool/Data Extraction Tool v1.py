@@ -9,6 +9,7 @@ from tkinter import Tk, Label, Entry, Button, filedialog, messagebox, Listbox, t
 import time
 import struct
 from io import BytesIO
+import re
 
 selected_indices = []
 xml_variables = []
@@ -269,26 +270,35 @@ def process_hybrid_bin(bin_stream, writer, num_ANA, num_ST, num_FM):
         offset += record_size
         record_count += 1
 
+def extract_datetime(filename):
+    match = re.search(r'(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})', filename)
+    if match:
+        return datetime.strptime(match.group(1), '%Y_%m_%d_%H_%M_%S')
+    return datetime.min  
 
-def combine_bin_tsdl(zip_path, output_file,num_ANA, num_ST, num_FM):
+def combine_bin_tsdl(zip_path, output_file, num_ANA, num_ST, num_FM):
     with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile, delimiter=';')
         header_written = False
 
-        for file_info in outer_zip.infolist():
-            if file_info.filename.lower().endswith('.bin.zip'):
-                with outer_zip.open(file_info) as nested_zip_bytes:
-                    nested_zip_data = nested_zip_bytes.read()
-                    with zipfile.ZipFile(BytesIO(nested_zip_data)) as nested_zip:
-                        for nested_file in nested_zip.infolist():
-                            if nested_file.filename.lower().endswith('.bin'):
-                                with nested_zip.open(nested_file) as bin_stream:
-                                    raw = bin_stream.read()
-                                    header_end = raw.find(b'\n')
-                                    if header_end == -1:
-                                        continue
-                                    data_only = BytesIO(raw[header_end + 1:])
-                                    process_hybrid_bin(data_only, writer, num_ANA, num_ST, num_FM)
+        bin_zip_files = sorted(
+            [f for f in outer_zip.infolist() if f.filename.lower().endswith('.bin.zip')],
+            key=lambda x: extract_datetime(x.filename)
+        )
+
+        for file_info in bin_zip_files:
+            with outer_zip.open(file_info) as nested_zip_bytes:
+                nested_zip_data = nested_zip_bytes.read()
+                with zipfile.ZipFile(BytesIO(nested_zip_data)) as nested_zip:
+                    for nested_file in nested_zip.infolist():
+                        if nested_file.filename.lower().endswith('.bin'):
+                            with nested_zip.open(nested_file) as bin_stream:
+                                raw = bin_stream.read()
+                                header_end = raw.find(b'\n')
+                                if header_end == -1:
+                                    continue
+                                data_only = BytesIO(raw[header_end + 1:])
+                                process_hybrid_bin(data_only, writer, num_ANA, num_ST, num_FM)
 
 def create_raw_file_tsdl_bin(combined_bin, xml_path, raw_output_file, prefix="ANA"):
     ana_limit_index = get_ana_limit_index_tsdl_bin(xml_path, prefix)
