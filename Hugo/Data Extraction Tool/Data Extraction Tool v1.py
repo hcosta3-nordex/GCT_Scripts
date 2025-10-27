@@ -323,8 +323,6 @@ def create_raw_file_tsdl_bin(combined_bin, xml_path, raw_output_file, prefix="AN
     except Exception as e:
         print(f"Error processing raw file: {e}")
 
-import csv
-
 def create_final_file_tsdl_bin(combined_bin, raw_file, xml_variables, selected_indices, final_output):
     try:
         with open(combined_bin, 'r', encoding='utf-8') as combined, \
