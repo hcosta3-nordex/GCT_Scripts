@@ -216,11 +216,11 @@ def get_ana_limit_index_tsdl_bin(xml_path, prefix="ANA"):
         print(f"Error reading XML: {e}")
         return None
     
-def get_ana_fm_st_number(xml_path):
+def get_ana_fm_st_number(xml_path,prefix):
     tree = ET.parse(xml_path)
     root = tree.getroot()
     headers = [param.attrib['id'] for param in root.findall('.//text')]
-    num_ANA = sum(1 for h in headers if h.startswith("ANA"))
+    num_ANA = sum(1 for h in headers if h.startswith(prefix))
     num_ST = sum(1 for h in headers if h.startswith("ST"))
     num_ST = int(num_ST / 16)
     num_FM = sum(1 for h in headers if h.startswith("FM"))
@@ -323,22 +323,35 @@ def create_raw_file_tsdl_bin(combined_bin, xml_path, raw_output_file, prefix="AN
     except Exception as e:
         print(f"Error processing raw file: {e}")
 
+import csv
+
 def create_final_file_tsdl_bin(combined_bin, raw_file, xml_variables, selected_indices, final_output):
     try:
-        with open(combined_bin, 'r', encoding='utf-8') as combined, open(raw_file, 'r', encoding='utf-8') as raw, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
+        with open(combined_bin, 'r', encoding='utf-8') as combined, \
+             open(raw_file, 'r', encoding='utf-8') as raw, \
+             open(final_output, 'w', encoding='utf-8', newline='') as outfile:
+
             combined_reader = csv.reader(combined, delimiter=';')
             raw_reader = csv.reader(raw, delimiter=';')
             writer = csv.writer(outfile, delimiter=';')
+
             if not selected_indices:
                 return
-            chosen_headers = ["Date Time"] + [f"{xml_variables[idx][0]} {xml_variables[idx][1]}" for idx in selected_indices]
+
+            chosen_headers = ["Date", "Time"] + [f"{xml_variables[idx][0]} {xml_variables[idx][1]}" for idx in selected_indices]
             adjusted_indices = [0] + [idx + 1 for idx in selected_indices]
             writer.writerow(chosen_headers)
+
             for raw_row in raw_reader:
-                filtered_data = [raw_row[idx] for idx in adjusted_indices]
-                writer.writerow(filtered_data)
+                date_time = raw_row[0].split(' ', 1)
+                date = date_time[0] if len(date_time) > 0 else ''
+                time = date_time[1] if len(date_time) > 1 else ''
+                other_data = [raw_row[idx] for idx in adjusted_indices[1:]]
+                writer.writerow([date, time] + other_data)
+
     except Exception as e:
         print(f"Error creating final file: {e}")
+
 
 # ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────────
 
@@ -511,13 +524,13 @@ def process_files():
         print("🔄 Combining BIN files...")
         t1 = time.time()
         combined_bin_path = os.path.join(final_path, "combined.csv")
-        num_ANA, num_ST, num_FM = get_ana_fm_st_number(xml_path)
+        prefix = "ANA" if mode_selected == "CWE" else "TR"
+        num_ANA, num_ST, num_FM = get_ana_fm_st_number(xml_path,prefix)
         combine_bin_tsdl(zip_path, combined_bin_path,num_ANA, num_ST, num_FM)
         print(f"✅ Combined in {time.time() - t1:.2f} seconds")
 
         print("🔄 Creating raw file...")
         t2 = time.time()
-        prefix = "ANA" if mode_selected == "CWE" else "TR"
         raw_output_file = os.path.join(final_path, "raw_file.csv")
         create_raw_file_tsdl_bin(combined_bin_path, xml_path, raw_output_file, prefix)
         print(f"✅ Raw file created in {time.time() - t2:.2f} seconds")
