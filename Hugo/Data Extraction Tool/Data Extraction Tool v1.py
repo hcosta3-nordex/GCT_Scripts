@@ -114,7 +114,7 @@ def create_final_file_tsdl(combined_csv, raw_file, xml_variables, selected_indic
     except Exception as e:
         print(f"Error creating final file: {e}")
 
-# ─────────────────────────────────────────────────────────── OPCLOGGER ──────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────── OPCLOGGER ──────────────────────────────────────────────────────────────────────
 
 def get_ana_limit_index_opc(xml_path,prefix="ANA"):
     try:
@@ -330,7 +330,7 @@ def create_final_file_tsdl_bin(combined_bin, raw_file, xml_variables, selected_i
     except Exception as e:
         print(f"Error creating final file: {e}")
 
-# ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────────
 
 def extract_nested_zip(zipped_file, extract_to='.'):
     try:
@@ -529,7 +529,7 @@ def process_files():
     except Exception as e:
         print(f"Error deleting temporary files: {e}")
 
-# ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 root = Tk()
 root.title("Data Extraction Tool")
 root.geometry("1000x600")
