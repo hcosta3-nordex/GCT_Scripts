@@ -71,7 +71,7 @@ def filter_csv():
         start_time = start_time_var.get().strip().replace('"', '').replace('\r', '').replace('\n', '')
         end_time = end_time_var.get().strip().replace('"', '').replace('\r', '').replace('\n', '')
 
-        if mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)"]:
+        if mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)","TSDL (Export)","TSDL v2 (Export)"]:
             time_pattern = r"^\d{2}:\d{2}:\d{2}\.\d{3}$"
             if not re.match(time_pattern, start_time) or not re.match(time_pattern, end_time):
                 raise ValueError("Invalid time format for TSDL")
@@ -81,14 +81,22 @@ def filter_csv():
                 filtered_data = []
 
                 for i, row in enumerate(reader, start=1):
-                    if i <= (2 if mode == "TSDL (Export CSV)" else 3):
-                        filtered_data.append(row)
-                        continue
-
+                    if mode == "TSDL (Export CSV)":
+                        if i <= 2:
+                            filtered_data.append(row)
+                            continue
+                    elif mode == "TSDL v2 (Export CSV)":
+                        if i <= 3:
+                            filtered_data.append(row)
+                            continue
+                    elif mode in ["TSDL (Export)", "TSDL v2 (Export)"]:
+                        if i <= 1:
+                            filtered_data.append(row)
+                            continue
                     if len(row) > 1:
-                        if mode == "TSDL (Export CSV)":
+                        if mode == "TSDL (Export CSV)" or mode == "TSDL (Export)":
                             time_part = row[0].split(';')[1].strip().replace('"', '')
-                        elif mode == "TSDL v2 (Export CSV)":
+                        elif mode == "TSDL v2 (Export CSV)" or mode == "TSDL v2 (Export)":
                             time_part = row[1].strip().replace('"', '')
                         else:
                             continue
@@ -126,7 +134,7 @@ def filter_csv():
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
 tk.Label(window, text="Export:").grid(row=0, column=0, padx=5, pady=5)
-mode_dropdown = ttk.Combobox(window, textvariable=mode_var, values=["TSDL (Export CSV)", "TSDL v2 (Export CSV)", "OPClogger"], state="readonly")
+mode_dropdown = ttk.Combobox(window, textvariable=mode_var, values=["TSDL (Export CSV)", "TSDL v2 (Export CSV)", "TSDL (Export)", "TSDL v2 (Export)" ,"OPClogger"], state="readonly")
 mode_dropdown.grid(row=0, column=1, padx=5, pady=5)
 
 tk.Label(window, text="Input File:").grid(row=1, column=0, padx=5, pady=5)
