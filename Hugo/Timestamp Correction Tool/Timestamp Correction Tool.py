@@ -21,7 +21,8 @@ def process_tsdl_csv(input_path, output_path, start_time_str, increment_ms):
         seen = set()
         unique_data = []
         for row in data:
-            row_tuple = tuple(row)
+            cleaned_row = [field.strip().strip('"') for field in row]
+            row_tuple = tuple(cleaned_row)
             if row_tuple not in seen:
                 seen.add(row_tuple)
                 unique_data.append(row)
@@ -137,38 +138,44 @@ def toggle_mode(event=None):
     time_entry.delete(0, tk.END)
     increment_entry.delete(0, tk.END)
 
-    if mode == "TSDL (Export CSV)" or mode == "TSDL (Export)":
+    if mode in ["TSDL (Export CSV)", "TSDL (Export)"]:
         increment_label.grid()
         increment_entry.grid()
         time_label.config(text="Start Time (HH:MM:SS.mss):")
+
     else:
         increment_label.grid_remove()
         increment_entry.grid_remove()
         time_label.config(text="Start Time (HH:MM:SS):")
 
 def run_processing():
-    input_path = input_entry.get()
-    output_path = output_entry.get()
-    start_time = time_entry.get()
-    increment = increment_entry.get()
-    mode = mode_selector.get()
+    try:
+        input_path = input_entry.get()
+        output_path = output_entry.get()
+        start_time = time_entry.get()
+        increment = increment_entry.get()
+        mode = mode_selector.get().strip()
 
-    if not input_path or not output_path or not start_time:
-        messagebox.showerror("Error", "Please fill in all required fields.")
-        return
+        if not input_path or not output_path or not start_time:
+            messagebox.showerror("Error", "Please fill in all required fields.")
+            return
 
-    if mode == "TSDL (Export CSV)":
-        if not increment:
-            messagebox.showerror("Error", "Please enter increment in milliseconds.")
-            return
-        process_tsdl_csv(input_path, output_path, start_time, increment)
-    if mode == "TSDL (Export)":
-        if not increment:
-            messagebox.showerror("Error", "Please enter increment in milliseconds.")
-            return
-        process_tsdl_bin(input_path, output_path, start_time, increment)
-    else:
-        process_opclogger(input_path, output_path, start_time)
+        if mode == "TSDL (Export CSV)":
+            if not increment:
+                messagebox.showerror("Error", "Please enter increment in milliseconds.")
+                return
+            process_tsdl_csv(input_path, output_path, start_time, increment)
+        elif mode == "TSDL (Export)":
+            if not increment:
+                messagebox.showerror("Error", "Please enter increment in milliseconds.")
+                return
+            process_tsdl_bin(input_path, output_path, start_time, increment)
+        elif mode == "OPCLogger":
+            process_opclogger(input_path, output_path, start_time)
+        else:
+            messagebox.showerror("Error", f"Unknown mode: {mode}")
+    except Exception as e:
+        messagebox.showerror("Unexpected Error", str(e))
 
 root = tk.Tk()
 root.title("Timestamp Correction Tool")
