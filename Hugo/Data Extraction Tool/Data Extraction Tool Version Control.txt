@@ -16,4 +16,5 @@ Notes:
 V1
 
 Bin extraction is now possible through TSDL (Export)
+Now only ANA's, FM's and ST's are displayed on select variables
 
