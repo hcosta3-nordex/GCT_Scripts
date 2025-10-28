@@ -17,7 +17,7 @@ last_mode = [None]
 def update_time_examples(*args):
     current_mode = mode_var.get()
     if current_mode != last_mode[0]:
-        if current_mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)"]:
+        if current_mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)","TSDL (Export)", "TSDL v2 (Export)"]:
             start_time_var.set("10:00:00.000")
             end_time_var.set("12:00:00.000")
         elif current_mode == "OPClogger":
