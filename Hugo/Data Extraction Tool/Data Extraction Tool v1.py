@@ -227,7 +227,6 @@ def get_ana_fm_st_number(xml_path,prefix):
     num_FM = int(num_FM / 16)
     return num_ANA, num_ST, num_FM
 
-    
 def decode_custom_timestamp(chunk):
     seconds = int.from_bytes(chunk[:4], byteorder='little')
     millis = int.from_bytes(chunk[4:], byteorder='little')
@@ -241,10 +240,13 @@ def decode_floats(chunk):
 def decode_uint16(chunk):
     return [struct.unpack('<H', chunk[i:i+2])[0] for i in range(0, len(chunk), 2)]
 
-def process_hybrid_bin(bin_stream, writer, num_ANA, num_ST, num_FM):
+def process_hybrid_bin(bin_stream, writer, num_ANA, num_ST, num_FM,prefix):
     num_float_signals = num_ANA
     num_uint16_signals = num_ST + num_FM
-    record_size = 6 + num_float_signals * 4 + num_uint16_signals * 2
+    if prefix == "ANA":
+        record_size = 6 + num_float_signals * 4 + num_uint16_signals * 2
+    else:
+        record_size = 6 + num_float_signals * 4 + (num_uint16_signals + 48) * 2 #for now 48 more 16bits are being written, if it ever changes just change the hardcoded 48
 
     raw = bin_stream.read()
 
@@ -276,7 +278,7 @@ def extract_datetime(filename):
         return datetime.strptime(match.group(1), '%Y_%m_%d_%H_%M_%S')
     return datetime.min  
 
-def combine_bin_tsdl(zip_path, output_file, num_ANA, num_ST, num_FM):
+def combine_bin_tsdl(zip_path, output_file, num_ANA, num_ST, num_FM,prefix):
     with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile, delimiter=';')
         header_written = False
@@ -298,7 +300,7 @@ def combine_bin_tsdl(zip_path, output_file, num_ANA, num_ST, num_FM):
                                 if header_end == -1:
                                     continue
                                 data_only = BytesIO(raw[header_end + 1:])
-                                process_hybrid_bin(data_only, writer, num_ANA, num_ST, num_FM)
+                                process_hybrid_bin(data_only, writer, num_ANA, num_ST, num_FM,prefix)
 
 def create_raw_file_tsdl_bin(combined_bin, xml_path, raw_output_file, prefix="ANA"):
     ana_limit_index = get_ana_limit_index_tsdl_bin(xml_path, prefix)
@@ -524,7 +526,7 @@ def process_files():
         combined_bin_path = os.path.join(final_path, "combined.csv")
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         num_ANA, num_ST, num_FM = get_ana_fm_st_number(xml_path,prefix)
-        combine_bin_tsdl(zip_path, combined_bin_path,num_ANA, num_ST, num_FM)
+        combine_bin_tsdl(zip_path, combined_bin_path,num_ANA, num_ST, num_FM,prefix)
         print(f"✅ Combined in {time.time() - t1:.2f} seconds")
 
         print("🔄 Creating raw file...")
