@@ -4,7 +4,7 @@ from tkinter import ttk
 import csv
 from datetime import datetime, timedelta
 
-def process_tsdl(input_path, output_path, start_time_str, increment_ms):
+def process_tsdl_csv(input_path, output_path, start_time_str, increment_ms):
     try:
         start_time = datetime.strptime(start_time_str, "%H:%M:%S.%f")
         increment = timedelta(milliseconds=int(increment_ms))
@@ -16,6 +16,44 @@ def process_tsdl(input_path, output_path, start_time_str, increment_ms):
         with open(input_path, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=';')
             header = [next(reader) for _ in range(3)]
+            data = list(reader)
+
+        seen = set()
+        unique_data = []
+        for row in data:
+            row_tuple = tuple(row)
+            if row_tuple not in seen:
+                seen.add(row_tuple)
+                unique_data.append(row)
+
+        with open(output_path, mode="w", newline="", encoding="utf-8") as outfile:
+            writer = csv.writer(outfile, delimiter=';')
+            for h in header:
+                writer.writerow(h)
+
+            for i, row in enumerate(unique_data):
+                timestamp = start_time + i * increment
+                formatted_time = timestamp.strftime("%H:%M:%S.%f")[:-3]
+                if len(row) >= 2:
+                    row[1] = formatted_time
+                writer.writerow(row)
+
+        messagebox.showinfo("Success", f"TSDL CSV saved to:\n{output_path}")
+    except Exception as e:
+        messagebox.showerror("Error", f"TSDL processing failed:\n{str(e)}")
+
+def process_tsdl_bin(input_path, output_path, start_time_str, increment_ms):
+    try:
+        start_time = datetime.strptime(start_time_str, "%H:%M:%S.%f")
+        increment = timedelta(milliseconds=int(increment_ms))
+    except ValueError:
+        messagebox.showerror("Error", "Invalid time format or increment.")
+        return
+
+    try:
+        with open(input_path, mode="r", newline="", encoding="utf-8") as infile:
+            reader = csv.reader(infile, delimiter=';')
+            header = [next(reader) for _ in range(1)]
             data = list(reader)
 
         seen = set()
@@ -99,7 +137,7 @@ def toggle_mode(event=None):
     time_entry.delete(0, tk.END)
     increment_entry.delete(0, tk.END)
 
-    if mode == "TSDL":
+    if mode == "TSDL (Export CSV)" or mode == "TSDL (Export)":
         increment_label.grid()
         increment_entry.grid()
         time_label.config(text="Start Time (HH:MM:SS.mss):")
@@ -119,11 +157,16 @@ def run_processing():
         messagebox.showerror("Error", "Please fill in all required fields.")
         return
 
-    if mode == "TSDL":
+    if mode == "TSDL (Export CSV)":
         if not increment:
             messagebox.showerror("Error", "Please enter increment in milliseconds.")
             return
-        process_tsdl(input_path, output_path, start_time, increment)
+        process_tsdl_csv(input_path, output_path, start_time, increment)
+    if mode == "TSDL (Export)":
+        if not increment:
+            messagebox.showerror("Error", "Please enter increment in milliseconds.")
+            return
+        process_tsdl_bin(input_path, output_path, start_time, increment)
     else:
         process_opclogger(input_path, output_path, start_time)
 
@@ -135,7 +178,7 @@ root.resizable(True, True)
 top_frame = tk.Frame(root)
 top_frame.pack(pady=10)
 tk.Label(top_frame, text="Format:").pack(side=tk.LEFT, padx=5)
-mode_selector = ttk.Combobox(top_frame, values=["TSDL", "OPCLogger"], state="readonly", width=15)
+mode_selector = ttk.Combobox(top_frame, values=["TSDL (Export CSV)","TSDL (Export)","OPCLogger"], state="readonly", width=15)
 mode_selector.pack(side=tk.LEFT)
 mode_selector.current(0)
 mode_selector.bind("<<ComboboxSelected>>", toggle_mode)
