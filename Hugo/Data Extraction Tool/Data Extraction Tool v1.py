@@ -523,22 +523,22 @@ def process_files():
     elif source_selected == "TSDL (Export)":
         print("🔄 Combining BIN files...")
         t1 = time.time()
-        combined_bin_path = os.path.join(final_path, "combined.csv")
+        combined_csv_path = os.path.join(final_path, "combined.csv")
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         num_ANA, num_ST, num_FM = get_ana_fm_st_number(xml_path,prefix)
-        combine_bin_tsdl(zip_path, combined_bin_path,num_ANA, num_ST, num_FM,prefix)
+        combine_bin_tsdl(zip_path, combined_csv_path,num_ANA, num_ST, num_FM,prefix)
         print(f"✅ Combined in {time.time() - t1:.2f} seconds")
 
         print("🔄 Creating raw file...")
         t2 = time.time()
         raw_output_file = os.path.join(final_path, "raw_file.csv")
-        create_raw_file_tsdl_bin(combined_bin_path, xml_path, raw_output_file, prefix)
+        create_raw_file_tsdl_bin(combined_csv_path, xml_path, raw_output_file, prefix)
         print(f"✅ Raw file created in {time.time() - t2:.2f} seconds")
 
         print("🔄 Creating final file...")
         t3 = time.time()
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
-        create_final_file_tsdl_bin(combined_bin_path, raw_output_file, xml_variables, selected_indices, final_output_file)
+        create_final_file_tsdl_bin(combined_csv_path, raw_output_file, xml_variables, selected_indices, final_output_file)
         print(f"✅ Final file created in {time.time() - t3:.2f} seconds")
 
     else:
@@ -547,7 +547,7 @@ def process_files():
 
     messagebox.showinfo("Success", f"Final file '{final_output_file}' created successfully.")
     try:
-        os.remove(combined_bin_path)
+        os.remove(combined_csv_path)
         os.remove(raw_output_file)
     except Exception as e:
         print(f"Error deleting temporary files: {e}")
