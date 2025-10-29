@@ -7,6 +7,8 @@ import re
 window = tk.Tk()
 window.title("Filter Signals Tool")
 
+window.columnconfigure(1, weight=1)
+
 input_file_var = tk.StringVar()
 output_file_var = tk.StringVar()
 start_time_var = tk.StringVar()
@@ -14,15 +16,24 @@ end_time_var = tk.StringVar()
 mode_var = tk.StringVar(value="TSDL (Export CSV)")
 last_mode = [None]
 
+start_time_label = tk.Label(window, text="Start Time:")
+start_time_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+end_time_label = tk.Label(window, text="End Time:")
+end_time_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+
 def update_time_examples(*args):
     current_mode = mode_var.get()
     if current_mode != last_mode[0]:
-        if current_mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)","TSDL (Export)", "TSDL v2 (Export)"]:
+        if current_mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)", "TSDL (Export)", "TSDL v2 (Export)"]:
             start_time_var.set("10:00:00.000")
             end_time_var.set("12:00:00.000")
+            start_time_label.config(text="Start Time: HH:MM:SS.MSS")
+            end_time_label.config(text="End Time: HH:MM:SS.MSS")
         elif current_mode == "OPClogger":
             start_time_var.set("10:00:00")
             end_time_var.set("12:00:00")
+            start_time_label.config(text="Start Time: HH:MM:SS")
+            end_time_label.config(text="End Time: HH:MM:SS")
         last_mode[0] = current_mode
 
 mode_var.trace_add("write", update_time_examples)
@@ -71,7 +82,7 @@ def filter_csv():
         start_time = start_time_var.get().strip().replace('"', '').replace('\r', '').replace('\n', '')
         end_time = end_time_var.get().strip().replace('"', '').replace('\r', '').replace('\n', '')
 
-        if mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)","TSDL (Export)","TSDL v2 (Export)"]:
+        if mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)", "TSDL (Export)", "TSDL v2 (Export)"]:
             time_pattern = r"^\d{2}:\d{2}:\d{2}\.\d{3}$"
             if not re.match(time_pattern, start_time) or not re.match(time_pattern, end_time):
                 raise ValueError("Invalid time format for TSDL")
@@ -81,26 +92,18 @@ def filter_csv():
                 filtered_data = []
 
                 for i, row in enumerate(reader, start=1):
-                    if mode == "TSDL (Export CSV)":
-                        if i <= 2:
-                            filtered_data.append(row)
-                            continue
-                    elif mode == "TSDL v2 (Export CSV)":
-                        if i <= 3:
-                            filtered_data.append(row)
-                            continue
-                    elif mode in ["TSDL (Export)", "TSDL v2 (Export)"]:
-                        if i <= 1:
-                            filtered_data.append(row)
-                            continue
-                    if len(row) > 1:
-                        if mode == "TSDL (Export CSV)" or mode == "TSDL (Export)":
-                            time_part = row[0].split(';')[1].strip().replace('"', '')
-                        elif mode == "TSDL v2 (Export CSV)" or mode == "TSDL v2 (Export)":
-                            time_part = row[1].strip().replace('"', '')
-                        else:
-                            continue
+                    if mode == "TSDL (Export CSV)" and i <= 2:
+                        filtered_data.append(row)
+                        continue
+                    elif mode == "TSDL v2 (Export CSV)" and i <= 3:
+                        filtered_data.append(row)
+                        continue
+                    elif mode in ["TSDL (Export)", "TSDL v2 (Export)"] and i <= 1:
+                        filtered_data.append(row)
+                        continue
 
+                    if len(row) > 1:
+                        time_part = row[1].strip().replace('"', '')
                         if not re.match(time_pattern, time_part):
                             continue
                         if is_within_time_range_tsdl(time_part, start_time, end_time):
@@ -133,22 +136,20 @@ def filter_csv():
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-tk.Label(window, text="Export:").grid(row=0, column=0, padx=5, pady=5)
-mode_dropdown = ttk.Combobox(window, textvariable=mode_var, values=["TSDL (Export CSV)", "TSDL v2 (Export CSV)", "TSDL (Export)", "TSDL v2 (Export)" ,"OPClogger"], state="readonly")
-mode_dropdown.grid(row=0, column=1, padx=5, pady=5)
+tk.Label(window, text="Export:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+mode_dropdown = ttk.Combobox(window, textvariable=mode_var, values=[
+    "TSDL (Export CSV)", "TSDL v2 (Export CSV)", "TSDL (Export)", "TSDL v2 (Export)", "OPClogger"], state="readonly")
+mode_dropdown.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-tk.Label(window, text="Input File:").grid(row=1, column=0, padx=5, pady=5)
-tk.Entry(window, textvariable=input_file_var, width=40).grid(row=1, column=1, padx=5, pady=5)
+tk.Label(window, text="Input File:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+tk.Entry(window, textvariable=input_file_var).grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 tk.Button(window, text="Browse", command=lambda: browse_file(input_file_var)).grid(row=1, column=2, padx=5, pady=5)
 
-tk.Label(window, text="Start Time:").grid(row=2, column=0, padx=5, pady=5)
-tk.Entry(window, textvariable=start_time_var, width=20).grid(row=2, column=1, padx=5, pady=5)
+tk.Entry(window, textvariable=start_time_var).grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+tk.Entry(window, textvariable=end_time_var).grid(row=3, column=1, padx=5, pady=5, sticky="ew")
 
-tk.Label(window, text="End Time:").grid(row=3, column=0, padx=5, pady=5)
-tk.Entry(window, textvariable=end_time_var, width=20).grid(row=3, column=1, padx=5, pady=5)
-
-tk.Label(window, text="Output File:").grid(row=4, column=0, padx=5, pady=5)
-tk.Entry(window, textvariable=output_file_var, width=40).grid(row=4, column=1, padx=5, pady=5)
+tk.Label(window, text="Output File:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
+tk.Entry(window, textvariable=output_file_var).grid(row=4, column=1, padx=5, pady=5, sticky="ew")
 tk.Button(window, text="Save As", command=lambda: save_file(output_file_var)).grid(row=4, column=2, padx=5, pady=5)
 
 tk.Button(window, text="Run", command=filter_csv).grid(row=5, column=1, pady=10)
