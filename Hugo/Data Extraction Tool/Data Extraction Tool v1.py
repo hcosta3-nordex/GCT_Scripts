@@ -246,7 +246,7 @@ def process_hybrid_bin(bin_stream, writer, num_ANA, num_ST, num_FM,prefix):
     if prefix == "ANA":
         record_size = 6 + num_float_signals * 4 + num_uint16_signals * 2
     else:
-        record_size = 6 + num_float_signals * 4 + (num_uint16_signals + 48) * 2 #for now 48 more 16bits are being written, if it ever changes just change the hardcoded 48
+        record_size = 6 + num_float_signals * 4 + (num_uint16_signals + 48) * 2 #for now 48 signals (16bits combined into 1 int) are being written, if it ever changes just change the hardcoded 48
 
     raw = bin_stream.read()
 
