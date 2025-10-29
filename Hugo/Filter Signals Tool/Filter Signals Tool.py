@@ -82,7 +82,7 @@ def filter_csv():
         start_time = start_time_var.get().strip().replace('"', '').replace('\r', '').replace('\n', '')
         end_time = end_time_var.get().strip().replace('"', '').replace('\r', '').replace('\n', '')
 
-        if mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)", "TSDL (Export)", "TSDL v2 (Export)"]:
+        if mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)","TSDL (Export)","TSDL v2 (Export)"]:
             time_pattern = r"^\d{2}:\d{2}:\d{2}\.\d{3}$"
             if not re.match(time_pattern, start_time) or not re.match(time_pattern, end_time):
                 raise ValueError("Invalid time format for TSDL")
@@ -92,18 +92,26 @@ def filter_csv():
                 filtered_data = []
 
                 for i, row in enumerate(reader, start=1):
-                    if mode == "TSDL (Export CSV)" and i <= 2:
-                        filtered_data.append(row)
-                        continue
-                    elif mode == "TSDL v2 (Export CSV)" and i <= 3:
-                        filtered_data.append(row)
-                        continue
-                    elif mode in ["TSDL (Export)", "TSDL v2 (Export)"] and i <= 1:
-                        filtered_data.append(row)
-                        continue
-
+                    if mode == "TSDL (Export CSV)":
+                        if i <= 2:
+                            filtered_data.append(row)
+                            continue
+                    elif mode == "TSDL v2 (Export CSV)":
+                        if i <= 3:
+                            filtered_data.append(row)
+                            continue
+                    elif mode in ["TSDL (Export)", "TSDL v2 (Export)"]:
+                        if i <= 1:
+                            filtered_data.append(row)
+                            continue
                     if len(row) > 1:
-                        time_part = row[1].strip().replace('"', '')
+                        if mode == "TSDL (Export CSV)" or mode == "TSDL (Export)":
+                            time_part = row[0].split(';')[1].strip().replace('"', '')
+                        elif mode == "TSDL v2 (Export CSV)" or mode == "TSDL v2 (Export)":
+                            time_part = row[1].strip().replace('"', '')
+                        else:
+                            continue
+
                         if not re.match(time_pattern, time_part):
                             continue
                         if is_within_time_range_tsdl(time_part, start_time, end_time):
