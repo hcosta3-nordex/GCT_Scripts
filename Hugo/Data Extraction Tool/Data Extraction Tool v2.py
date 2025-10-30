@@ -466,6 +466,9 @@ def update_variable_choices():
             item = var_listbox.get(i)
             var_id = item.split(":")[0].strip()
             selected_ids.add(var_id)
+        
+        if filter_var.get() != "Manual":
+            filter_var.set("Manual")
 
     var_listbox.bind('<<ListboxSelect>>', on_selection_change)
 
