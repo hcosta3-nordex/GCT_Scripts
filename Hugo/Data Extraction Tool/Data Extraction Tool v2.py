@@ -780,7 +780,7 @@ root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
 root.grid_columnconfigure(2, weight=1)
 
-Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(250, 5), sticky="e")
+Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(170, 5), sticky="e")
 
 filter_var = ttk.Combobox(filter_search_frame, state="readonly", width=20)
 filter_var.grid(row=0, column=1, padx=(0, 10))
