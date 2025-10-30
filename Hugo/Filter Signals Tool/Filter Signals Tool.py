@@ -25,13 +25,9 @@ def update_time_examples(*args):
     current_mode = mode_var.get()
     if current_mode != last_mode[0]:
         if current_mode in ["TSDL (Export CSV)", "TSDL v2 (Export CSV)", "TSDL (Export)", "TSDL v2 (Export)"]:
-            start_time_var.set("10:00:00.000")
-            end_time_var.set("12:00:00.000")
             start_time_label.config(text="Start Time: HH:MM:SS.MSS")
             end_time_label.config(text="End Time: HH:MM:SS.MSS")
         elif current_mode == "OPClogger":
-            start_time_var.set("10:00:00")
-            end_time_var.set("12:00:00")
             start_time_label.config(text="Start Time: HH:MM:SS")
             end_time_label.config(text="End Time: HH:MM:SS")
         last_mode[0] = current_mode
@@ -123,7 +119,7 @@ def filter_csv():
 
         elif mode == "OPClogger":
             with open(input_file_var.get(), mode='r', newline='', encoding='utf-8') as csvfile:
-                reader = csv.reader(csvfile, delimiter=',')
+                reader = csv.reader(csvfile, delimiter=';')
                 filtered_data = [next(reader)]
 
                 for row in reader:
