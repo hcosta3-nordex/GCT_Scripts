@@ -20,4 +20,6 @@ Now only ANA's, FM's and ST's are displayed on select variables
 
 V2
 
-Added search, load filter, save filter, delete filter and cancel buttons
+Added search, load filter, save filter, delete filter and cancel buttons.
+Fixed some sensibility of the interface.
+
