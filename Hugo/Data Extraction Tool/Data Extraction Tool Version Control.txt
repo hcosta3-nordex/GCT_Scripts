@@ -23,6 +23,11 @@ V2
 Added search, load filter, save filter, delete filter and cancel buttons.
 Fixed some sensibility of the interface.
 
+V2.3 
+
+The same as version 3, but without code cleaning. Do not use this version!
+
 V3
 
 Efficiency improvement, now files are not extracted, they directly read from .zip. Also, skipped the combination of files, instead raw file is written directly and then final file.
+
