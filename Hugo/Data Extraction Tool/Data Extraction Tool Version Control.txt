@@ -31,3 +31,8 @@ V3
 
 Efficiency improvement, now files are not extracted, they directly read from .zip. Also, skipped the combination of files, instead raw file is written directly and then final file.
 
+V4
+
+No auxiliary files are written, so there's no memory allocation and it's a bit faster than V3.
+
+
