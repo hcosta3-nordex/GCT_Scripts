@@ -45,7 +45,6 @@ def extract_datetime(filename):
 
 def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, selected_indices, final_output, prefix="ANA"):
     ana_limit_index = get_ana_limit_index_tsdl(xml_path, prefix)
-    print(ana_limit_index)
     adjusted_indices = [i + 2 for i in selected_indices]
     if ana_limit_index is None:
         return
