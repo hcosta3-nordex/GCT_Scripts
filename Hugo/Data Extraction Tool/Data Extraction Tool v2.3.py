@@ -325,23 +325,44 @@ def process_hybrid_bin(bin_stream, writer, num_ANA, num_ST, num_FM,prefix):
         offset += record_size
         record_count += 1
 
-def create_raw_file_tsdl_bin_from_nested_zip(zip_path, xml_path, raw_output_file, num_ANA, num_ST, num_FM, prefix="ANA"):
+def create_raw_file_tsdl_bin_from_nested_zip(zip_path, xml_path, raw_output_file, prefix="ANA"):
     ana_limit_index = get_ana_limit_index_tsdl_bin(xml_path, prefix)
     if ana_limit_index is None:
-        print("ANA limit index not found. Aborting.")
+        print("Could not determine ana_limit.")
         return
+
+    num_ANA, num_ST, num_FM = get_ana_fm_st_number(xml_path, prefix)
+
+    class BinaryConvertingWriter:
+        def __init__(self, csv_writer, ana_limit_index):
+            self.csv_writer = csv_writer
+            self.ana_limit_index = ana_limit_index
+
+        def writerow(self, row):
+            raw_data = row[:self.ana_limit_index + 1]
+            binary_values = []
+            for value in row[self.ana_limit_index + 1:]:
+                try:
+                    int_value = int(float(value))
+                    binary_representation = f"{int_value:016b}"[::-1]
+                    binary_values.extend(binary_representation)
+                except ValueError:
+                    continue
+            raw_data.extend(binary_values)
+            self.csv_writer.writerow(raw_data)
 
     try:
         with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(raw_output_file, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile, delimiter=';')
+            csv_writer = csv.writer(csvfile, delimiter=';')
+            custom_writer = BinaryConvertingWriter(csv_writer, ana_limit_index)
 
             bin_zip_files = sorted(
-                [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.bin.zip')],
-                key=extract_datetime
+                [f for f in outer_zip.infolist() if f.filename.lower().endswith('.bin.zip')],
+                key=lambda x: extract_datetime(x.filename)
             )
 
-            for filename in bin_zip_files:
-                with outer_zip.open(filename) as nested_zip_bytes:
+            for file_info in bin_zip_files:
+                with outer_zip.open(file_info) as nested_zip_bytes:
                     nested_zip_data = nested_zip_bytes.read()
                     with zipfile.ZipFile(BytesIO(nested_zip_data)) as nested_zip:
                         for nested_file in nested_zip.infolist():
@@ -352,10 +373,10 @@ def create_raw_file_tsdl_bin_from_nested_zip(zip_path, xml_path, raw_output_file
                                     if header_end == -1:
                                         continue
                                     data_only = BytesIO(raw[header_end + 1:])
-                                    process_hybrid_bin(data_only, writer, num_ANA, num_ST, num_FM, prefix)
+                                    process_hybrid_bin(data_only, custom_writer, num_ANA, num_ST, num_FM, prefix)
 
     except Exception as e:
-        print(f"Error processing nested ZIPs: {e}")
+        print(f"Error creating raw file: {e}")
 
 def create_final_file_tsdl_bin(raw_file, xml_variables, selected_indices, final_output):
     try:
@@ -366,46 +387,18 @@ def create_final_file_tsdl_bin(raw_file, xml_variables, selected_indices, final_
             writer = csv.writer(outfile, delimiter=';')
 
             if not selected_indices:
-                print("No selected indices provided.")
                 return
 
-            # Write header
-            chosen_headers = ["Date", "Time"] + [
-                f"{xml_variables[idx][0]} {xml_variables[idx][1]}" for idx in selected_indices
-            ]
+            chosen_headers = ["Date", "Time"] + [f"{xml_variables[idx][0]} {xml_variables[idx][1]}" for idx in selected_indices]
+            adjusted_indices = [0] + [idx + 1 for idx in selected_indices]
             writer.writerow(chosen_headers)
 
-            # Read first row for structure validation
-            first_line = next(raw_reader, None)
-            if not first_line:
-                print("Raw file is empty.")
-                return
-
-            print(f"First raw row: {first_line}")
-
-            # Validate selected indices
-            max_required_index = max([idx + 1 for idx in selected_indices])
-            if max_required_index >= len(first_line):
-                print("❌ One or more selected indices are out of bounds.")
-                return
-
-            # Write first row
-            date_time = first_line[0].split(' ', 1)
-            date = date_time[0] if len(date_time) > 0 else ''
-            time = date_time[1] if len(date_time) > 1 else ''
-            selected_data = [first_line[idx + 1] for idx in selected_indices]
-            writer.writerow([date, time] + selected_data)
-
-            # Write remaining rows
             for raw_row in raw_reader:
-                if len(raw_row) <= max_required_index + 1:
-                    continue  # Skip malformed rows
-
                 date_time = raw_row[0].split(' ', 1)
                 date = date_time[0] if len(date_time) > 0 else ''
                 time = date_time[1] if len(date_time) > 1 else ''
-                selected_data = [raw_row[idx + 1] for idx in selected_indices]
-                writer.writerow([date, time] + selected_data)
+                other_data = [raw_row[idx] for idx in adjusted_indices[1:]]
+                writer.writerow([date, time] + other_data)
 
     except Exception as e:
         print(f"Error creating final file: {e}")
@@ -560,7 +553,7 @@ def process_files():
     extract_to = "extracted_files"
 
     if source_selected == "TSDL (Export CSV)":
-        print("⏳ Processing nested ZIP files...")
+        print("🔄 Processing nested ZIP files...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         raw_output_file = os.path.join(final_path, "raw_file.csv")
@@ -579,7 +572,7 @@ def process_files():
         if cancel_requested: return
 
     elif source_selected == "OPClogger":
-        print("⏳ Processing nested ZIP files...")
+        print("🔄 Processing nested ZIP files...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         raw_output_file = os.path.join(final_path, "raw_file.csv")
@@ -598,13 +591,12 @@ def process_files():
         print(f"✅ Final file created in {time.time() - t1:.2f} seconds")
 
     elif source_selected == "TSDL (Export)":
-        print("⏳ Processing nested binary ZIP files...")
+        print("🔄 Processing nested ZIP files...")
         t1 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
-        num_ANA, num_ST, num_FM = get_ana_fm_st_number(xml_path, prefix)
         raw_output_file = os.path.join(final_path, "raw_file.csv")
 
-        create_raw_file_tsdl_bin_from_nested_zip(zip_path, xml_path, raw_output_file, num_ANA, num_ST, num_FM, prefix)
+        create_raw_file_tsdl_bin_from_nested_zip(zip_path, xml_path, raw_output_file, prefix)
         created_files.append(raw_output_file)
         if cancel_requested: return
         print(f"✅ Raw file created in {time.time() - t1:.2f} seconds")
@@ -623,7 +615,6 @@ def process_files():
 
     messagebox.showinfo("Success", f"Final file '{final_output_file}' created successfully.")
     try:
-        #os.remove(combined_csv_path)
         os.remove(raw_output_file)
     except Exception as e:
         print(f"Error deleting temporary files: {e}")
