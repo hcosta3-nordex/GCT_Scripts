@@ -45,6 +45,7 @@ def extract_datetime(filename):
 
 def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, selected_indices, final_output, prefix="ANA"):
     ana_limit_index = get_ana_limit_index_tsdl(xml_path, prefix)
+    print(ana_limit_index)
     adjusted_indices = [i + 2 for i in selected_indices]
     if ana_limit_index is None:
         return
@@ -96,7 +97,7 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
                                                         selected_values.append(value)
                                                     else:
                                                         bit_source_index = (signal_index - ana_limit_index) // 16
-                                                        bit_position = ((signal_index - ana_limit_index) % 16) -1 
+                                                        bit_position = ((signal_index - ana_limit_index) % 16) 
                                                         value_position = ana_limit_index + 1 + bit_source_index
 
                                                         if value_position >= len(row):
@@ -105,7 +106,7 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
 
                                                         raw_value = row[value_position]
                                                         int_value = int(float(raw_value))
-                                                        binary = f"{int_value:016b}"[::-1]
+                                                        binary = f"{int_value:016b}"
                                                         selected_bit = binary[bit_position]
                                                         selected_values.append(selected_bit)
                                                 except Exception as e:
@@ -222,7 +223,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                                         else:
                                                             conversion_start_index = ana_limit_index * 2 + 1
                                                             bit_source_index = (signal_index - ana_limit_index) // 16
-                                                            bit_position = ((signal_index - ana_limit_index) % 16) - 1
+                                                            bit_position = ((signal_index - ana_limit_index) % 16)
                                                             value_position = conversion_start_index + bit_source_index
 
                                                             if value_position >= len(row):
@@ -231,7 +232,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
 
                                                             raw_value = row[value_position]
                                                             int_value = int(float(raw_value))
-                                                            binary = f"{int_value:016b}"[::-1]
+                                                            binary = f"{int_value:016b}"
                                                             selected_bit = binary[bit_position]
                                                             selected_values.append(selected_bit)
                                                     except Exception:
