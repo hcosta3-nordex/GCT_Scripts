@@ -142,8 +142,8 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
                                                         value = row[signal_index]
                                                         selected_values.append(value)
                                                     else:
-                                                        bit_source_index = (signal_index - ana_limit_index) // 16
-                                                        bit_position = ((signal_index - ana_limit_index) % 16)
+                                                        bit_source_index = (signal_index - 1 - ana_limit_index) // 16
+                                                        bit_position = ((signal_index - 1 - ana_limit_index) % 16)
                                                         value_position = ana_limit_index + 1 + bit_source_index
 
                                                         if value_position >= len(row):
@@ -221,8 +221,8 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                                             selected_values.append(value)
                                                         else:
                                                             conversion_start_index = ana_limit_index * 2 + 1
-                                                            bit_source_index = (signal_index - ana_limit_index) // 16
-                                                            bit_position = ((signal_index - ana_limit_index) % 16)
+                                                            bit_source_index = (signal_index - 1 - ana_limit_index) // 16
+                                                            bit_position = ((signal_index - 1 - ana_limit_index) % 16)
                                                             value_position = conversion_start_index + bit_source_index
 
                                                             if value_position >= len(row):
@@ -271,8 +271,8 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                                             selected_values.append(value)
                                                         else:
                                                             conversion_start_index = ana_limit_index * 2 + 1
-                                                            bit_source_index = (signal_index - ana_limit_index) // 16
-                                                            bit_position = ((signal_index - ana_limit_index) % 16)
+                                                            bit_source_index = (signal_index - 1 - ana_limit_index) // 16
+                                                            bit_position = ((signal_index - 1 - ana_limit_index) % 16)
                                                             value_position = conversion_start_index + bit_source_index
 
                                                             if value_position >= len(row):
