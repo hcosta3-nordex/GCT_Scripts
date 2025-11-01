@@ -497,6 +497,9 @@ def update_variable_choices():
             var_id = item.split(":")[0].strip()
             selected_ids.add(var_id)
 
+        global selected_indices
+        selected_indices = [i for i, (id, _) in enumerate(xml_variables) if id in selected_ids]
+
     var_listbox.bind('<<ListboxSelect>>', on_selection_change)
 
     def apply_filter_selection():
