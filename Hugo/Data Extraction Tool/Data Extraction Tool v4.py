@@ -626,11 +626,12 @@ def cancel_and_cleanup():
     cancel_requested = True
 
     if processing_thread and processing_thread.is_alive():
-        processing_thread.join(timeout=5)
+        for _ in range(50): 
+            if not processing_thread.is_alive():
+                break
+            time.sleep(0.1)
 
     gc.collect()
-    time.sleep(1)
-
     messagebox.showinfo("Cancelled", "Processing was cancelled.")
 
 def save_filter_to_file(filter_name):
