@@ -298,10 +298,10 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
             metadata_written = False
             printed_first_timestamp = False
 
-            def process_bin(bin_stream):
+            def process_bin(bin):
                 nonlocal metadata_written, printed_first_timestamp
 
-                raw = bin_stream.read()
+                raw = bin.read()
                 first_newline = raw.find(b'\n')
                 second_newline = raw.find(b'\n', first_newline + 1)
                 if second_newline == -1:
