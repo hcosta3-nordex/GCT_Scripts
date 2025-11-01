@@ -665,6 +665,7 @@ def delete_filter(filter_name):
         messagebox.showerror("Error", f"Failed to delete filter: {e}")
 
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
+
 root = Tk()
 root.title("Data Extraction Tool")
 root.geometry("1000x600")
