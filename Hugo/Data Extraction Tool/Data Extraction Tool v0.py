@@ -369,7 +369,7 @@ def process_files():
 
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────
 root = Tk()
-root.title("Data Extraction Tool")
+root.title("Data Extraction Tool v0")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(10, 0), padx=10)
@@ -421,3 +421,4 @@ Button(root, text="Process Files", command=process_files).grid(row=7, column=1, 
 load_filters()
 
 root.mainloop()
+
