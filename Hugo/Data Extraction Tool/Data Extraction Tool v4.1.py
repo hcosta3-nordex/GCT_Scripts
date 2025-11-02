@@ -667,7 +667,7 @@ def delete_filter(filter_name):
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 
 root = Tk()
-root.title("Data Extraction Tool")
+root.title("Data Extraction Tool v4.1")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(10, 0), padx=10)
