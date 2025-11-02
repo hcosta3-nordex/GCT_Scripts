@@ -29,7 +29,7 @@ Efficiency improvement, now files are not extracted, they directly read from .zi
 
 V4
 
-No auxiliary files are written, so there's no memory allocation and it's a bit faster than V3.
+No auxiliary files are written, so there's no additional memory allocation and it's a bit faster than V3.
 
 V4.1
 
