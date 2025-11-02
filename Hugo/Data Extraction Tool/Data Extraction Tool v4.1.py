@@ -53,7 +53,7 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
         with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
             writer = csv.writer(outfile, delimiter=';')
 
-            bin_zip_files = sorted(
+            csv_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.csv.zip')],
                 key=extract_datetime
             )
@@ -107,8 +107,8 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
 
                     writer.writerow(date_time + selected_values)
 
-            if bin_zip_files:
-                for filename in bin_zip_files:
+            if csv_zip_files:
+                for filename in csv_zip_files:
                     with outer_zip.open(filename) as nested_zip_bytes:
                         nested_zip_data = nested_zip_bytes.read()
                         with zipfile.ZipFile(BytesIO(nested_zip_data)) as nested_zip:
