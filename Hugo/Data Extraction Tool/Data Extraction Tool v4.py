@@ -53,14 +53,14 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
         with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
             writer = csv.writer(outfile, delimiter=';')
 
-            bin_zip_files = sorted(
+            csv_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.csv.zip')],
                 key=extract_datetime
             )
 
             metadata_written = False
 
-            for filename in bin_zip_files:
+            for filename in csv_zip_files:
                 with outer_zip.open(filename) as nested_zip_bytes:
                     nested_zip_data = nested_zip_bytes.read()
                     with zipfile.ZipFile(BytesIO(nested_zip_data)) as nested_zip:
@@ -626,10 +626,10 @@ def cancel_and_cleanup():
     cancel_requested = True
 
     if processing_thread and processing_thread.is_alive():
-        for _ in range(50): 
-            if not processing_thread.is_alive():
-                break
+        wait_time = 0
+        while processing_thread.is_alive() and wait_time < 5:
             time.sleep(0.1)
+            wait_time += 0.1
 
     gc.collect()
     messagebox.showinfo("Cancelled", "Processing was cancelled.")
