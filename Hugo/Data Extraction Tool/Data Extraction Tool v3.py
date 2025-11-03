@@ -161,6 +161,14 @@ def get_ana_limit_index_opc(xml_path,prefix="ANA"):
         print(f"Error reading XML: {e}")
         return None
 
+def extract_datetime_opc(filename):
+    match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{2})', filename)
+    if match:
+        date_str = match.group(1)
+        hour_str = match.group(2)
+        return datetime.strptime(f"{date_str}_{hour_str}", '%Y-%m-%d_%H')
+    return datetime.min
+
 def create_raw_file_opc_from_nested_zip(zip_path, xml_path, raw_output_file, prefix="ANA"):
     ana_limit_index = get_ana_limit_index_opc(xml_path, prefix)
     if ana_limit_index is None:
@@ -173,7 +181,7 @@ def create_raw_file_opc_from_nested_zip(zip_path, xml_path, raw_output_file, pre
 
             csv_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.zip')],
-                key=extract_datetime
+                key=extract_datetime_opc
             )
 
             for filename in csv_zip_files:
@@ -799,4 +807,3 @@ Button(button_frame, text="Cancel", command=cancel_and_cleanup).grid(row=0, colu
 load_filters()
 
 root.mainloop()
-
