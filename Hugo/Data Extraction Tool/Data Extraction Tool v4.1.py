@@ -145,6 +145,14 @@ def get_ana_limit_index_opc(xml_path,prefix="ANA"):
     except Exception as e:
         print(f"Error reading XML: {e}")
         return None
+    
+def extract_datetime_opc(filename):
+    match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{2})', filename)
+    if match:
+        date_str = match.group(1)
+        hour_str = match.group(2)
+        return datetime.strptime(f"{date_str}_{hour_str}", '%Y-%m-%d_%H')
+    return datetime.min
 
 def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, selected_indices, final_output, prefix="ANA"):
     ana_limit_index = get_ana_limit_index_opc(xml_path, prefix)
@@ -159,12 +167,12 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
 
             csv_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.zip')],
-                key=extract_datetime
+                key=extract_datetime_opc
             )
 
             metadata_written = False
 
-            def process_csv_stream(csv_file, encoding):
+            def process_csv(csv_file, encoding):
                 nonlocal metadata_written
                 text_stream = io.TextIOWrapper(csv_file, encoding=encoding)
                 reader = csv.reader(text_stream, delimiter=',')
@@ -223,19 +231,19 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                 if nested_file.filename.lower().endswith('.csv'):
                                     try:
                                         with nested_zip.open(nested_file) as csv_file:
-                                            process_csv_stream(csv_file, 'utf-8')
+                                            process_csv(csv_file, 'utf-8')
                                     except UnicodeDecodeError:
                                         with nested_zip.open(nested_file) as csv_file:
-                                            process_csv_stream(csv_file, 'iso-8859-1')
+                                            process_csv(csv_file, 'iso-8859-1')
             else:
                 for file_info in outer_zip.infolist():
                     if file_info.filename.lower().endswith('.csv'):
                         try:
                             with outer_zip.open(file_info) as csv_file:
-                                process_csv_stream(csv_file, 'utf-8')
+                                process_csv(csv_file, 'utf-8')
                         except UnicodeDecodeError:
                             with outer_zip.open(file_info) as csv_file:
-                                process_csv_stream(csv_file, 'iso-8859-1')
+                                process_csv(csv_file, 'iso-8859-1')
 
     except Exception as e:
         print(f"Error processing ZIPs: {e}")
@@ -529,7 +537,7 @@ def process_files():
         return
 
     if source_selected == "TSDL (Export CSV)":
-        print("🔄 Processing and creating final file from nested ZIPs...")
+        print("🔄 Processing and creating final file from TSDL (Export CSV) zip...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
@@ -540,7 +548,7 @@ def process_files():
             return
 
     elif source_selected == "OPClogger":
-        print("🔄 Processing and creating final file from nested ZIPs...")
+        print("🔄 Processing and creating final file from OPClogger zip...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
@@ -551,7 +559,7 @@ def process_files():
             return
 
     elif source_selected == "TSDL (Export)":
-        print("🔄 Processing and creating final file from nested ZIPs...")
+        print("🔄 Processing and creating final file from TSDL (Export) zip...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
