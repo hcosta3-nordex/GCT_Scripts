@@ -34,3 +34,7 @@ No auxiliary files are written, so there's no additional memory allocation and i
 V4.1
 
 Fixed the dependency on nested zip, now it's possible to have a flat zip containing either csv or bin.
+
+V5
+
+Added MFR OPClogger and TSDL extraction
