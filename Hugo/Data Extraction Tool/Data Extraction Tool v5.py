@@ -53,7 +53,7 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
 
     try:
         with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
-            writer = csv.writer(outfile, delimiter=';')
+            writer = csv.writer(outfile, delimiter=',')
 
             csv_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.csv.zip')],
@@ -78,7 +78,8 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
                         f"{xml_variables[idx][0]} {xml_variables[idx][1]}"
                         for idx in selected_indices
                     ]
-                    writer.writerow(chosen_headers)
+                    cleaned_headers = [header.replace(',', '') for header in chosen_headers]
+                    writer.writerow(cleaned_headers)
                     metadata_written = True
 
                 for row in reader:
@@ -165,7 +166,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
 
     try:
         with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
-            writer = csv.writer(outfile, delimiter=';')
+            writer = csv.writer(outfile, delimiter=',')
 
             csv_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.zip')],
@@ -219,7 +220,8 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                 f"{xml_variables[idx][0]} {xml_variables[idx][1]}"
                                 for idx in selected_indices
                             ]
-                            writer.writerow(chosen_headers)
+                            cleaned_headers = [header.replace(',', '') for header in chosen_headers]
+                            writer.writerow(cleaned_headers)
                             metadata_written = True
 
                         writer.writerow([formatted_dt] + selected_values)
@@ -301,7 +303,7 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
 
     try:
         with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
-            writer = csv.writer(outfile, delimiter=';')
+            writer = csv.writer(outfile, delimiter=',')
 
             bin_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.bin.zip')],
@@ -378,7 +380,8 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
                                 f"{xml_variables[idx][0]} {xml_variables[idx][1]}"
                                 for idx in selected_indices
                             ]
-                            writer.writerow(chosen_headers)
+                            cleaned_headers = [header.replace(',', '') for header in chosen_headers]
+                            writer.writerow(cleaned_headers)
                             metadata_written = True
 
                         writer.writerow([date, time] + selected_values)
@@ -459,7 +462,7 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
     try:
         with zipfile.ZipFile(zip_path, 'r') as outer_zip, open(final_output, 'w', encoding='utf-8', newline='') as outfile:
             base_timestamp = extract_base_timestamp_from_zip(outer_zip)
-            writer = csv.writer(outfile, delimiter=';')
+            writer = csv.writer(outfile, delimiter=',')
 
             dat_zip_files = sorted(
                 [f.filename for f in outer_zip.infolist() if f.filename.lower().endswith('.zip')],
@@ -479,7 +482,8 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
 
                     if not headers_written[0]:
                         headers = ['Date', 'Time'] + [xml_variables[i][1].strip("()\"'") for i in selected_indices]
-                        writer.writerow(headers)
+                        cleaned_headers = [header.replace(',', '') for header in headers]
+                        writer.writerow(cleaned_headers)
                         headers_written[0] = True
 
                     selected_values = [row[i] for i in adjusted_indices]
