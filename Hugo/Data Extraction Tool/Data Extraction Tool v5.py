@@ -157,7 +157,7 @@ def extract_datetime_opc(filename):
         return datetime.strptime(f"{date_str}_{hour_str}", '%Y-%m-%d_%H')
     return datetime.min
 
-def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, selected_indices, final_output, prefix="ANA",source_selected="CWE"):
+def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, selected_indices, final_output, prefix="ANA",mode_selected="CWE"):
     ana_limit_index = get_ana_limit_index_opc(xml_path, prefix)
     adjusted_indices = [i + 1 for i in selected_indices]  
     if ana_limit_index is None:
@@ -195,7 +195,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                     value = row[signal_index]
                                     selected_values.append(value)
                                 else:
-                                    if source_selected == "CWE":
+                                    if mode_selected == "CWE":
                                         conversion_start_index = ana_limit_index * 2 + 1 #now ANA signals are written twice, if it ever changes, just remove the *2
                                     else:
                                         conversion_start_index = ana_limit_index + 1
@@ -212,6 +212,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                     binary = f"{int_value:016b}"[::-1]
                                     selected_bit = binary[bit_position]
                                     selected_values.append(selected_bit)
+
                             except Exception:
                                 selected_values.append('')
 
@@ -671,7 +672,7 @@ def process_files():
         t0 = time.time()
         prefix = "ANA" if (mode_selected == "CWE" or mode_selected == "MFR")  else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
-        create_final_file_opc_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix, source_selected = source_selected)
+        create_final_file_opc_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix, mode_selected = mode_selected)
         created_files.append(final_output_file)
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds")
         if cancel_requested:
