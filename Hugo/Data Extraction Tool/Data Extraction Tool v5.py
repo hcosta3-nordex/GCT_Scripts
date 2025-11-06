@@ -195,7 +195,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                     selected_values.append(value)
                                 else:
                                     if source_selected == "CWE":
-                                        conversion_start_index = ana_limit_index * 2 + 1
+                                        conversion_start_index = ana_limit_index * 2 + 1 #now ANA signals are written twice, if it ever changes, just remove the *2
                                     else:
                                         conversion_start_index = ana_limit_index + 1
                                     bit_source_index = (signal_index - 1 - ana_limit_index) // 16
@@ -509,7 +509,7 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
                             process_mfr(mfr, writer, xml_variables, adjusted_indices, base_timestamp, headers_written)
 
     except Exception as e:
-        print(f"❌ Error processing ZIPs: {e}")
+        print(f"Error processing ZIPs: {e}")
 
 # ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────────
 
