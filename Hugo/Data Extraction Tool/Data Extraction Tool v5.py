@@ -688,6 +688,7 @@ def process_files():
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds")
         if cancel_requested:
             return
+        
     elif source_selected == "MFR TSDL":
         print("🔄 Processing and creating final file from MFR TSDL zip...")
         t0 = time.time()
