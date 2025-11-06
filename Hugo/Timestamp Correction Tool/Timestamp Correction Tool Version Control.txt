@@ -1,0 +1,7 @@
+V 0
+
+Timestamp correction for TSDL and OPClogger versions
+
+V0.1
+
+Corrected the ; for the new separation of files (comma)
