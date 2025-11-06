@@ -37,4 +37,5 @@ Fixed the dependency on nested zip, now it's possible to have a flat zip contain
 
 V5
 
-Added MFR OPClogger and TSDL extraction
+Added MFR OPClogger and TSDL extraction.
+Now csv files generated are using a comma separation for proper analysis on excel. For this the comma used in some signals names is removed before writing the header.
