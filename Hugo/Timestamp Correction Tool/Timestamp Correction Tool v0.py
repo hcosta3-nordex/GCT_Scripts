@@ -178,7 +178,7 @@ def run_processing():
         messagebox.showerror("Unexpected Error", str(e))
 
 root = tk.Tk()
-root.title("Timestamp Correction Tool")
+root.title("Timestamp Correction Tool v0")
 root.geometry("800x300")
 root.resizable(True, True)
 
