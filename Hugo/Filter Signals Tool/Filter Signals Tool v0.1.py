@@ -5,7 +5,7 @@ from tkinter import ttk
 import re
 
 window = tk.Tk()
-window.title("Filter Signals Tool")
+window.title("Filter Signals Tool v0.1")
 
 window.columnconfigure(1, weight=1)
 
