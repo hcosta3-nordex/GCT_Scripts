@@ -222,7 +222,7 @@ def save(output_tree):
     messagebox.showinfo("Completed", "Saved successfully.")
 
 root = tk.Tk()
-root.title("Parameter Comparison Tool v0.2")
+root.title("Parameter Comparison Tool v0.3")
 root.geometry("900x600")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
