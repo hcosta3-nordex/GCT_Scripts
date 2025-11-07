@@ -94,8 +94,9 @@ def process_files():
                 break
 
     output_tree.insert("", "end", values=("--- Not Found in Both Files ---", "", ""))
-    save_button.config(state=tk.NORMAL) 
-    
+    save_button.config(state=tk.NORMAL) #enable the button after comparison done
+
+#checking for the empty cells that can not be compared.
     for i in range(len(e_parameters)):
         if e_parameters[i] not in matched_params:
             param_display = f"{e_parameters[i]} - {parameters_names[i]}"
@@ -179,27 +180,30 @@ def load_mode_specific_ui(*args):
     output_tree.delete(*output_tree.get_children())
     
     global save_button
-    save_button=tk.Button(dynamic_frame,text="Save", command=lambda:save(output_tree),state=tk.DISABLED) 
+    save_button=tk.Button(dynamic_frame,text="Save", command=lambda:save(output_tree),state=tk.DISABLED) # disable SAVE button initially
     save_button.grid(row=2, column=2, pady=10)
 
-def save(output_tree): 
+def save(output_tree):
+        
     file_path = filedialog.asksaveasfilename(
         defaultextension=".csv",
         filetypes=[("Excel", "*.csv"), ("All files", "*.*")] 
     )
     with open(file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
+        
         columns = output_tree["columns"]
         writer.writerow(columns)
-
+        
+        
         for row_id in output_tree.get_children():
             row = output_tree.item(row_id)["values"]
             writer.writerow(row)
-
     messagebox.showinfo("Completed", "Saved sucessfully.")
 
+
 root = tk.Tk()
-root.title("Parameter Comparison Tool")
+root.title("Parameter Comparison Tool v0.2")
 root.geometry("800x600")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
