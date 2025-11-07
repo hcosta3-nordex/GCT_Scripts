@@ -7,7 +7,6 @@ from tkinter import filedialog, messagebox, ttk
 e_file_entry = None
 b_file_entry = None
 
-
 def read_nc2_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
@@ -94,9 +93,8 @@ def process_files():
                 break
 
     output_tree.insert("", "end", values=("--- Not Found in Both Files ---", "", ""))
-    save_button.config(state=tk.NORMAL) #enable the button after comparison done
+    save_button.config(state=tk.NORMAL) 
 
-#checking for the empty cells that can not be compared.
     for i in range(len(e_parameters)):
         if e_parameters[i] not in matched_params:
             param_display = f"{e_parameters[i]} - {parameters_names[i]}"
@@ -183,8 +181,7 @@ def load_mode_specific_ui(*args):
     save_button=tk.Button(dynamic_frame,text="Save", command=lambda:save(output_tree),state=tk.DISABLED) # disable SAVE button initially
     save_button.grid(row=2, column=2, pady=10)
 
-def save(output_tree):
-        
+def save(output_tree):        
     file_path = filedialog.asksaveasfilename(
         defaultextension=".csv",
         filetypes=[("Excel", "*.csv"), ("All files", "*.*")] 
