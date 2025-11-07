@@ -329,7 +329,7 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
                 if prefix == "ANA":
                     record_size = 6 + num_ANA * 4 + num_uint16_signals * 2
                 else:
-                    record_size = 6 + num_ANA * 4 + (num_uint16_signals + 48) * 2 #for now 48 signals (16bits combined into 1 int) are being written, if it ever changes just change the hardcoded 48
+                    record_size = 6 + num_ANA * 4 + (num_uint16_signals + 48) * 2 #for now 48 signals (16bits combined into 1 int) are being written on WEA, if it ever changes just change the hardcoded 48
 
                 while data_only.tell() + record_size <= len(data_only.getbuffer()):
                     chunk = data_only.read(record_size)
