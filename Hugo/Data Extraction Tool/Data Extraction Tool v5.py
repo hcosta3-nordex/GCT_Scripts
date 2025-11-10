@@ -108,7 +108,7 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
                         except Exception:
                             selected_values.append('')
 
-                    writer.writerow(date_time + selected_values)
+                    writer.writerow([date_time[0], f"'{date_time[1]}'"] + selected_values)
 
             if csv_zip_files:
                 for filename in csv_zip_files:
@@ -187,6 +187,9 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                         epoch_time = int(float(row[0]))
                         dt_obj = datetime.fromtimestamp(epoch_time, tz=timezone.utc)
                         formatted_dt = dt_obj.strftime("%Y-%m-%d %H:%M:%S")
+                        date_str = dt_obj.strftime("%Y-%m-%d")
+                        time_str = dt_obj.strftime("%H:%M:%S")
+
                         selected_values = []
 
                         for signal_index in adjusted_indices:
@@ -217,7 +220,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                 selected_values.append('')
 
                         if not metadata_written:
-                            chosen_headers = ["Date Time"] + [
+                            chosen_headers = ["Date" , "Time"] + [
                                 f"{xml_variables[idx][0]} {xml_variables[idx][1]}"
                                 for idx in selected_indices
                             ]
@@ -225,7 +228,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                             writer.writerow(cleaned_headers)
                             metadata_written = True
 
-                        writer.writerow([formatted_dt] + selected_values)
+                        writer.writerow([date_str, f"'{time_str}'"] + selected_values)
 
                     except ValueError:
                         continue
@@ -385,7 +388,7 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
                             writer.writerow(cleaned_headers)
                             metadata_written = True
 
-                        writer.writerow([date, time] + selected_values)
+                        writer.writerow([date, f"'{time}'"] + selected_values)
 
                     except Exception:
                         continue
@@ -490,7 +493,7 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
                     selected_values = [row[i] for i in adjusted_indices]
                     date_str = current_timestamp.strftime("%d/%m/%Y")
                     time_str = current_timestamp.strftime("%H:%M:%S.%f")
-                    writer.writerow([date_str, time_str] + selected_values)
+                    writer.writerow([date_str, f"'{time_str}'"] + selected_values)
                     current_timestamp += timedelta(microseconds=100)
 
             for filename in dat_zip_files:
