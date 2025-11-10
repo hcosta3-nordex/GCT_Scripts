@@ -123,13 +123,11 @@ def filter_csv():
                 filtered_data = [next(reader)]
 
                 for row in reader:
-                    if len(row) < 1:
+                    if len(row) < 2:
                         continue
-                    datetime_part = row[0].strip()
-                    if " " in datetime_part:
-                        time_str = datetime_part.split(",")[1]
-                        if is_within_time_range_opc(time_str, start_time, end_time):
-                            filtered_data.append(row)
+                    time_str = row[1].strip().strip("'")  
+                    if is_within_time_range_opc(time_str, start_time, end_time):
+                        filtered_data.append(row)
 
             with open(output_file_var.get(), mode='w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.writer(csvfile, delimiter=',')
