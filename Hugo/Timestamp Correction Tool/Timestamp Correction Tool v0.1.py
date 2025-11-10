@@ -111,7 +111,7 @@ def process_opclogger(input_path, output_path, start_time_str):
                 if row and len(row[0].split()) == 2:
                     original_date, _ = row[0].split()
                     new_time = (start_time + i * increment).strftime("%H:%M:%S")
-                    row[0] = f"{original_date} {new_time}"
+                    row[0] = f"{original_date},{new_time}"
                 writer.writerow(row)
 
         messagebox.showinfo("Success", f"OPCLogger CSV saved to:\n{output_path}")
