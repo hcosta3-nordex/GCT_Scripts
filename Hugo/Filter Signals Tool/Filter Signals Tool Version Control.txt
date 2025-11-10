@@ -1,9 +1,10 @@
 V 0
 
 Filter signals for TSDL and OPClogger versions
-This version works until Data Extraction v4.1
+This version works until Data Extraction Tool v4.1
 
 V0.1
 
 Corrected the ; for the new separation of files (comma)
-This version works until Data Extraction v5 onwards
+This version works until Data Extraction Tool v5 onwards
+
