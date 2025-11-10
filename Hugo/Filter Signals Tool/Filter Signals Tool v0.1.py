@@ -102,9 +102,9 @@ def filter_csv():
                             continue
                     if len(row) > 1:
                         if mode == "TSDL (Export CSV)" or mode == "TSDL (Export)":
-                            time_part = row[0].split(';')[1].strip().replace('"', '')
+                            time_part = row[0].split(',')[1].strip().strip('"\'')
                         elif mode == "TSDL v2 (Export CSV)" or mode == "TSDL v2 (Export)":
-                            time_part = row[1].strip().replace('"', '')
+                            time_part = row[1].strip().strip('"\'')
                         else:
                             continue
 
@@ -127,7 +127,7 @@ def filter_csv():
                         continue
                     datetime_part = row[0].strip()
                     if " " in datetime_part:
-                        time_str = datetime_part.split(" ")[1].split(",")[0]
+                        time_str = datetime_part.split(",")[1]
                         if is_within_time_range_opc(time_str, start_time, end_time):
                             filtered_data.append(row)
 
