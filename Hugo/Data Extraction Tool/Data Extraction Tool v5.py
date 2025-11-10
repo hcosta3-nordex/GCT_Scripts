@@ -660,7 +660,7 @@ def process_files():
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_tsdl_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
         created_files.append(final_output_file)
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds")
+        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
 
@@ -674,7 +674,7 @@ def process_files():
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_opc_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix, mode_selected = mode_selected)
         created_files.append(final_output_file)
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds")
+        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
 
@@ -685,7 +685,7 @@ def process_files():
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_tsdl_bin_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
         created_files.append(final_output_file)
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds")
+        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
         
@@ -696,7 +696,7 @@ def process_files():
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_tsdl_mfr(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
         created_files.append(final_output_file)
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds")
+        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
 
