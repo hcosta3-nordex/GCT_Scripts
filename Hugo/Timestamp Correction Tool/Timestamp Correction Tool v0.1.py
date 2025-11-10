@@ -36,7 +36,7 @@ def process_tsdl_csv(input_path, output_path, start_time_str, increment_ms):
                 timestamp = start_time + i * increment
                 formatted_time = timestamp.strftime("%H:%M:%S.%f")[:-3]
                 if len(row) >= 2:
-                    row[1] = formatted_time
+                    row[1] = f"'{formatted_time}'"
                 writer.writerow(row)
 
         messagebox.showinfo("Success", f"TSDL CSV saved to:\n{output_path}")
@@ -74,7 +74,7 @@ def process_tsdl_bin(input_path, output_path, start_time_str, increment_ms):
                 timestamp = start_time + i * increment
                 formatted_time = timestamp.strftime("%H:%M:%S.%f")[:-3]
                 if len(row) >= 2:
-                    row[1] = formatted_time
+                    row[1] = f"'{formatted_time}'"
                 writer.writerow(row)
 
         messagebox.showinfo("Success", f"TSDL CSV saved to:\n{output_path}")
@@ -108,10 +108,10 @@ def process_opclogger(input_path, output_path, start_time_str):
             writer.writerow(header)
 
             for i, row in enumerate(unique_data):
-                if row and len(row[0].split()) == 2:
-                    original_date, _ = row[0].split()
-                    new_time = (start_time + i * increment).strftime("%H:%M:%S")
-                    row[0] = f"{original_date},{new_time}"
+                timestamp = start_time + i * increment
+                formatted_time = timestamp.strftime("%H:%M:%S")
+                if len(row) >= 2:
+                    row[1] = f"'{formatted_time}'"
                 writer.writerow(row)
 
         messagebox.showinfo("Success", f"OPCLogger CSV saved to:\n{output_path}")
