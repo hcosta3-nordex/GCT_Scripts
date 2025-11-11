@@ -45,3 +45,7 @@ V5.1
 Now xml's are stored inside a folder named "namespaces", so there's no need to browse the file, just select. Please make sure this folder is inside the main script folder.
 Fixed some interface alignment.
 
+V5.2
+
+Added company logo.
+
