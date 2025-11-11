@@ -14,8 +14,6 @@ import re
 import threading
 import gc
 from io import TextIOWrapper
-from tkinter import *
-from tkinter import ttk
 
 
 selected_ids = set()
@@ -523,31 +521,27 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
 
 # ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────────
 
+def delete_extracted_files(extract_to):
+    if os.path.exists(extract_to):
+        try:
+            shutil.rmtree(extract_to, onerror=lambda func, path, _: os.chmod(path, stat.S_IWRITE) or func(path))
+        except Exception as e:
+            print(f"Error deleting {extract_to}: {e}")
+
 def get_xml_variables(path_xml):
     try:
-        if not os.path.isfile(path_xml):
-            print(f"XML file not found: {path_xml}")
-            return []
-
         tree = ET.parse(path_xml)
         root = tree.getroot()
         result = []
-
         for param in root.findall('.//text'):
             param_id = param.attrib.get('id', '')
             if param_id.startswith('P'):
-                break
-            text_value = param.text.strip() if param.text else ''
-            result.append((param_id, text_value))
-
+                break 
+            result.append((param_id, param.text.strip()))
         return result
-
-    except ET.ParseError as e:
-        print(f"XML parsing error: {e}")
     except Exception as e:
         print(f"Error reading XML: {e}")
-    
-    return []
+        return []
 
 def load_filters():
     global filter_options, filter_signals
@@ -568,8 +562,7 @@ def load_filters():
 
 def update_variable_choices():
     global xml_variables, var_listbox, search_var
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
+    xml_path = xml_entry.get()
     xml_variables = get_xml_variables(xml_path)
     if not xml_variables:
         return
@@ -653,8 +646,7 @@ def start_processing_thread():
 
 def process_files():
     zip_path = zip_path_entry.get()
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
+    xml_path = xml_entry.get()
     final_path = final_path_entry.get()
     final_name = final_name_entry.get()
     mode_selected = mode_var.get()
@@ -814,22 +806,10 @@ def delete_filter(filter_name):
     except Exception as e:
         messagebox.showerror("Error", f"Failed to delete filter: {e}")
 
-def populate_xml_list():
-    try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        namespaces_dir = os.path.join(script_dir, "namespaces")
-        files = [f for f in os.listdir(namespaces_dir) if f.endswith(".xml")]
-        xml_combobox['values'] = files
-        if files:
-            xml_combobox.current(0)
-            update_variable_choices()
-    except Exception as e:
-        print(f"Error loading XML files: {e}")
-
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 
 root = Tk()
-root.title("Data Extraction Tool v5.1")
+root.title("Data Extraction Tool v5")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(10, 0), padx=10)
@@ -837,36 +817,32 @@ zip_path_entry = Entry(root, width=60)
 zip_path_entry.grid(row=0, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=lambda: [zip_path_entry.delete(0, END), zip_path_entry.insert(0, filedialog.askopenfilename(filetypes=[("ZIP Files", "*.zip")]))]).grid(row=0, column=2, pady=(10, 0), padx=10)
 
-Label(root, text="Select XML File:").grid(row=1, column=0, pady=(10, 0), padx=10)
-xml_combobox = ttk.Combobox(root, width=57, state="readonly")
-xml_combobox.grid(row=1, column=1, pady=(10, 0))
-xml_combobox.bind("<<ComboboxSelected>>", lambda e: update_variable_choices())
-
-root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=0)  
-root.grid_columnconfigure(2, weight=1)
+Label(root, text="XML File:").grid(row=1, column=0, pady=(10, 0), padx=10)
+xml_entry = Entry(root, width=60)
+xml_entry.bind("<FocusOut>", lambda e: update_variable_choices())
+xml_entry.grid(row=1, column=1, pady=(10, 0))
+Button(root, text="Browse...", command=lambda: [xml_entry.delete(0, END), xml_entry.insert(0, filedialog.askopenfilename(filetypes=[("XML Files", "*.xml")])), update_variable_choices()]).grid(row=1, column=2, pady=(10, 0), padx=10)
 
 selector_frame = ttk.Frame(root)
-selector_frame.grid(row=2, column=1, pady=(10, 0)) 
+selector_frame.grid(row=2, column=1, padx=(100, 0), pady=(5, 0), sticky='w') 
 
 Label(selector_frame, text="Source:").grid(row=0, column=0, padx=(0, 5))
-mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA", "MFR"], state="readonly", width=10)
+mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA","MFR"], state="readonly", width=10)
 mode_var.grid(row=0, column=1, padx=(0, 8))
 mode_var.set("CWE")
 
 Label(selector_frame, text="Export:").grid(row=0, column=2, padx=(5, 5))
-source_var = ttk.Combobox(selector_frame, values=["TSDL (Export CSV)", "TSDL (Export)", "OPClogger", "MFR OPClogger", "MFR TSDL"], state="readonly", width=16)
+source_var = ttk.Combobox(selector_frame, values=["TSDL (Export CSV)","TSDL (Export)", "OPClogger","MFR OPClogger", "MFR TSDL"], state="readonly", width=16)
 source_var.grid(row=0, column=3, padx=(0, 0))
 source_var.set("TSDL (Export CSV)")
 
+filter_search_frame = Frame(root)
+filter_search_frame.grid(row=3, column=0, columnspan=3, pady=(10, 0), sticky="ew")
 root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=0)  
+root.grid_columnconfigure(1, weight=1)
 root.grid_columnconfigure(2, weight=1)
 
-filter_search_frame = Frame(root)
-filter_search_frame.grid(row=3, column=1, pady=(10, 0)) 
-
-Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(5, 5), sticky="e")
+Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(170, 5), sticky="e")
 
 filter_var = ttk.Combobox(filter_search_frame, state="readonly", width=20)
 filter_var.grid(row=0, column=1, padx=(0, 10))
@@ -880,7 +856,7 @@ filter_name_entry.grid(row=0, column=4, padx=(0, 10))
 
 Button(filter_search_frame, text="Save Filter", command=lambda: save_filter_to_file(filter_name_entry.get())).grid(row=0, column=5, padx=(0, 10))
 
-Button(filter_search_frame, text="Delete Filter", command=lambda: delete_filter(filter_name_entry.get())).grid(row=0, column=6, padx=(0, 10))
+Button(filter_search_frame,text="Delete Filter",command=lambda: delete_filter(filter_name_entry.get())).grid(row=0, column=6, padx=(0, 10))
 
 Label(root, text="Select Variables:").grid(row=4, column=0, pady=(10, 0), padx=10)
 vars_frame = Frame(root)
@@ -903,8 +879,6 @@ button_frame = Frame(root)
 button_frame.grid(row=7, column=1, pady=(20, 10))
 Button(button_frame, text="Process Files", command=start_processing_thread).grid(row=0, column=0, padx=(0, 10))
 Button(button_frame, text="Cancel", command=cancel_and_cleanup).grid(row=0, column=1)
-
-populate_xml_list()
 
 load_filters()
 
