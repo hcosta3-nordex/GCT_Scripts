@@ -828,7 +828,7 @@ Button(root, text="Browse...", command=lambda: [zip_path_entry.delete(0, END), z
 root.title("XML Selector")
 
 Label(root, text="Select XML File:").grid(row=1, column=0, pady=(10, 0), padx=10)
-xml_combobox = ttk.Combobox(root, width=60, state="readonly")
+xml_combobox = ttk.Combobox(root, width=57, state="readonly")
 xml_combobox.grid(row=1, column=1, pady=(10, 0))
 xml_combobox.bind("<<ComboboxSelected>>", lambda e: update_variable_choices())
 
