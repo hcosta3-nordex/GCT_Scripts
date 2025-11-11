@@ -906,13 +906,15 @@ Button(button_frame, text="Cancel", command=cancel_and_cleanup).grid(row=0, colu
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(script_dir, "logo.png")
-logo = PhotoImage(file=logo_path)
-logo = logo.subsample(2, 2)  
 
-logo_label = Label(root, image=logo)
-logo_label.image = logo  
-
-logo_label.place(relx=0.98, rely=0.98, anchor="se")
+try:
+    logo = PhotoImage(file=logo_path)
+    logo = logo.subsample(2, 2)
+    logo_label = Label(root, image=logo)
+    logo_label.image = logo
+    logo_label.place(relx=0.98, rely=0.98, anchor="se")
+except Exception as e:
+    print(f"Logo not found or failed to load: {e}")
 
 populate_xml_list()
 
