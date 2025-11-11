@@ -11,3 +11,7 @@ Before saving, it will get the file location from the user and compared data wil
 V0.3 
 
 Added PCMS-PCMS comparison
+
+V0.4
+
+Added company logo
