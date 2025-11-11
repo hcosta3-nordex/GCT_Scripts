@@ -200,7 +200,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                     value = row[signal_index]
                                     selected_values.append(value)
                                 else:
-                                    if mode_selected == "CWE" or mode_selected == "WEA":
+                                    if (mode_selected == "CWE" or mode_selected == "WEA"):
                                         conversion_start_index = ana_limit_index * 2 + 1 #now ANA signals are written twice, if it ever changes, just remove the *2
                                     else:
                                         conversion_start_index = ana_limit_index + 1
