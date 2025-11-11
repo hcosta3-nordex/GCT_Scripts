@@ -525,18 +525,29 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
 
 def get_xml_variables(path_xml):
     try:
+        if not os.path.isfile(path_xml):
+            print(f"XML file not found: {path_xml}")
+            return []
+
         tree = ET.parse(path_xml)
         root = tree.getroot()
         result = []
+
         for param in root.findall('.//text'):
             param_id = param.attrib.get('id', '')
             if param_id.startswith('P'):
-                break 
-            result.append((param_id, param.text.strip()))
+                break
+            text_value = param.text.strip() if param.text else ''
+            result.append((param_id, text_value))
+
         return result
+
+    except ET.ParseError as e:
+        print(f"XML parsing error: {e}")
     except Exception as e:
         print(f"Error reading XML: {e}")
-        return []
+    
+    return []
 
 def load_filters():
     global filter_options, filter_signals
@@ -642,7 +653,8 @@ def start_processing_thread():
 
 def process_files():
     zip_path = zip_path_entry.get()
-    xml_path = os.path.join("namespaces", xml_combobox.get())
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
     final_path = final_path_entry.get()
     final_name = final_name_entry.get()
     mode_selected = mode_var.get()
@@ -832,26 +844,31 @@ xml_combobox = ttk.Combobox(root, width=57, state="readonly")
 xml_combobox.grid(row=1, column=1, pady=(10, 0))
 xml_combobox.bind("<<ComboboxSelected>>", lambda e: update_variable_choices())
 
+root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(1, weight=0)  
+root.grid_columnconfigure(2, weight=1)
+
 selector_frame = ttk.Frame(root)
-selector_frame.grid(row=2, column=1, padx=(100, 0), pady=(5, 0), sticky='w') 
+selector_frame.grid(row=2, column=1, pady=(10, 0)) 
 
 Label(selector_frame, text="Source:").grid(row=0, column=0, padx=(0, 5))
-mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA","MFR"], state="readonly", width=10)
+mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA", "MFR"], state="readonly", width=10)
 mode_var.grid(row=0, column=1, padx=(0, 8))
 mode_var.set("CWE")
 
 Label(selector_frame, text="Export:").grid(row=0, column=2, padx=(5, 5))
-source_var = ttk.Combobox(selector_frame, values=["TSDL (Export CSV)","TSDL (Export)", "OPClogger","MFR OPClogger", "MFR TSDL"], state="readonly", width=16)
+source_var = ttk.Combobox(selector_frame, values=["TSDL (Export CSV)", "TSDL (Export)", "OPClogger", "MFR OPClogger", "MFR TSDL"], state="readonly", width=16)
 source_var.grid(row=0, column=3, padx=(0, 0))
 source_var.set("TSDL (Export CSV)")
 
-filter_search_frame = Frame(root)
-filter_search_frame.grid(row=3, column=0, columnspan=3, pady=(10, 0), sticky="ew")
 root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=1)
+root.grid_columnconfigure(1, weight=0)  
 root.grid_columnconfigure(2, weight=1)
 
-Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(170, 5), sticky="e")
+filter_search_frame = Frame(root)
+filter_search_frame.grid(row=3, column=1, pady=(10, 0)) 
+
+Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(5, 5), sticky="e")
 
 filter_var = ttk.Combobox(filter_search_frame, state="readonly", width=20)
 filter_var.grid(row=0, column=1, padx=(0, 10))
@@ -865,7 +882,7 @@ filter_name_entry.grid(row=0, column=4, padx=(0, 10))
 
 Button(filter_search_frame, text="Save Filter", command=lambda: save_filter_to_file(filter_name_entry.get())).grid(row=0, column=5, padx=(0, 10))
 
-Button(filter_search_frame,text="Delete Filter",command=lambda: delete_filter(filter_name_entry.get())).grid(row=0, column=6, padx=(0, 10))
+Button(filter_search_frame, text="Delete Filter", command=lambda: delete_filter(filter_name_entry.get())).grid(row=0, column=6, padx=(0, 10))
 
 Label(root, text="Select Variables:").grid(row=4, column=0, pady=(10, 0), padx=10)
 vars_frame = Frame(root)
