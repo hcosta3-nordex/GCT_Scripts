@@ -829,15 +829,13 @@ def populate_xml_list():
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 
 root = Tk()
-root.title("Data Extraction Tool v5")
+root.title("Data Extraction Tool v5.1")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(10, 0), padx=10)
 zip_path_entry = Entry(root, width=60)
 zip_path_entry.grid(row=0, column=1, pady=(10, 0))
 Button(root, text="Browse...", command=lambda: [zip_path_entry.delete(0, END), zip_path_entry.insert(0, filedialog.askopenfilename(filetypes=[("ZIP Files", "*.zip")]))]).grid(row=0, column=2, pady=(10, 0), padx=10)
-
-root.title("XML Selector")
 
 Label(root, text="Select XML File:").grid(row=1, column=0, pady=(10, 0), padx=10)
 xml_combobox = ttk.Combobox(root, width=57, state="readonly")
