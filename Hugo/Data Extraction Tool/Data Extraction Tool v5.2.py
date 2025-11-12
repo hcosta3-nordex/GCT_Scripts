@@ -916,6 +916,18 @@ try:
 except Exception as e:
     print(f"Logo not found or failed to load: {e}")
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+logo_POT_path = os.path.join(script_dir, "logo_P&OT.png")
+
+try:
+    logo_POT = PhotoImage(file=logo_POT_path)
+    logo_POT = logo_POT.subsample(3, 3)
+    logo_POT_label = Label(root, image=logo_POT)
+    logo_POT_label.image = logo_POT
+    logo_POT_label.place(relx=0.09, rely=0.98, anchor="se")
+except Exception as e:
+    print(f"Logo not found or failed to load: {e}")
+
 populate_xml_list()
 
 load_filters()
