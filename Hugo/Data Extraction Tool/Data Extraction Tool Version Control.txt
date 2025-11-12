@@ -47,5 +47,9 @@ Fixed some interface alignment.
 
 V5.2
 
-Added company logo.
+Added company and P&OT logos.
+
+V5.3
+
+Automatic filling of Final Path. This can be changed, but if the user doesn't change it it will assume the same folder as the zip file.
 
