@@ -29,7 +29,6 @@ processing_thread = None
 filters = {}
 user_changed_output = False
 last_zip_dir = None
-user_changed_name = False
 
 # ─────────────────────────────────────────────────────────── TSDL CSV FUNCTIONS ─────────────────────────────────────────────────────────────
 
@@ -963,3 +962,4 @@ populate_xml_list()
 load_filters()
 
 root.mainloop()
+
