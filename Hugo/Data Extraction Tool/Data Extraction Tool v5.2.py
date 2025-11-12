@@ -914,7 +914,7 @@ try:
     logo_label.image = logo
     logo_label.place(relx=0.98, rely=0.98, anchor="se")
 except Exception as e:
-    print(f"Logo not found or failed to load: {e}")
+    print(f"P&OT Logo not found or failed to load: {e}")
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 logo_POT_path = os.path.join(script_dir, "logo_P&OT.png")
