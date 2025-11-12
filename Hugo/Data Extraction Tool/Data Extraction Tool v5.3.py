@@ -29,6 +29,7 @@ processing_thread = None
 filters = {}
 user_changed_output = False
 last_zip_dir = None
+user_changed_name = False
 
 # ─────────────────────────────────────────────────────────── TSDL CSV FUNCTIONS ─────────────────────────────────────────────────────────────
 
@@ -836,11 +837,16 @@ def browse_zip():
         zip_path_entry.insert(0, zip_file)
 
         zip_dir = os.path.dirname(zip_file)
+        zip_name = os.path.splitext(os.path.basename(zip_file))[0]
+
         if not user_changed_output or last_zip_dir != zip_dir:
             final_path_entry.delete(0, END)
             final_path_entry.insert(0, zip_dir)
             user_changed_output = False  
         last_zip_dir = zip_dir
+
+        final_name_entry.delete(0, END)
+        final_name_entry.insert(0, zip_name)
 
 def browse_output():
     global user_changed_output
