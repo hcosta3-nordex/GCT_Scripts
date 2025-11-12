@@ -15,3 +15,9 @@ Added PCMS-PCMS comparison
 V0.4
 
 Added company logo
+
+V1
+
+Application made. 
+Drag and drop possible for files.
+
