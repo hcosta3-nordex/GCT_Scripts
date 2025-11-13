@@ -927,7 +927,7 @@ root.grid_columnconfigure(1, weight=0)
 root.grid_columnconfigure(2, weight=1)
 
 combined_frame = Frame(root)
-combined_frame.grid(row=1, column=1, pady=(10, 0)) 
+combined_frame.grid(row=1, column=1, pady=(9, 0)) 
 
 Label(combined_frame, text="Select XML File:").pack(side="left", padx=(0, 5))
 xml_combobox = ttk.Combobox(combined_frame, state="readonly", width=25)
