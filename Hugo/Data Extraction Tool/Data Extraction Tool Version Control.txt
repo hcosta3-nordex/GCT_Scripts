@@ -55,4 +55,5 @@ Automatic filling of Final Path and file name. This can be changed, but if the u
 
 V6
 
-Application based, no need to install python.
+Application based, no need to install python. Filters.txt and namespaces folder NEED to be on the same path as the .exe file!
+
