@@ -892,6 +892,16 @@ def handle_drop(event):
     final_name_entry.delete(0, END)
     final_name_entry.insert(0, zip_name)
 
+def handle_output_drop(event):
+    global user_changed_output
+    dropped_path = event.data.strip()
+    if dropped_path.startswith("{") and dropped_path.endswith("}"):
+        dropped_path = dropped_path[1:-1]
+
+    final_path_entry.delete(0, END)
+    final_path_entry.insert(0, dropped_path)
+    user_changed_output = True
+
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 
 root = TkinterDnD.Tk()
@@ -968,6 +978,8 @@ root.grid_columnconfigure(2, weight=1)
 Label(root, text="Final Output Path:").grid(row=5, column=0, pady=(10, 0), padx=10)
 final_path_entry = Entry(root, width=60)
 final_path_entry.grid(row=5, column=1, pady=(10, 0))
+final_path_entry.drop_target_register(DND_FILES)
+final_path_entry.dnd_bind("<<Drop>>", handle_output_drop)
 Button(root, text="Browse...", command=browse_output).grid(row=5, column=2, pady=(10, 0), padx=10)
 
 Label(root, text="Final File Name (without .csv):").grid(row=6, column=0, pady=(10, 0), padx=10)
