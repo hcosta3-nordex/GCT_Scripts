@@ -916,32 +916,34 @@ root.title("Data Extraction Tool v6")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(10, 0), padx=10)
-zip_path_entry = Entry(root, width=60)
+zip_path_entry = Entry(root, width=110)
 zip_path_entry.grid(row=0, column=1, pady=(10, 0))
 zip_path_entry.drop_target_register(DND_FILES)
 zip_path_entry.dnd_bind("<<Drop>>", handle_drop)
 Button(root, text="Browse...", command=browse_zip).grid(row=0, column=2, pady=(10, 0), padx=10)
 
-Label(root, text="Select XML File:").grid(row=1, column=0, pady=(10, 0), padx=10)
-xml_combobox = ttk.Combobox(root, width=57, state="readonly")
-xml_combobox.grid(row=1, column=1, pady=(10, 0))
-xml_combobox.bind("<<ComboboxSelected>>", lambda e: update_variable_choices())
-
 root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=0)  
+root.grid_columnconfigure(1, weight=0)
 root.grid_columnconfigure(2, weight=1)
 
-selector_frame = ttk.Frame(root)
-selector_frame.grid(row=2, column=1, pady=(10, 0)) 
+combined_frame = Frame(root)
+combined_frame.grid(row=1, column=1, pady=(10, 0)) 
 
-Label(selector_frame, text="Source:").grid(row=0, column=0, padx=(0, 5))
-mode_var = ttk.Combobox(selector_frame, values=["CWE", "WEA", "MFR"], state="readonly", width=10)
-mode_var.grid(row=0, column=1, padx=(0, 8))
+Label(combined_frame, text="Select XML File:").pack(side="left", padx=(0, 5))
+xml_combobox = ttk.Combobox(combined_frame, state="readonly", width=25)
+xml_combobox.pack(side="left", padx=(0, 15))
+xml_combobox.bind("<<ComboboxSelected>>", lambda e: update_variable_choices())
+
+Label(combined_frame, text="Source:").pack(side="left", padx=(0, 5))
+mode_var = ttk.Combobox(combined_frame, values=["CWE", "WEA", "MFR"], state="readonly", width=10)
+mode_var.pack(side="left", padx=(0, 8))
 mode_var.set("CWE")
 
-Label(selector_frame, text="Export:").grid(row=0, column=2, padx=(5, 5))
-source_var = ttk.Combobox(selector_frame, values=["TSDL (Export CSV)", "TSDL (Export)", "OPClogger", "MFR OPClogger", "MFR TSDL"], state="readonly", width=16)
-source_var.grid(row=0, column=3, padx=(0, 0))
+Label(combined_frame, text="Export:").pack(side="left", padx=(5, 5))
+source_var = ttk.Combobox(combined_frame, values=[
+    "TSDL (Export CSV)", "TSDL (Export)", "OPClogger", "MFR OPClogger", "MFR TSDL"
+], state="readonly", width=20)
+source_var.pack(side="left", padx=(0, 0))
 source_var.set("TSDL (Export CSV)")
 
 root.grid_columnconfigure(0, weight=1)
@@ -976,14 +978,14 @@ root.grid_columnconfigure(1, weight=1)
 root.grid_columnconfigure(2, weight=1)
 
 Label(root, text="Final Output Path:").grid(row=5, column=0, pady=(10, 0), padx=10)
-final_path_entry = Entry(root, width=60)
+final_path_entry = Entry(root, width=110)
 final_path_entry.grid(row=5, column=1, pady=(10, 0))
 final_path_entry.drop_target_register(DND_FILES)
 final_path_entry.dnd_bind("<<Drop>>", handle_output_drop)
 Button(root, text="Browse...", command=browse_output).grid(row=5, column=2, pady=(10, 0), padx=10)
 
 Label(root, text="Final File Name (without .csv):").grid(row=6, column=0, pady=(10, 0), padx=10)
-final_name_entry = Entry(root, width=60)
+final_name_entry = Entry(root, width=110)
 final_name_entry.grid(row=6, column=1, pady=(10, 0))
 
 button_frame = Frame(root)
