@@ -992,7 +992,7 @@ except Exception as e:
     print(f"P&OT Logo not found or failed to load: {e}")
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-logo_POT_path = os.path.join(script_dir, "logo_P&OT.png")
+logo_POT_path = os.path.join(script_dir, "logo_POT.png")
 
 try:
     logo_POT = PhotoImage(file=logo_POT_path)
