@@ -580,7 +580,7 @@ def load_filters():
 
 def update_variable_choices():
     global xml_variables, var_listbox, search_var
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
     xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
     xml_variables = get_xml_variables(xml_path)
     if not xml_variables:
@@ -665,7 +665,7 @@ def start_processing_thread():
 
 def process_files():
     zip_path = zip_path_entry.get()
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
     xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
     final_path = final_path_entry.get()
     final_name = final_name_entry.get()
@@ -754,7 +754,7 @@ def save_filter_to_file(filter_name):
         return
 
     try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
         file_path = os.path.join(script_dir, "Filters.txt")
 
         if not os.path.exists(file_path):
@@ -793,7 +793,7 @@ def delete_filter(filter_name):
         return
 
     try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
         file_path = os.path.join(script_dir, "Filters.txt")
 
         if not os.path.exists(file_path):
