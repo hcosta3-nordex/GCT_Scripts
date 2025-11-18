@@ -701,6 +701,7 @@ def process_files():
             if increment_ms in (10, 40):
                 temp_file = final_output_file.replace(".csv", "_corrected.csv")
                 correct_time_tsdl_csv(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
                 print("🔄 Correcting timestamp on final file ...")
                 print("🔄 Applying range on final file ...")
@@ -732,8 +733,9 @@ def process_files():
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         create_final_file_opc_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix, mode_selected = mode_selected)
         if use_timestamp and cutting:
-            if increment_ms in (10, 40):
+            if increment_ms == 1:
                 correct_time_opclogger(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
                 print("🔄 Correcting timestamp on final file ...")
                 print("🔄 Applying range on final file ...")
@@ -764,6 +766,7 @@ def process_files():
         if use_timestamp and cutting:
             if increment_ms in (10, 40):
                 correct_time_tsdl_bin(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
                 print("🔄 Correcting timestamp on final file ...")
                 print("🔄 Applying range on final file ...")
