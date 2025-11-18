@@ -57,3 +57,10 @@ V6
 
 Application based, no need to install python. Filters.txt and namespaces folder NEED to be on the same path as the .exe file!
 
+V6.1
+
+Added timestamp correction.
+
+V6.2
+
+Added cutting feature.
