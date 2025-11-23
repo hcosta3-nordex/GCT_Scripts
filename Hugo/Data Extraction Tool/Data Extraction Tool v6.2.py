@@ -823,22 +823,23 @@ def cancel_and_cleanup():
     cancel_requested = True
 
     if processing_thread and processing_thread.is_alive():
-        processing_thread.join(timeout=5)  
+        processing_thread.join()
 
-    if created_files:
-        final_output_file = created_files[0]
+    for final_output_file in created_files:
         if os.path.exists(final_output_file):
-            for attempt in range(3):
-                try:
-                    os.remove(final_output_file)
-                    break
-                except PermissionError:
-                    time.sleep(1)  
+            try:
+                os.remove(final_output_file)
+            except PermissionError:
+                messagebox.showwarning("Cleanup Warning", f"Could not delete {final_output_file}. It may still be in use.")
             else:
-                messagebox.showwarning("Cleanup Warning", f"Could not delete file after retries.")    
+                if os.path.exists(final_output_file):
+                    messagebox.showwarning("Cleanup Warning", f"File still exists after deletion attempt.")
+    
+    created_files.clear()
 
     gc.collect()
-    messagebox.showinfo("Cancelled", "Processing was cancelled and output file deleted.")
+    messagebox.showinfo("Cancelled", "Processing was cancelled and cleanup attempted.")
+
 
 def save_filter_to_file(filter_name):
     global filter_options, filter_signals
