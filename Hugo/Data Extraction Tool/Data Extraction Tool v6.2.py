@@ -119,10 +119,10 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
                         except Exception:
                             selected_values.append('')
 
-                        if cancel_requested:
-                            return
-                        else:   
-                            writer.writerow([date_time[0], f"'{date_time[1]}'"] + selected_values)
+                    if cancel_requested:
+                        return
+                    else:   
+                        writer.writerow([date_time[0], f"'{date_time[1]}'"] + selected_values)
 
             if csv_zip_files:
                 for filename in csv_zip_files:
