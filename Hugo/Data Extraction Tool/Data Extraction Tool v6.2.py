@@ -828,10 +828,14 @@ def cancel_and_cleanup():
     if created_files:
         final_output_file = created_files[0]
         if os.path.exists(final_output_file):
-            try:
-                os.remove(final_output_file)
-            except Exception as e:
-                messagebox.showwarning("Cleanup Warning", f"Could not delete file:\n{e}")
+            for attempt in range(3):
+                try:
+                    os.remove(final_output_file)
+                    break
+                except PermissionError:
+                    time.sleep(1)  
+            else:
+                messagebox.showwarning("Cleanup Warning", f"Could not delete file after retries.")    
 
     gc.collect()
     messagebox.showinfo("Cancelled", "Processing was cancelled and output file deleted.")
