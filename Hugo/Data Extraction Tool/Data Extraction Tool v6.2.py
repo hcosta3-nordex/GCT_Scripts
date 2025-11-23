@@ -119,7 +119,10 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
                         except Exception:
                             selected_values.append('')
 
-                    writer.writerow([date_time[0], f"'{date_time[1]}'"] + selected_values)
+                        if cancel_requested:
+                            return
+                        else:   
+                            writer.writerow([date_time[0], f"'{date_time[1]}'"] + selected_values)
 
             if csv_zip_files:
                 for filename in csv_zip_files:
@@ -238,8 +241,11 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                             cleaned_headers = [header.replace(',', '') for header in chosen_headers]
                             writer.writerow(cleaned_headers)
                             metadata_written = True
-
-                        writer.writerow([date_str, f"'{time_str}'"] + selected_values)
+                        
+                        if cancel_requested:
+                            return
+                        else:    
+                            writer.writerow([date_str, f"'{time_str}'"] + selected_values)
 
                     except ValueError:
                         continue
@@ -399,7 +405,10 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
                             writer.writerow(cleaned_headers)
                             metadata_written = True
 
-                        writer.writerow([date, f"'{time}'"] + selected_values)
+                        if cancel_requested:
+                            return
+                        else:
+                            writer.writerow([date, f"'{time}'"] + selected_values)
 
                     except Exception:
                         continue
@@ -423,6 +432,7 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
         print(f"Error processing ZIPs: {e}")
 
 # ─────────────────────────────────────────────────────────── TSDL MFR FUNCTIONS ─────────────────────────────────────────────────────────────
+
 def get_ana_limit_index_tsdl_mfr(xml_path, prefix="ANA"):
     try:
         tree = ET.parse(xml_path)
@@ -504,7 +514,10 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
                     selected_values = [row[i] for i in adjusted_indices]
                     date_str = current_timestamp.strftime("%d/%m/%Y")
                     time_str = current_timestamp.strftime("%H:%M:%S.%f")
-                    writer.writerow([date_str, f"'{time_str}'"] + selected_values)
+                    if cancel_requested:
+                        return
+                    else:  
+                        writer.writerow([date_str, f"'{time_str}'"] + selected_values)
                     current_timestamp += timedelta(microseconds=100)
 
             for filename in dat_zip_files:
@@ -696,6 +709,7 @@ def process_files():
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
+        created_files.append(final_output_file)
         create_final_file_tsdl_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
         if use_timestamp and cutting:
             if increment_ms in (10, 40):
@@ -718,7 +732,6 @@ def process_files():
         elif(cutting):
             cutting_data_tsdl_csv(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
-        created_files.append(final_output_file)
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -731,6 +744,7 @@ def process_files():
         t0 = time.time()
         prefix = "ANA" if (mode_selected == "CWE" or mode_selected == "MFR")  else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
+        created_files.append(final_output_file)
         create_final_file_opc_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix, mode_selected = mode_selected)
         if use_timestamp and cutting:
             if increment_ms == 1:
@@ -752,7 +766,6 @@ def process_files():
         elif(cutting):
             cutting_data_opclogger(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
-        created_files.append(final_output_file)
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -762,6 +775,7 @@ def process_files():
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
+        created_files.append(final_output_file)
         create_final_file_tsdl_bin_from_nested_zip(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
         if use_timestamp and cutting:
             if increment_ms in (10, 40):
@@ -783,7 +797,6 @@ def process_files():
         if(cutting):
             cutting_data_tsdl_bin(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
-        created_files.append(final_output_file)
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -793,8 +806,8 @@ def process_files():
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
-        create_final_file_tsdl_mfr(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
         created_files.append(final_output_file)
+        create_final_file_tsdl_mfr(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -806,17 +819,22 @@ def process_files():
     messagebox.showinfo("Success", f"Final file '{final_output_file}' created successfully.")
 
 def cancel_and_cleanup():
-    global cancel_requested, processing_thread
+    global cancel_requested, processing_thread, created_files
     cancel_requested = True
 
     if processing_thread and processing_thread.is_alive():
-        wait_time = 0
-        while processing_thread.is_alive() and wait_time < 5:
-            time.sleep(0.1)
-            wait_time += 0.1
+        processing_thread.join(timeout=5)  
+
+    if created_files:
+        final_output_file = created_files[0]
+        if os.path.exists(final_output_file):
+            try:
+                os.remove(final_output_file)
+            except Exception as e:
+                messagebox.showwarning("Cleanup Warning", f"Could not delete file:\n{e}")
 
     gc.collect()
-    messagebox.showinfo("Cancelled", "Processing was cancelled.")
+    messagebox.showinfo("Cancelled", "Processing was cancelled and output file deleted.")
 
 def save_filter_to_file(filter_name):
     global filter_options, filter_signals
