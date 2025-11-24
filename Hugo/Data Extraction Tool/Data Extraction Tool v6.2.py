@@ -788,13 +788,13 @@ def process_files():
                 os.rename(temp_file, final_output_file)
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
-        if(use_timestamp):
+        elif(use_timestamp):
             if(increment_ms == 10 or increment_ms == 40):
                 correct_time_tsdl_bin(final_output_file, increment_ms)
                 print("🔄 Correcting timestamp on final file ...")
             else:
                 messagebox.showerror("Error", f"Incorrect Timestamp, make sure you select either 10 or 40ms.")
-        if(cutting):
+        elif(cutting):
             cutting_data_tsdl_bin(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
