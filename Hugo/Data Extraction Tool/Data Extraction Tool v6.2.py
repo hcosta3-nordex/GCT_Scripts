@@ -1127,39 +1127,57 @@ def cutting_data_tsdl_csv(start_time_str, end_time_str, final_output_file):
         start_time_str = start_time_str.strip().replace('"', '').replace('\r', '').replace('\n', '')
         end_time_str   = end_time_str.strip().replace('"', '').replace('\r', '').replace('\n', '')
 
-        fmt = "%H:%M:%S.%f"
-        start_time = datetime.strptime(start_time_str, fmt)
-        end_time   = datetime.strptime(end_time_str, fmt)
+        time_fmt = "%H:%M:%S.%f"
+        start_time = datetime.strptime(start_time_str, time_fmt).time()
+        end_time   = datetime.strptime(end_time_str, time_fmt).time()
 
         time_pattern = r"^\d{2}:\d{2}:\d{2}\.\d{1,6}$"
-
         filtered_data = []
 
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=',')
-            for i, row in enumerate(reader, start=1):
-                if i <= 3:
-                    filtered_data.append(row)
-                    continue
+            header = [next(reader) for _ in range(3)] 
+            data = list(reader)
 
-                if not row or len(row) < 2:
-                    continue
+        if not data or len(data[0]) < 2:
+            messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
+            return
 
-                time_part = row[1].strip().strip('"\'')
-                if not re.match(time_pattern, time_part):
-                    continue
-                try:
-                    current_time = datetime.strptime(time_part, fmt)
-                except ValueError:
-                    continue
+        base_date = data[0][0].strip().strip('"\'')
+        base_date_dt = datetime.strptime(base_date, "%Y-%m-%d")
 
-                if start_time <= current_time <= end_time:
-                    filtered_data.append(row)
+        start_dt = datetime.combine(base_date_dt.date(), start_time)
+        end_dt   = datetime.combine(base_date_dt.date(), end_time)
+        if start_time > end_time:
+            end_dt += timedelta(days=1)
+
+        for row in data:
+            if len(row) < 2:
+                continue
+
+            date_part = row[0].strip().strip('"\'')
+            time_part = row[1].strip().strip('"\'')
+            if not re.match(time_pattern, time_part):
+                continue
+
+            try:
+                current_dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                continue
+
+            if current_dt > end_dt:
+                start_dt += timedelta(days=1)
+                end_dt   += timedelta(days=1)
+
+            if start_dt <= current_dt <= end_dt:
+                filtered_data.append(row)
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=',')
+            for h in header:
+                writer.writerow(h)
             writer.writerows(filtered_data)
-    
+
     except Exception as e:
         messagebox.showerror("Error", f"Cutting data failed:\n{str(e)}")
 
@@ -1168,33 +1186,54 @@ def cutting_data_tsdl_bin(start_time_str, end_time_str, final_output_file):
         start_time_str = start_time_str.strip().replace('"', '').replace('\r', '').replace('\n', '')
         end_time_str   = end_time_str.strip().replace('"', '').replace('\r', '').replace('\n', '')
 
-        fmt = "%H:%M:%S.%f"   
-        start_time = datetime.strptime(start_time_str, fmt)
-        end_time   = datetime.strptime(end_time_str, fmt)
+        time_fmt = "%H:%M:%S.%f"
+        start_time = datetime.strptime(start_time_str, time_fmt).time()
+        end_time   = datetime.strptime(end_time_str, time_fmt).time()
 
         time_pattern = r"^\d{2}:\d{2}:\d{2}\.\d{3}$"
-
         filtered_data = []
 
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=',')
-            for i, row in enumerate(reader, start=1):
-                if i <= 1:
-                    filtered_data.append(row)
-                    continue
+            header = next(reader) 
+            data = list(reader)
 
-                if len(row) > 1:
-                    time_part = row[1].strip().strip('"\'') 
-                    try:
-                        current_time = datetime.strptime(time_part, fmt)
-                    except ValueError:
-                        continue
+        if not data or len(data[0]) < 2:
+            messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
+            return
 
-                    if start_time <= current_time <= end_time:
-                        filtered_data.append(row)
+        base_date = data[0][0].strip().strip('"\'')
+        base_date_dt = datetime.strptime(base_date, "%Y-%m-%d")
+
+        start_dt = datetime.combine(base_date_dt.date(), start_time)
+        end_dt   = datetime.combine(base_date_dt.date(), end_time)
+        if start_time > end_time:
+            end_dt += timedelta(days=1)
+
+        for row in data:
+            if len(row) < 2:
+                continue
+
+            date_part = row[0].strip().strip('"\'')
+            time_part = row[1].strip().strip('"\'')
+            if not re.match(time_pattern, time_part):
+                continue
+
+            try:
+                current_dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                continue
+
+            if current_dt > end_dt:
+                start_dt += timedelta(days=1)
+                end_dt   += timedelta(days=1)
+
+            if start_dt <= current_dt <= end_dt:
+                filtered_data.append(row)
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=',')
+            writer.writerow(header)
             writer.writerows(filtered_data)
 
     except Exception as e:
@@ -1210,35 +1249,54 @@ def cutting_data_opclogger(start_time_str, end_time_str, final_output_file):
         if "." in end_time_str:
             end_time_str = end_time_str.split(".")[0]
 
-        gui_fmt = "%H:%M:%S"
-        start_time = datetime.strptime(start_time_str, gui_fmt).time()
-        end_time   = datetime.strptime(end_time_str, gui_fmt).time()
+        time_fmt = "%H:%M:%S"
+        start_time = datetime.strptime(start_time_str, time_fmt).time()
+        end_time   = datetime.strptime(end_time_str, time_fmt).time()
 
         time_pattern = r"^\d{2}:\d{2}:\d{2}$"
-
         filtered_data = []
 
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=',')
-            for i, row in enumerate(reader, start=1): 
-                if i <= 1:  
-                    filtered_data.append(row)
-                    continue
+            header = next(reader)  
+            data = list(reader)
 
-                if len(row) > 1:
-                    time_part = row[1].strip().strip('"\'') 
-                    if not re.match(time_pattern, time_part):
-                        continue
-                    try:
-                        csv_time = datetime.strptime(time_part, "%H:%M:%S").time()
-                    except ValueError:
-                        continue
+        if not data or len(data[0]) < 2:
+            messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
+            return
 
-                    if start_time <= csv_time <= end_time:
-                        filtered_data.append(row)
+        base_date = data[0][0].strip().strip('"\'')
+        base_date_dt = datetime.strptime(base_date, "%Y-%m-%d")
+
+        start_dt = datetime.combine(base_date_dt.date(), start_time)
+        end_dt   = datetime.combine(base_date_dt.date(), end_time)
+        if start_time > end_time:
+            end_dt += timedelta(days=1)
+
+        for row in data:
+            if len(row) < 2:
+                continue
+
+            date_part = row[0].strip().strip('"\'')
+            time_part = row[1].strip().strip('"\'')
+            if not re.match(time_pattern, time_part):
+                continue
+
+            try:
+                current_dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                continue
+
+            if current_dt > end_dt:
+                start_dt += timedelta(days=1)
+                end_dt   += timedelta(days=1)
+
+            if start_dt <= current_dt <= end_dt:
+                filtered_data.append(row)
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=',')
+            writer.writerow(header)
             writer.writerows(filtered_data)
 
     except Exception as e:
