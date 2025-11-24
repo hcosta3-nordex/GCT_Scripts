@@ -1005,17 +1005,20 @@ def correct_time_tsdl_csv(final_output_file, increment_ms):
     try:
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=',')
-            header = [next(reader) for _ in range(3)]  
+            header = [next(reader) for _ in range(3)] 
             data = list(reader)
 
         cleaned_data = [[field.strip().strip('"') for field in row] for row in data]
 
-        if len(cleaned_data) < 4 or len(cleaned_data[3]) < 2:
+        if len(cleaned_data) < 1 or len(cleaned_data[0]) < 2:
             messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
             return
 
+        file_date = cleaned_data[0][0].strip("'")
         start_time_str = cleaned_data[0][1].strip("'")
-        start_time = datetime.strptime(start_time_str, "%H:%M:%S.%f")
+
+        fmt = "%Y-%m-%d %H:%M:%S.%f"  
+        start_time = datetime.strptime(f"{file_date} {start_time_str}", fmt)
 
         increment = timedelta(milliseconds=increment_ms)
 
@@ -1023,7 +1026,10 @@ def correct_time_tsdl_csv(final_output_file, increment_ms):
         for i, row in enumerate(cleaned_data):
             if len(row) >= 2:
                 timestamp = start_time + i * increment
+                formatted_date = timestamp.strftime("%Y-%m-%d")
                 formatted_time = timestamp.strftime("%H:%M:%S.%f")[:-3]
+
+                row[0] = formatted_date
                 row[1] = f"'{formatted_time}'"
             updated_data.append(row)
 
@@ -1040,17 +1046,20 @@ def correct_time_tsdl_bin(final_output_file, increment_ms):
     try:
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=',')
-            header = next(reader) 
+            header = next(reader)   
             data = list(reader)
 
         cleaned_data = [[field.strip().strip('"') for field in row] for row in data]
 
-        if len(cleaned_data) < 4 or len(cleaned_data[3]) < 2:
+        if len(cleaned_data) < 1 or len(cleaned_data[0]) < 2:
             messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
             return
 
+        file_date = cleaned_data[0][0].strip("'")
         start_time_str = cleaned_data[0][1].strip("'")
-        start_time = datetime.strptime(start_time_str, "%H:%M:%S.%f")
+
+        fmt = "%Y-%m-%d %H:%M:%S.%f"  
+        start_time = datetime.strptime(f"{file_date} {start_time_str}", fmt)
 
         increment = timedelta(milliseconds=increment_ms)
 
@@ -1058,7 +1067,10 @@ def correct_time_tsdl_bin(final_output_file, increment_ms):
         for i, row in enumerate(cleaned_data):
             if len(row) >= 2:
                 timestamp = start_time + i * increment
+                formatted_date = timestamp.strftime("%Y-%m-%d")
                 formatted_time = timestamp.strftime("%H:%M:%S.%f")[:-3]
+
+                row[0] = formatted_date
                 row[1] = f"'{formatted_time}'"
             updated_data.append(row)
 
@@ -1070,29 +1082,35 @@ def correct_time_tsdl_bin(final_output_file, increment_ms):
     except Exception as e:
         messagebox.showerror("Error", f"Timestamp correction failed:\n{str(e)}")
 
-def correct_time_opclogger(final_output_file, increment_ms):
+def correct_time_opclogger(final_output_file, increment_s):
     try:
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=',')
-            header = next(reader) 
+            header = next(reader)   
             data = list(reader)
 
         cleaned_data = [[field.strip().strip('"') for field in row] for row in data]
 
-        if len(cleaned_data) < 4 or len(cleaned_data[3]) < 2:
+        if len(cleaned_data) < 1 or len(cleaned_data[0]) < 2:
             messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
             return
 
+        file_date = cleaned_data[0][0].strip("'")
         start_time_str = cleaned_data[0][1].strip("'")
-        start_time = datetime.strptime(start_time_str, "%H:%M:%S")
 
-        increment = timedelta(seconds=increment_ms)
+        fmt = "%Y-%m-%d %H:%M:%S"
+        start_time = datetime.strptime(f"{file_date} {start_time_str}", fmt)
+
+        increment = timedelta(seconds=increment_s)
 
         updated_data = []
         for i, row in enumerate(cleaned_data):
             if len(row) >= 2:
                 timestamp = start_time + i * increment
+                formatted_date = timestamp.strftime("%Y-%m-%d")
                 formatted_time = timestamp.strftime("%H:%M:%S")
+
+                row[0] = formatted_date
                 row[1] = f"'{formatted_time}'"
             updated_data.append(row)
 
