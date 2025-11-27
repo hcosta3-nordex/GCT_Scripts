@@ -605,7 +605,7 @@ def update_variable_choices():
     search_var = StringVar()
     search_var.trace_add("write", lambda *args: update_listbox()) 
     search_entry = Entry(vars_frame, textvariable=search_var)
-    search_entry.pack(fill='x', padx=5, pady=(0, 5))
+    search_entry.pack(fill='x', padx=0, pady=(0, 5))
 
     scrollbar = ttk.Scrollbar(vars_frame)
     scrollbar.pack(side='right', fill='y')
