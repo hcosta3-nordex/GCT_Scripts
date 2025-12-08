@@ -33,6 +33,7 @@ processing_thread = None
 filters = {}
 user_changed_output = False
 last_zip_dir = None
+last_xml_name = None
 
 def get_exe_dir():
     return os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
@@ -597,13 +598,19 @@ def load_filters():
         messagebox.showerror("Error", f"Failed to load Filters.txt: {e}")
 
 def update_variable_choices():
-    global xml_variables, var_listbox, search_var
+    global xml_variables, var_listbox, search_var, last_xml_name
     script_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
-    xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
+    xml_name = xml_combobox.get()
+    xml_path = os.path.join(script_dir, "namespaces", xml_name)
     xml_variables = get_xml_variables(xml_path)
     if not xml_variables:
         return
-
+    
+    if xml_name != last_xml_name:
+        selected_ids.clear()
+        selected_indices.clear()
+        last_xml_name = xml_name
+    
     for widget in vars_frame.winfo_children():
         widget.destroy()
 
