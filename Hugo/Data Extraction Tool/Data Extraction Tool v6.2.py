@@ -571,6 +571,7 @@ def get_xml_variables(path_xml):
     
     return []
 
+
 def load_filters():
     global filter_options, filter_signals
 
@@ -584,20 +585,32 @@ def load_filters():
     try:
         with open(file_path, 'r') as f:
             lines = [line.strip() for line in f if line.strip()]
-            filter_options = ["Manual"] + lines[0].split(',')
+
+            base_options = lines[0].split(',')
+            filter_options = ["Manual"] + base_options
             filter_signals = [[]] + [line.split(',') for line in lines[1:]]
+
+            if "All" not in filter_options:
+                filter_options.insert(1, "All")
+
             filter_var['values'] = filter_options
             filter_var.set("Manual")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to load Filters.txt: {e}")
 
 def update_variable_choices():
-    global xml_variables, var_listbox, search_var
+    global xml_variables, var_listbox, search_var, selected_indices, selected_ids
     script_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
     xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
     xml_variables = get_xml_variables(xml_path)
     if not xml_variables:
         return
+
+    full_variable_list = [f"{var[0]}: {var[1]}" for var in xml_variables]
+    all_ids = [var[0] for var in xml_variables]
+
+    ALL_FILTER_PREFIXES = ('ANA', 'TR', 'FM', 'ST')
+    all_filter_ids = [vid for vid in all_ids if vid.upper().startswith(ALL_FILTER_PREFIXES)]
 
     for widget in vars_frame.winfo_children():
         widget.destroy()
@@ -613,8 +626,6 @@ def update_variable_choices():
     var_listbox = Listbox(vars_frame, selectmode='multiple', yscrollcommand=scrollbar.set)
     var_listbox.pack(side='left', fill='both', expand=True)
     scrollbar.config(command=var_listbox.yview)
-
-    full_variable_list = [f"{var[0]}: {var[1]}" for var in xml_variables]
 
     def update_listbox():
         query = search_var.get().strip().lower()
@@ -644,9 +655,8 @@ def update_variable_choices():
             item = var_listbox.get(i)
             var_id = item.split(":")[0].strip()
             selected_ids.add(var_id)
-        
-        global selected_indices
-        selected_indices = [i for i, (id, _) in enumerate(xml_variables) if id in selected_ids]
+
+        selected_indices = [i for i, (vid, _) in enumerate(xml_variables) if vid in selected_ids]
 
     var_listbox.bind('<<ListboxSelect>>', on_selection_change)
 
@@ -655,20 +665,43 @@ def update_variable_choices():
         if not selected_filter or not xml_variables:
             return
         try:
-            index = filter_options.index(selected_filter)
-            if index == 0:
-                return
-            signals_to_select = filter_signals[index]
-            matching_indices = [i for i, (id, _) in enumerate(xml_variables) if id in signals_to_select]
+            if selected_filter == "All":
+                signals_to_select = set(all_filter_ids)
+            else:
+                index = filter_options.index(selected_filter)  
+                if index == 0:
+                    return
+                signals_to_select = set(filter_signals[index])
+
             var_listbox.selection_clear(0, 'end')
-            for idx in matching_indices:
-                var_listbox.selection_set(idx)
+
+            visible_items = [var_listbox.get(i) for i in range(var_listbox.size())]
+            id_to_visible_idx = {}
+            for i, item in enumerate(visible_items):
+                vid = item.split(":")[0].strip()
+                id_to_visible_idx[vid] = i
+
+            for vid in signals_to_select:
+                if vid in id_to_visible_idx:
+                    var_listbox.selection_set(id_to_visible_idx[vid])
+
             global selected_indices
-            selected_indices = matching_indices
+            selected_ids.update(signals_to_select)  
+            selected_indices = [i for i, (vid, _) in enumerate(xml_variables) if vid in selected_ids]
+
         except Exception as e:
             print(f"Error applying filter: {e}")
 
     filter_var.bind("<<ComboboxSelected>>", lambda e: apply_filter_selection())
+
+    try:
+        current_opts = list(filter_options) 
+        if "All" not in current_opts:
+            current_opts.insert(1, "All") 
+            filter_var['values'] = current_opts
+    except Exception:
+        pass
+
 
 def start_processing_thread():
     global cancel_requested, processing_thread
