@@ -571,7 +571,6 @@ def get_xml_variables(path_xml):
     
     return []
 
-
 def load_filters():
     global filter_options, filter_signals
 
@@ -701,7 +700,6 @@ def update_variable_choices():
             filter_var['values'] = current_opts
     except Exception:
         pass
-
 
 def start_processing_thread():
     global cancel_requested, processing_thread
