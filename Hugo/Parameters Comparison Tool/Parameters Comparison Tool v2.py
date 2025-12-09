@@ -1,4 +1,3 @@
-
 import os
 import csv
 import zipfile
@@ -492,5 +491,6 @@ try:
     on_mode_change()
 except Exception as e:
     messagebox.showerror("Startup Error", str(e))
+
 
 root.mainloop()
