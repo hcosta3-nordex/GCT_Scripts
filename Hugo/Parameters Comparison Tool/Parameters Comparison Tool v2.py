@@ -14,7 +14,7 @@ e_file_entry = None
 b_file_entry = None
 file_entries = []
 file_types = []
-save_button = None  # ensure defined
+save_button = None
 
 def read_nc2_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -506,7 +506,6 @@ output_tree.configure(xscrollcommand=tree_scroll_x.set)
 tree_container.grid_rowconfigure(0, weight=1)
 tree_container.grid_columnconfigure(0, weight=1)
 
-
 def adjust_columns():
     cols = output_tree["columns"]
     if not cols:
@@ -529,8 +528,8 @@ def adjust_columns():
     measured_widths = []
     for col in cols:
         header_text = (output_tree.heading(col).get("text") or "")
-        w = font.measure(str(header_text)) + 24  # header-only width + padding
-        measured_widths.append(max(w, 80))       # min width per column
+        w = font.measure(str(header_text)) + 24
+        measured_widths.append(max(w, 80))
 
     total_required = sum(measured_widths)
 
