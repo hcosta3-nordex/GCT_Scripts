@@ -8,11 +8,13 @@ import sys
 import base64
 import io
 from PIL import Image, ImageTk
+import tkinter.font as tkfont
 
 e_file_entry = None
 b_file_entry = None
 file_entries = []
 file_types = []
+save_button = None  # ensure defined
 
 def read_nc2_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -59,6 +61,7 @@ def process_files():
     else:
         messagebox.showerror("Error", "Invalid mode selected.")
         return
+
     e_parameters, e_values = [], []
     b_parameters, b_values = [], []
     parameters_names = []
@@ -73,6 +76,7 @@ def process_files():
                 parameters_names.append(elements[1].strip().strip('"') if len(elements) > 1 else "")
             else:
                 parameters_names.append(elements[6].strip() if len(elements) > 6 else "")
+
     for line in b_lines:
         elements = line.strip().split(';')
         if len(elements) > b_index:
@@ -80,6 +84,7 @@ def process_files():
             param = param.replace("P", "P ") if param.startswith("P") and not param.startswith("P ") else param
             b_parameters.append(param)
             b_values.append(elements[b_index].strip())
+
     output_tree.delete(*output_tree.get_children())
     matched_params = set()
     for i in range(len(e_parameters)):
@@ -99,8 +104,11 @@ def process_files():
                         else:
                             output_tree.insert("", "end", values=(e_parameters[i], parameters_names[i], e_values[i], b_values[j]))
                 break
+
     output_tree.insert("", "end", values=("--- Not Found in Both Files ---", "", "", ""))
-    save_button.config(state=tk.NORMAL)
+    if save_button:
+        save_button.config(state=tk.NORMAL)
+
     for i in range(len(e_parameters)):
         if e_parameters[i] not in matched_params:
             if mode == "NC2-NC2":
@@ -114,6 +122,8 @@ def process_files():
             else:
                 output_tree.insert("", "end", values=(b_parameters[j], "", "Not Present", b_values[j]))
 
+    adjust_columns()
+
 def select_e_file():
     mode = mode_var.get()
     filetypes = [("ZIP Files", "*.zip")] if mode == "PCMS-PCMS" else [("CSV Files", "*.csv")]
@@ -122,6 +132,7 @@ def select_e_file():
         e_file_entry.delete(0, tk.END)
         e_file_entry.insert(0, file_path)
         output_tree.delete(*output_tree.get_children())
+        adjust_columns()
 
 def select_b_file():
     mode = mode_var.get()
@@ -131,39 +142,41 @@ def select_b_file():
         b_file_entry.delete(0, tk.END)
         b_file_entry.insert(0, file_path)
         output_tree.delete(*output_tree.get_children())
+        adjust_columns()
 
 def handle_e_drop(event):
     file_path = event.data.strip('{}')
     e_file_entry.delete(0, tk.END)
     e_file_entry.insert(0, file_path)
     output_tree.delete(*output_tree.get_children())
+    adjust_columns()
 
 def handle_b_drop(event):
     file_path = event.data.strip('{}')
     b_file_entry.delete(0, tk.END)
     b_file_entry.insert(0, file_path)
     output_tree.delete(*output_tree.get_children())
+    adjust_columns()
 
 def update_treeview_columns(mode):
     output_tree["columns"] = ()
     for col in output_tree["columns"]:
         output_tree.heading(col, text="")
         output_tree.column(col, width=0)
+
     if mode == "NC2-NC2":
         columns = ("Parameter", "Description", "Value at the beginning", "Value at the end")
     elif mode == "NC2-PCMS":
         columns = ("Parameter", "Description", "NC2 value", "PCMS value")
     else:
         columns = ("Parameter", "Description", "PCMS File A value", "PCMS File B value")
+
     output_tree["columns"] = columns
-    if len(columns) == 4:
-        for col in columns:
-            output_tree.heading(col, text=col)
-            output_tree.column(col, anchor="center", stretch=True, width=100)
-    else:
-        for col in columns:
-            output_tree.heading(col, text=col)
-            output_tree.column(col, anchor="center", width=180, stretch=False)
+    for col in columns:
+        output_tree.heading(col, text=col)
+        output_tree.column(col, anchor="center", width=140, stretch=False)
+
+    adjust_columns()
 
 def save(output_tree):
     file_path = filedialog.asksaveasfilename(
@@ -186,15 +199,10 @@ def resource_path(relative_path):
 
 def update_treeview_columns_n(labels):
     output_tree["columns"] = ("Parameter", "Description") + tuple(labels)
-    total_cols = len(output_tree["columns"])
-    if len(labels) <= 2:
-        for col in output_tree["columns"]:
-            output_tree.heading(col, text=col)
-            output_tree.column(col, anchor="center", stretch=True, width=100)
-    else:
-        for col in output_tree["columns"]:
-            output_tree.heading(col, text=col)
-            output_tree.column(col, anchor="center", width=180, stretch=False)
+    for col in output_tree["columns"]:
+        output_tree.heading(col, text=col)
+        output_tree.column(col, anchor="center", width=140, stretch=False)
+    adjust_columns()
 
 def select_file(i):
     mode = mode_var.get()
@@ -203,21 +211,20 @@ def select_file(i):
     elif mode == "PCMS-PCMS":
         filetypes = [("ZIP", "*.zip")]
     else:
-        if file_types[i] == "CSV":
-            filetypes = [("CSV", "*.csv")]
-        else:
-            filetypes = [("ZIP", "*.zip")]
+        filetypes = [("CSV", "*.csv")] if file_types[i] == "CSV" else [("ZIP", "*.zip")]
     path = filedialog.askopenfilename(filetypes=filetypes)
     if path:
         file_entries[i].delete(0, tk.END)
         file_entries[i].insert(0, path)
         output_tree.delete(*output_tree.get_children())
+        adjust_columns()
 
 def handle_drop(i, event):
     path = event.data.strip('{}')
     file_entries[i].delete(0, tk.END)
     file_entries[i].insert(0, path)
     output_tree.delete(*output_tree.get_children())
+    adjust_columns()
 
 def process_n_files():
     mode = mode_var.get()
@@ -225,6 +232,7 @@ def process_n_files():
         n = csv_count_var.get() + zip_count_var.get()
     else:
         n = num_files_var.get()
+
     paths = []
     for i in range(n):
         p = file_entries[i].get().strip()
@@ -235,6 +243,7 @@ def process_n_files():
             messagebox.showerror("Error", f"Path does not exist:\n{p}")
             return
         paths.append(p)
+
     maps = []
     for i, p in enumerate(paths):
         if mode == "NC2-NC2":
@@ -250,6 +259,7 @@ def process_n_files():
             else:
                 lines = read_pcms_zip(p)
                 v_idx, d_idx = 5, 1
+
         m = {}
         for line in lines:
             parts = [x.strip() for x in line.strip().split(';')]
@@ -261,8 +271,10 @@ def process_n_files():
                 desc = parts[d_idx].strip().strip('"') if len(parts) > d_idx else ""
                 m[param] = (val, desc)
         maps.append(m)
+
     all_params = sorted(set().union(*[set(m.keys()) for m in maps]), key=sort_key_param)
     output_tree.delete(*output_tree.get_children())
+
     if mode == "NC2-NC2":
         header_labels = [f"Parameters CSV File {i+1}" for i in range(n)]
     elif mode == "PCMS-PCMS":
@@ -271,13 +283,16 @@ def process_n_files():
         c = csv_count_var.get()
         z = zip_count_var.get()
         header_labels = [f"NC2 CSV File {i+1}" for i in range(c)] + [f"PCMS ZIP File {j+1}" for j in range(z)]
+
     update_treeview_columns_n(header_labels)
+
     for prm in all_params:
         desc = ""
         for m in maps:
             if prm in m and m[prm][1]:
                 desc = m[prm][1]
                 break
+
         vals = []
         present = []
         norm = []
@@ -294,6 +309,7 @@ def process_n_files():
                 vals.append("Not Present")
                 present.append(False)
                 norm.append((False, "Not Present"))
+
         mismatch = False
         if not all(present):
             mismatch = True
@@ -303,9 +319,13 @@ def process_n_files():
                 if norm[k] != first:
                     mismatch = True
                     break
+
         if mismatch:
             output_tree.insert("", "end", values=(prm, desc, *vals))
-    save_button.config(state=tk.NORMAL)
+
+    if save_button:
+        save_button.config(state=tk.NORMAL)
+    adjust_columns()
 
 def sort_key_param(p):
     s = str(p).strip().strip('"')
@@ -335,6 +355,7 @@ def load_mode_specific_ui(*args):
     file_types = []
     mode = mode_var.get()
     dynamic_frame.grid_columnconfigure(1, weight=1)
+
     if mode == "NC2-NC2":
         n = num_files_var.get()
         for i in range(n):
@@ -351,7 +372,9 @@ def load_mode_specific_ui(*args):
         save_button.grid(row=n, column=2, pady=10)
         update_treeview_columns_n([f"Parameters CSV File {i+1}" for i in range(n)])
         output_tree.delete(*output_tree.get_children())
+        adjust_columns()
         return
+
     if mode == "PCMS-PCMS":
         n = num_files_var.get()
         for i in range(n):
@@ -368,7 +391,9 @@ def load_mode_specific_ui(*args):
         save_button.grid(row=n, column=2, pady=10)
         update_treeview_columns_n([f"PCMS ZIP File {i+1}" for i in range(n)])
         output_tree.delete(*output_tree.get_children())
+        adjust_columns()
         return
+
     c = csv_count_var.get()
     z = zip_count_var.get()
     n = c + z
@@ -381,6 +406,7 @@ def load_mode_specific_ui(*args):
         tk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
         file_entries.append(entry)
         file_types.append("CSV")
+
     for j in range(z):
         idx = c + j
         tk.Label(dynamic_frame, text=f"PCMS ZIP File {j+1}:").grid(row=idx, column=0, padx=10, pady=(10, 0), sticky='w')
@@ -391,12 +417,14 @@ def load_mode_specific_ui(*args):
         tk.Button(dynamic_frame, text="Browse...", command=lambda k=idx: select_file(k)).grid(row=idx, column=2, padx=10, pady=(10, 0))
         file_entries.append(entry)
         file_types.append("ZIP")
+
     tk.Button(dynamic_frame, text="Process Files", command=process_n_files).grid(row=n, column=1, pady=10)
     save_button = tk.Button(dynamic_frame, text="Save", command=lambda: save(output_tree), state=tk.DISABLED)
     save_button.grid(row=n, column=2, pady=10)
     header_labels = [f"NC2 CSV File {i+1}" for i in range(c)] + [f"PCMS ZIP File {j+1}" for j in range(z)]
     update_treeview_columns_n(header_labels)
     output_tree.delete(*output_tree.get_children())
+    adjust_columns()
 
 root = TkinterDnD.Tk()
 
@@ -478,6 +506,50 @@ output_tree.configure(xscrollcommand=tree_scroll_x.set)
 tree_container.grid_rowconfigure(0, weight=1)
 tree_container.grid_columnconfigure(0, weight=1)
 
+
+def adjust_columns():
+    cols = output_tree["columns"]
+    if not cols:
+        return
+
+    style = ttk.Style()
+    font_name = style.lookup("Treeview", "font")
+    try:
+        font = tkfont.nametofont(font_name) if font_name else tkfont.nametofont("TkDefaultFont")
+    except Exception:
+        font = tkfont.nametofont("TkDefaultFont")
+
+    vbar_w = tree_scroll_y.winfo_width() or 16
+    available_width = output_tree.winfo_width()
+    if available_width < 100:
+        available_width = max(tree_container.winfo_width() - vbar_w, 100)
+    else:
+        available_width = max(available_width - vbar_w, 100)
+
+    measured_widths = []
+    for col in cols:
+        header_text = (output_tree.heading(col).get("text") or "")
+        w = font.measure(str(header_text)) + 24  # header-only width + padding
+        measured_widths.append(max(w, 80))       # min width per column
+
+    total_required = sum(measured_widths)
+
+    if available_width >= total_required and total_required > 0:
+        scaled = [int(w * available_width / total_required) for w in measured_widths]
+        remainder = available_width - sum(scaled)
+        i = 0
+        while remainder > 0 and i < len(scaled):
+            scaled[i] += 1
+            remainder -= 1
+            i += 1
+        for col, w in zip(cols, scaled):
+            output_tree.column(col, width=max(w, 50), stretch=True)
+    else:
+        for col, w in zip(cols, measured_widths):
+            output_tree.column(col, width=int(w), stretch=False)
+
+tree_container.bind("<Configure>", lambda e: adjust_columns())
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(script_dir, "logo.png")
 try:
@@ -488,6 +560,7 @@ try:
     logo_label.place(relx=0.98, rely=0.01, anchor="ne")
 except Exception as e:
     print(f"Logo not found or failed to load: {e}")
+
 logo_POT_path = os.path.join(script_dir, "logo_POT.png")
 try:
     logo_POT = PhotoImage(file=logo_POT_path)
