@@ -474,11 +474,11 @@ def on_mode_change(*_):
         zip_spin_top.grid(row=0, column=3)
     elif mode_var.get() == "PCMS-PCMS":
         tk.Label(mode_extras_frame, text="Number of files:").grid(row=0, column=0, padx=(15, 5))
-        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=10, textvariable=num_files_var_zip, width=5, state="readonly")
+        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=20, textvariable=num_files_var_zip, width=5, state="readonly")
         num_files_spin_local.grid(row=0, column=1)
     else:
         tk.Label(mode_extras_frame, text="Number of files:").grid(row=0, column=0, padx=(15, 5))
-        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=10, textvariable=num_files_var, width=5, state="readonly")
+        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=20, textvariable=num_files_var, width=5, state="readonly")
         num_files_spin_local.grid(row=0, column=1)
     load_mode_specific_ui()
 
