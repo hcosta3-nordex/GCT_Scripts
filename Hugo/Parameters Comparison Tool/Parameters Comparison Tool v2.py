@@ -230,8 +230,10 @@ def process_n_files():
     mode = mode_var.get()
     if mode == "NC2-PCMS":
         n = csv_count_var.get() + zip_count_var.get()
-    else:
+    elif mode == "NC2-NC2":
         n = num_files_var.get()
+    else:
+        n = num_files_var_zip.get()
 
     paths = []
     for i in range(n):
@@ -376,7 +378,7 @@ def load_mode_specific_ui(*args):
         return
 
     if mode == "PCMS-PCMS":
-        n = num_files_var.get()
+        n = num_files_var_zip.get()
         for i in range(n):
             tk.Label(dynamic_frame, text=f"PCMS ZIP File {i+1}:").grid(row=i, column=0, padx=10, pady=(10, 0), sticky='w')
             entry = tk.Entry(dynamic_frame)
@@ -453,6 +455,7 @@ mode_menu = ttk.Combobox(mode_frame, textvariable=mode_var, values=["NC2-NC2", "
 mode_menu.pack(side="left")
 
 num_files_var = tk.IntVar(master=root, value=2)
+num_files_var_zip = tk.IntVar(master=root, value=2)
 csv_count_var = tk.IntVar(master=root, value=1)
 zip_count_var = tk.IntVar(master=root, value=1)
 
@@ -469,6 +472,10 @@ def on_mode_change(*_):
         tk.Label(mode_extras_frame, text="PCMS ZIP Files:").grid(row=0, column=2, padx=(15, 5))
         zip_spin_top = ttk.Spinbox(mode_extras_frame, from_=1, to=10, textvariable=zip_count_var, width=5, state="readonly")
         zip_spin_top.grid(row=0, column=3)
+    elif mode_var.get() == "PCMS-PCMS":
+        tk.Label(mode_extras_frame, text="Number of files:").grid(row=0, column=0, padx=(15, 5))
+        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=10, textvariable=num_files_var_zip, width=5, state="readonly")
+        num_files_spin_local.grid(row=0, column=1)
     else:
         tk.Label(mode_extras_frame, text="Number of files:").grid(row=0, column=0, padx=(15, 5))
         num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=10, textvariable=num_files_var, width=5, state="readonly")
@@ -477,6 +484,7 @@ def on_mode_change(*_):
 
 mode_var.trace_add("write", on_mode_change)
 num_files_var.trace_add("write", load_mode_specific_ui)
+num_files_var_zip.trace_add("write", load_mode_specific_ui)
 csv_count_var.trace_add("write", load_mode_specific_ui)
 zip_count_var.trace_add("write", load_mode_specific_ui)
 
