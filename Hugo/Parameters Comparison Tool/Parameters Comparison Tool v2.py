@@ -438,7 +438,7 @@ try:
 except Exception:
     pass
 
-root.title("Parameter Comparison Tool v1")
+root.title("Parameter Comparison Tool v2")
 root.geometry("900x600")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
