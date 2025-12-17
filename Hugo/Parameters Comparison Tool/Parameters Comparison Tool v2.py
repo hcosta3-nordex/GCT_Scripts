@@ -27,16 +27,16 @@ def read_pcms_zip(zip_path):
             if "_para" in name and name.endswith(".csv"):
                 with zip_ref.open(name) as file:
                     raw_bytes = file.read()
-                    for encoding in ['utf-8', 'latin1', 'cp1252']:
-                        try:
-                            content = raw_bytes.decode(encoding)
-                            break
-                        except UnicodeDecodeError:
-                            continue
-                    else:
-                        return []
-                    lines = content.splitlines()
-                    return lines[1:]
+                for encoding in ['utf-8', 'latin1', 'cp1252']:
+                    try:
+                        content = raw_bytes.decode(encoding)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    return []
+                lines = content.splitlines()
+                return lines[1:]
     return []
 
 def process_files():
@@ -120,6 +120,7 @@ def process_files():
                 output_tree.insert("", "end", values=(e_parameters[i], parameters_names[i], "Not Present", e_values[i]))
             else:
                 output_tree.insert("", "end", values=(e_parameters[i], parameters_names[i], e_values[i], "Not Present"))
+
     for j in range(len(b_parameters)):
         if b_parameters[j] not in matched_params:
             if mode == "NC2-NC2":
@@ -173,19 +174,16 @@ def update_treeview_columns(mode):
     for col in output_tree["columns"]:
         output_tree.heading(col, text="")
         output_tree.column(col, width=0)
-
     if mode == "NC2-NC2":
         columns = ("Parameter", "Description", "Value at the beginning", "Value at the end")
     elif mode == "NC2-PCMS":
         columns = ("Parameter", "Description", "NC2 value", "PCMS value")
     else:
         columns = ("Parameter", "Description", "PCMS File A value", "PCMS File B value")
-
     output_tree["columns"] = columns
     for col in columns:
         output_tree.heading(col, text=col)
         output_tree.column(col, anchor="center", width=140, stretch=False)
-
     adjust_columns()
 
 def save(output_tree):
@@ -238,6 +236,7 @@ def handle_drop(i, event):
 
 def process_n_files():
     mode = mode_var.get()
+
     if mode == "NC2-PCMS":
         n = csv_count_var.get() + zip_count_var.get()
     elif mode == "NC2-NC2":
@@ -284,7 +283,6 @@ def process_n_files():
         maps.append(m)
 
     all_params = sorted(set().union(*[set(m.keys()) for m in maps]), key=sort_key_param)
-
     output_tree.delete(*output_tree.get_children())
 
     if mode == "NC2-NC2":
@@ -364,8 +362,10 @@ def sort_key_param(p):
 
 def load_mode_specific_ui(*args):
     global e_file_entry, b_file_entry, file_entries, save_button, file_types
+
     for widget in dynamic_frame.winfo_children():
         widget.destroy()
+
     file_entries = []
     file_types = []
 
@@ -383,9 +383,7 @@ def load_mode_specific_ui(*args):
             tk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
             file_entries.append(entry)
             file_types.append("CSV")
-        tk.Button(dynamic_frame, text="Process Files", command=process_n_files).grid(row=n, column=1, pady=10)
-        save_button = tk.Button(dynamic_frame, text="Save", command=lambda: save(output_tree), state=tk.DISABLED)
-        save_button.grid(row=n, column=2, pady=10)
+
         update_treeview_columns_n([f"Parameters CSV File {i+1}" for i in range(n)])
         output_tree.delete(*output_tree.get_children())
         adjust_columns()
@@ -407,9 +405,7 @@ def load_mode_specific_ui(*args):
             tk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
             file_entries.append(entry)
             file_types.append("ZIP")
-        tk.Button(dynamic_frame, text="Process Files", command=process_n_files).grid(row=n, column=1, pady=10)
-        save_button = tk.Button(dynamic_frame, text="Save", command=lambda: save(output_tree), state=tk.DISABLED)
-        save_button.grid(row=n, column=2, pady=10)
+
         update_treeview_columns_n([f"PCMS ZIP File {i+1}" for i in range(n)])
         output_tree.delete(*output_tree.get_children())
         adjust_columns()
@@ -423,6 +419,7 @@ def load_mode_specific_ui(*args):
     c = csv_count_var.get()
     z = zip_count_var.get()
     n = c + z
+
     for i in range(c):
         tk.Label(dynamic_frame, text=f"NC2 CSV File {i+1}:").grid(row=i, column=0, padx=10, pady=(10, 0), sticky='w')
         entry = tk.Entry(dynamic_frame)
@@ -432,6 +429,7 @@ def load_mode_specific_ui(*args):
         tk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
         file_entries.append(entry)
         file_types.append("CSV")
+
     for j in range(z):
         idx = c + j
         tk.Label(dynamic_frame, text=f"PCMS ZIP File {j+1}:").grid(row=idx, column=0, padx=10, pady=(10, 0), sticky='w')
@@ -442,9 +440,7 @@ def load_mode_specific_ui(*args):
         tk.Button(dynamic_frame, text="Browse...", command=lambda k=idx: select_file(k)).grid(row=idx, column=2, padx=10, pady=(10, 0))
         file_entries.append(entry)
         file_types.append("ZIP")
-    tk.Button(dynamic_frame, text="Process Files", command=process_n_files).grid(row=n, column=1, pady=10)
-    save_button = tk.Button(dynamic_frame, text="Save", command=lambda: save(output_tree), state=tk.DISABLED)
-    save_button.grid(row=n, column=2, pady=10)
+
     header_labels = [f"NC2 CSV File {i+1}" for i in range(c)] + [f"PCMS ZIP File {j+1}" for j in range(z)]
     update_treeview_columns_n(header_labels)
     output_tree.delete(*output_tree.get_children())
@@ -463,7 +459,6 @@ try:
         icon_image = Image.open(icon_stream)
         icon_photo = ImageTk.PhotoImage(icon_image)
         root.iconphoto(False, icon_photo)
-
 except Exception:
     pass
 
@@ -472,7 +467,7 @@ root.geometry("900x600")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
 root.grid_columnconfigure(2, weight=1)
-root.grid_rowconfigure(2, weight=1)
+root.grid_rowconfigure(3, weight=1)
 
 mode_frame = tk.Frame(root)
 mode_frame.grid(row=0, column=0, columnspan=3, pady=(20, 10))
@@ -494,18 +489,18 @@ def on_mode_change(*_):
         w.destroy()
     if mode_var.get() == "NC2-PCMS":
         tk.Label(mode_extras_frame, text="NC2 CSV Files:").grid(row=0, column=0, padx=(15, 5))
-        csv_spin_top = ttk.Spinbox(mode_extras_frame, from_=1, to=10, textvariable=csv_count_var, width=5, state="readonly")
+        csv_spin_top = ttk.Spinbox(mode_extras_frame, from_=1, to=9999, textvariable=csv_count_var, width=5, state="readonly")
         csv_spin_top.grid(row=0, column=1)
         tk.Label(mode_extras_frame, text="PCMS ZIP Files:").grid(row=0, column=2, padx=(15, 5))
-        zip_spin_top = ttk.Spinbox(mode_extras_frame, from_=1, to=10, textvariable=zip_count_var, width=5, state="readonly")
+        zip_spin_top = ttk.Spinbox(mode_extras_frame, from_=1, to=9999, textvariable=zip_count_var, width=5, state="readonly")
         zip_spin_top.grid(row=0, column=3)
     elif mode_var.get() == "PCMS-PCMS":
         tk.Label(mode_extras_frame, text="Number of files:").grid(row=0, column=0, padx=(15, 5))
-        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=20, textvariable=num_files_var_zip, width=5, state="readonly")
+        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=9999, textvariable=num_files_var_zip, width=5, state="readonly")
         num_files_spin_local.grid(row=0, column=1)
     else:
         tk.Label(mode_extras_frame, text="Number of files:").grid(row=0, column=0, padx=(15, 5))
-        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=20, textvariable=num_files_var, width=5, state="readonly")
+        num_files_spin_local = ttk.Spinbox(mode_extras_frame, from_=2, to=9999, textvariable=num_files_var, width=5, state="readonly")
         num_files_spin_local.grid(row=0, column=1)
     load_mode_specific_ui()
 
@@ -531,7 +526,6 @@ dynamic_frame_id = inputs_canvas.create_window((0, 0), window=dynamic_frame, anc
 dynamic_frame.grid_columnconfigure(1, weight=1)
 
 def _update_inputs_scrollregion(event=None):
-    """Update canvas scrollregion to match dynamic_frame size and keep width synced."""
     inputs_canvas.configure(scrollregion=inputs_canvas.bbox("all"))
     try:
         canvas_w = inputs_canvas.winfo_width()
@@ -540,10 +534,6 @@ def _update_inputs_scrollregion(event=None):
         pass
 
 def _size_inputs_canvas_to_content(max_height=260):
-    """
-    Size the inputs canvas to the content height (up to max_height),
-    so the scrollbar height matches the form and the output tree begins right after it.
-    """
     try:
         dynamic_frame.update_idletasks()
         req_h = dynamic_frame.winfo_reqheight()
@@ -555,8 +545,20 @@ def _size_inputs_canvas_to_content(max_height=260):
 dynamic_frame.bind("<Configure>", lambda e: (_update_inputs_scrollregion(), _size_inputs_canvas_to_content()))
 inputs_canvas.bind("<Configure>", _update_inputs_scrollregion)
 
+actions_frame = tk.Frame(inputs_container)
+actions_frame.grid(row=1, column=0, padx=0, pady=(6, 0), sticky='ew')
+
+actions_inner = tk.Frame(actions_frame)
+actions_inner.pack(anchor='center')
+
+process_btn = tk.Button(actions_inner, text="Process Files", command=lambda: process_n_files())
+process_btn.pack(side='left', padx=8)
+
+save_button = tk.Button(actions_inner, text="Save", command=lambda: save(output_tree), state=tk.DISABLED)
+save_button.pack(side='left', padx=8)
+
 output_frame = tk.Frame(root)
-output_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=(10, 20), sticky='nsew')
+output_frame.grid(row=3, column=0, columnspan=3, padx=10, pady=(10, 20), sticky='nsew')
 output_frame.grid_rowconfigure(0, weight=1)
 output_frame.grid_columnconfigure(0, weight=1)
 
@@ -578,7 +580,6 @@ tree_container.grid_rowconfigure(0, weight=1)
 tree_container.grid_columnconfigure(0, weight=1)
 
 def _estimate_row_height():
-    """Estimate Treeview row height using style or font metrics."""
     style = ttk.Style()
     rh = style.lookup("Treeview", "rowheight")
     try:
@@ -595,7 +596,6 @@ def _estimate_row_height():
     return rh
 
 def _update_tree_min_rows(event=None):
-    """Set tree height to fill available space but keep at least 15 visible rows."""
     try:
         available_px = tree_container.winfo_height()
         if available_px <= 0:
@@ -603,7 +603,7 @@ def _update_tree_min_rows(event=None):
         row_h = _estimate_row_height()
         header_px = 24
         usable_px = max(available_px - header_px, 0)
-        rows_fit = max(15, int(usable_px / row_h))
+        rows_fit = max(10, int(usable_px / row_h))
         current_h = int(output_tree.cget("height") or 0)
         if rows_fit != current_h:
             output_tree.configure(height=rows_fit)
@@ -623,20 +623,17 @@ def adjust_columns():
         font = tkfont.nametofont(font_name) if font_name else tkfont.nametofont("TkDefaultFont")
     except Exception:
         font = tkfont.nametofont("TkDefaultFont")
-
     vbar_w = tree_scroll_y.winfo_width() or 16
     available_width = output_tree.winfo_width()
     if available_width < 100:
         available_width = max(tree_container.winfo_width() - vbar_w, 100)
     else:
         available_width = max(available_width - vbar_w, 100)
-
     measured_widths = []
     for col in cols:
         header_text = (output_tree.heading(col).get("text") or "")
         w = font.measure(str(header_text)) + 24
         measured_widths.append(max(w, 80))
-
     total_required = sum(measured_widths)
     if available_width >= total_required and total_required > 0:
         scaled = [int(w * available_width / total_required) for w in measured_widths]
