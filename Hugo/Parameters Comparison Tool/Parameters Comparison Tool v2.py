@@ -27,14 +27,14 @@ def read_pcms_zip(zip_path):
             if "_para" in name and name.endswith(".csv"):
                 with zip_ref.open(name) as file:
                     raw_bytes = file.read()
-                for encoding in ['utf-8', 'latin1', 'cp1252']:
-                    try:
-                        content = raw_bytes.decode(encoding)
-                        break
-                    except UnicodeDecodeError:
-                        continue
-                else:
-                    return []
+                    for encoding in ['utf-8', 'latin1', 'cp1252']:
+                        try:
+                            content = raw_bytes.decode(encoding)
+                            break
+                        except UnicodeDecodeError:
+                            continue
+                    else:
+                        return []
                 lines = content.splitlines()
                 return lines[1:]
     return []
@@ -344,8 +344,8 @@ def sort_key_param(p):
     s = str(p).strip().strip('"')
     if s.upper().startswith('P'):
         s = s[1:].strip()
-        if s.startswith(' '):
-            s = s.strip()
+    if s.startswith(' '):
+        s = s.strip()
     token = s.split()[0] if s.split() else ""
     principal = float('inf')
     secondary = float('inf')
@@ -603,7 +603,7 @@ def _update_tree_min_rows(event=None):
         row_h = _estimate_row_height()
         header_px = 24
         usable_px = max(available_px - header_px, 0)
-        rows_fit = max(10, int(usable_px / row_h))
+        rows_fit = max(15, int(usable_px / row_h))
         current_h = int(output_tree.cget("height") or 0)
         if rows_fit != current_h:
             output_tree.configure(height=rows_fit)
