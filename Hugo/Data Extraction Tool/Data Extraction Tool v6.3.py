@@ -716,6 +716,7 @@ def process_files():
     cutting = cutting_var.get()
     start_time = start_time_entry.get()
     end_time = end_time_entry.get()
+    averaging = averaging_var.get()
 
     if use_timestamp:
         selected_increment = increment_var.get()
@@ -1374,19 +1375,39 @@ source_var = ttk.Combobox(combined_frame, values=[
 source_var.pack(side="left", padx=(0, 0))
 source_var.set("TSDL (Export CSV)")
 
-timestamp_frame = Frame(root)
-timestamp_frame.grid(row=2, column=1, pady=(5, 0))
+mode_frame = Frame(root)
+mode_frame.grid(row=2, column=1, pady=(5, 0), sticky="w")
+
+# Make column expand so centering works
+root.grid_columnconfigure(1, weight=1)
+
+mode_frame = Frame(root)
+mode_frame.grid(row=2, column=1, pady=(5, 0))
+
+combined_modes = Frame(mode_frame)
+combined_modes.pack(anchor="center", expand=True)
+
+timestamp_frame = Frame(combined_modes)
+timestamp_frame.pack(side="left", padx=(0, 15))
 
 timestamp_var = BooleanVar(value=False)
 timestamp_check = Checkbutton(timestamp_frame, text="Timestamp Correction", variable=timestamp_var)
-timestamp_check.grid(row=0, column=0, padx=(0, 10), sticky="w")
+timestamp_check.pack(side="left")
 
-Label(timestamp_frame, text="Increment:").grid(row=0, column=1, padx=(0, 5), sticky="e")
+Label(timestamp_frame, text="Increment:").pack(side="left", padx=(10, 5))
 
-increment_var = ttk.Combobox(timestamp_frame, values=["10 ms", "40 ms", "1 s"],
-                             state="readonly", width=7)
-increment_var.grid(row=0, column=2, padx=(0, 5), sticky="w")
+increment_var = ttk.Combobox(timestamp_frame, values=["10 ms", "40 ms", "1 s"], state="readonly", width=7)
+increment_var.pack(side="left")
 increment_var.set("40 ms")
+
+Label(combined_modes, text="OR").pack(side="left", padx=10)
+
+averaging_frame = Frame(combined_modes)
+averaging_frame.pack(side="left", padx=(10, 0))
+
+averaging_var = BooleanVar(value=False)
+averaging_check = Checkbutton(averaging_frame, text="Averaging", variable=averaging_var)
+averaging_check.pack(side="left")
 
 cutting_var_frame = Frame(root)
 cutting_var_frame.grid(row=3, column=1, pady=(5, 0))
