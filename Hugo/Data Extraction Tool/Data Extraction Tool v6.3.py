@@ -761,6 +761,8 @@ def process_files():
         elif(cutting):
             cutting_data_tsdl_csv(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
+        ###elif(averaging)
+            ###averaging_tsdl_csv()
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -1378,7 +1380,6 @@ source_var.set("TSDL (Export CSV)")
 mode_frame = Frame(root)
 mode_frame.grid(row=2, column=1, pady=(5, 0), sticky="w")
 
-# Make column expand so centering works
 root.grid_columnconfigure(1, weight=1)
 
 mode_frame = Frame(root)
@@ -1394,12 +1395,6 @@ timestamp_var = BooleanVar(value=False)
 timestamp_check = Checkbutton(timestamp_frame, text="Timestamp Correction", variable=timestamp_var)
 timestamp_check.pack(side="left")
 
-Label(timestamp_frame, text="Increment:").pack(side="left", padx=(10, 5))
-
-increment_var = ttk.Combobox(timestamp_frame, values=["10 ms", "40 ms", "1 s"], state="readonly", width=7)
-increment_var.pack(side="left")
-increment_var.set("40 ms")
-
 Label(combined_modes, text="OR").pack(side="left", padx=10)
 
 averaging_frame = Frame(combined_modes)
@@ -1408,6 +1403,12 @@ averaging_frame.pack(side="left", padx=(10, 0))
 averaging_var = BooleanVar(value=False)
 averaging_check = Checkbutton(averaging_frame, text="Averaging", variable=averaging_var)
 averaging_check.pack(side="left")
+
+Label(combined_modes, text="Timestamp:").pack(side="left", padx=(20, 5))
+
+increment_var = ttk.Combobox(combined_modes, values=["10 ms", "40 ms", "1 s"], state="readonly", width=7)
+increment_var.pack(side="left")
+increment_var.set("40 ms")
 
 cutting_var_frame = Frame(root)
 cutting_var_frame.grid(row=3, column=1, pady=(5, 0))
