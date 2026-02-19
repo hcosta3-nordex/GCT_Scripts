@@ -718,7 +718,7 @@ def process_files():
     end_time = end_time_entry.get()
     averaging = averaging_var.get()
 
-    if use_timestamp:
+    if use_timestamp or averaging:
         selected_increment = increment_var.get()
         if selected_increment == "10 ms":
             increment_ms = 10
@@ -752,6 +752,18 @@ def process_files():
                 os.rename(temp_file, final_output_file)
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
+        elif averaging and cutting:
+            if increment_ms in (10, 40):
+                temp_file = final_output_file.replace(".csv", "_corrected.csv")
+                averaging_tsdl_csv(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
+                os.rename(final_output_file, temp_file)
+                print("🔄 Averaging final file ...")
+                print("🔄 Applying range on final file ...")
+                cutting_data_tsdl_csv(start_time, end_time, temp_file)
+                os.rename(temp_file, final_output_file)
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
         elif(use_timestamp):
             if(increment_ms == 10 or increment_ms == 40):
                 correct_time_tsdl_csv(final_output_file, increment_ms)
@@ -761,8 +773,12 @@ def process_files():
         elif(cutting):
             cutting_data_tsdl_csv(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
-        ###elif(averaging)
-            ###averaging_tsdl_csv()
+        elif(averaging):
+            if increment_ms in (10, 40):
+                averaging_tsdl_csv(final_output_file, increment_ms)
+                print("🔄 Averaging final file ...")
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -788,6 +804,18 @@ def process_files():
                 os.rename(temp_file, final_output_file)
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 1s.")
+        elif averaging and cutting:
+            if increment_ms in (10, 40):
+                temp_file = final_output_file.replace(".csv", "_corrected.csv")
+                averaging_opclogger(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
+                os.rename(final_output_file, temp_file)
+                print("🔄 Averaging final file ...")
+                print("🔄 Applying range on final file ...")
+                cutting_data_opclogger(start_time, end_time, temp_file)
+                os.rename(temp_file, final_output_file)
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
         elif(use_timestamp):
             if(increment_ms == 1):
                 correct_time_opclogger(final_output_file, increment_ms)
@@ -797,6 +825,12 @@ def process_files():
         elif(cutting):
             cutting_data_opclogger(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
+        elif(averaging):
+            if increment_ms in (10, 40):
+                averaging_opclogger(final_output_file, increment_ms)
+                print("🔄 Averaging final file ...")
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -819,6 +853,18 @@ def process_files():
                 os.rename(temp_file, final_output_file)
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
+        elif averaging and cutting:
+            if increment_ms in (10, 40):
+                temp_file = final_output_file.replace(".csv", "_corrected.csv")
+                averaging_tsdl_bin(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
+                os.rename(final_output_file, temp_file)
+                print("🔄 Averaging final file ...")
+                print("🔄 Applying range on final file ...")
+                cutting_data_tsdl_bin(start_time, end_time, temp_file)
+                os.rename(temp_file, final_output_file)
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
         elif(use_timestamp):
             if(increment_ms == 10 or increment_ms == 40):
                 correct_time_tsdl_bin(final_output_file, increment_ms)
@@ -828,6 +874,12 @@ def process_files():
         elif(cutting):
             cutting_data_tsdl_bin(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
+        elif(averaging):
+            if increment_ms in (10, 40):
+                averaging_tsdl_bin(final_output_file, increment_ms)
+                print("🔄 Averaging final file ...")
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
@@ -1333,6 +1385,213 @@ def cutting_data_opclogger(start_time_str, end_time_str, final_output_file):
     except Exception as e:
         messagebox.showerror("Error", f"Cutting data failed:\n{str(e)}")
 
+def averaging_tsdl_csv(final_output_file, increment_ms):
+    try:
+        def parse_timestamp(ts):
+            ts = ts.strip().strip("'").strip('"')
+            return datetime.strptime(ts, "%H:%M:%S.%f")
+
+        def format_timestamp(dt):
+            return f"'{dt.strftime('%H:%M:%S')}.{int(dt.microsecond/1000):03d}'"
+
+        with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
+            reader = csv.reader(infile, delimiter=",")
+            header = [next(reader) for _ in range(3)]
+            data = list(reader)
+
+        col_names = header[2]
+        if len(data) < 2:
+            messagebox.showerror("Error", "Not enough data rows.")
+            return
+
+        increment = timedelta(milliseconds=int(increment_ms))
+        rows = data[:]
+        i = 0
+
+        while i < len(rows) - 1:
+            row1 = rows[i]
+            row2 = rows[i + 1]
+            t1 = parse_timestamp(row1[1])
+            t2 = parse_timestamp(row2[1])
+
+            gap = abs(t2 - t1)
+            if not (1.9 * increment <= gap <= 2.1 * increment):
+                i += 1
+                continue
+
+            mid_time = t1 + increment
+            end_of_day = datetime.strptime("23:59:59.999000", "%H:%M:%S.%f").time()
+            date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+
+            if mid_time.time() > end_of_day:
+                date_obj += timedelta(days=1)
+
+            mid_row = row1.copy()
+            mid_row[0] = date_obj.strftime("%Y-%m-%d")
+            mid_row[1] = format_timestamp(mid_time)
+
+            for col_index, col_name in enumerate(col_names):
+                if col_index < 2:
+                    continue
+                v1 = row1[col_index]
+                v2 = row2[col_index]
+                if col_name.startswith("ANA"):
+                    try:
+                        mid_row[col_index] = str((float(v1) + float(v2)) / 2)
+                    except:
+                        mid_row[col_index] = v1
+                else:
+                    mid_row[col_index] = v1
+
+            rows.insert(i + 1, mid_row)
+            i += 1
+
+        with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
+            writer = csv.writer(outfile, delimiter=",")
+            writer.writerows(header)
+            writer.writerows(rows)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Error during averaging: {e}")
+
+def averaging_tsdl_bin(final_output_file, increment_ms):
+    try:
+        def parse_timestamp(ts):
+            ts = ts.strip().strip("'").strip('"')
+            return datetime.strptime(ts, "%H:%M:%S.%f")
+
+        def format_timestamp(dt):
+            return f"'{dt.strftime('%H:%M:%S')}.{int(dt.microsecond/1000):03d}'"
+
+        with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
+            reader = csv.reader(infile, delimiter=",")
+            header = next(reader)
+            data = list(reader)
+
+        col_names = header[2]
+        if len(data) < 2:
+            messagebox.showerror("Error", "Not enough data rows.")
+            return
+
+        increment = timedelta(milliseconds=int(increment_ms))
+        rows = data[:]
+        i = 0
+
+        while i < len(rows) - 1:
+            row1 = rows[i]
+            row2 = rows[i + 1]
+            t1 = parse_timestamp(row1[1])
+            t2 = parse_timestamp(row2[1])
+
+            gap = abs(t2 - t1)
+            if not (1.9 * increment <= gap <= 2.1 * increment):
+                i += 1
+                continue
+
+            mid_time = t1 + increment
+            end_of_day = datetime.strptime("23:59:59.999000", "%H:%M:%S.%f").time()
+            date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+
+            if mid_time.time() > end_of_day:
+                date_obj += timedelta(days=1)
+
+            mid_row = row1.copy()
+            mid_row[0] = date_obj.strftime("%Y-%m-%d")
+            mid_row[1] = format_timestamp(mid_time)
+
+            for col_index, col_name in enumerate(col_names):
+                if col_index < 2:
+                    continue
+                v1 = row1[col_index]
+                v2 = row2[col_index]
+                if col_name.startswith("ANA"):
+                    try:
+                        mid_row[col_index] = str((float(v1) + float(v2)) / 2)
+                    except:
+                        mid_row[col_index] = v1
+                else:
+                    mid_row[col_index] = v1
+
+            rows.insert(i + 1, mid_row)
+            i += 1
+
+        with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
+            writer = csv.writer(outfile, delimiter=",")
+            writer.writerows(header)
+            writer.writerows(rows)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Error during averaging: {e}")
+
+def averaging_opclogger(final_output_file, increment_ms):
+    try:
+        def parse_timestamp(ts):
+            ts = ts.strip().strip("'").strip('"')
+            return datetime.strptime(ts, "%H:%M:%S")
+
+        def format_timestamp(dt):
+            return f"'{dt.strftime('%H:%M:%S')}'"
+
+        with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
+            reader = csv.reader(infile, delimiter=",")
+            header = next(reader)
+            data = list(reader)
+
+        col_names = header[2]
+        if len(data) < 2:
+            messagebox.showerror("Error", "Not enough data rows.")
+            return
+
+        increment = timedelta(seconds=int(increment_ms))
+        rows = data[:]
+        i = 0
+
+        while i < len(rows) - 1:
+            row1 = rows[i]
+            row2 = rows[i + 1]
+            t1 = parse_timestamp(row1[1])
+            t2 = parse_timestamp(row2[1])
+
+            gap = abs(t2 - t1)
+            if not (gap == increment * 2):
+                i += 1
+                continue
+
+            mid_time = t1 + increment
+            end_of_day = datetime.strptime("23:59:59", "%H:%M:%S").time()
+            date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+
+            if mid_time.time() > end_of_day:
+                date_obj += timedelta(days=1)
+
+            mid_row = row1.copy()
+            mid_row[0] = date_obj.strftime("%Y-%m-%d")
+            mid_row[1] = format_timestamp(mid_time)
+
+            for col_index, col_name in enumerate(col_names):
+                if col_index < 2:
+                    continue
+                v1 = row1[col_index]
+                v2 = row2[col_index]
+                if col_name.startswith("ANA"):
+                    try:
+                        mid_row[col_index] = str((float(v1) + float(v2)) / 2)
+                    except:
+                        mid_row[col_index] = v1
+                else:
+                    mid_row[col_index] = v1
+
+            rows.insert(i + 1, mid_row)
+            i += 1
+
+        with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
+            writer = csv.writer(outfile, delimiter=",")
+            writer.writerows(header)
+            writer.writerows(rows)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Error during averaging: {e}")
+
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 
 root = TkinterDnD.Tk()
@@ -1409,6 +1668,17 @@ Label(combined_modes, text="Timestamp:").pack(side="left", padx=(20, 5))
 increment_var = ttk.Combobox(combined_modes, values=["10 ms", "40 ms", "1 s"], state="readonly", width=7)
 increment_var.pack(side="left")
 increment_var.set("40 ms")
+
+def on_timestamp_toggle(*args):
+    if timestamp_var.get():
+        averaging_var.set(False)
+
+def on_averaging_toggle(*args):
+    if averaging_var.get():
+        timestamp_var.set(False)
+
+timestamp_var.trace_add("write", on_timestamp_toggle)
+averaging_var.trace_add("write", on_averaging_toggle)
 
 cutting_var_frame = Frame(root)
 cutting_var_frame.grid(row=3, column=1, pady=(5, 0))
