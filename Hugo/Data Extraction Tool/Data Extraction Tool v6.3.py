@@ -1414,6 +1414,15 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
             t1 = parse_timestamp(row1[1])
             t2 = parse_timestamp(row2[1])
 
+            if t1 == t2:
+                new_t2 = t1 + increment
+                row2[1] = format_timestamp(new_t2)
+                if new_t2.time() < t1.time():
+                    row2_date = datetime.strptime(row1[0].strip(), "%Y-%m-%d") + timedelta(days=1)
+                    row2[0] = row2_date.strftime("%Y-%m-%d")
+                i += 1
+                continue            
+
             gap = abs(t2 - t1)
             if not (1.9 * increment <= gap <= 2.1 * increment):
                 i += 1
@@ -1483,6 +1492,15 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
             t1 = parse_timestamp(row1[1])
             t2 = parse_timestamp(row2[1])
 
+            if t1 == t2:
+                new_t2 = t1 + increment
+                row2[1] = format_timestamp(new_t2)
+                if new_t2.time() < t1.time():
+                    row2_date = datetime.strptime(row1[0].strip(), "%Y-%m-%d") + timedelta(days=1)
+                    row2[0] = row2_date.strftime("%Y-%m-%d")
+                i += 1
+                continue
+
             gap = abs(t2 - t1)
             if not (1.9 * increment <= gap <= 2.1 * increment):
                 i += 1
@@ -1537,7 +1555,6 @@ def averaging_opclogger(final_output_file, increment_ms):
             header = next(reader)
             data = list(reader)
 
-        col_names = header[2]
         if len(data) < 2:
             messagebox.showerror("Error", "Not enough data rows.")
             return
@@ -1551,6 +1568,17 @@ def averaging_opclogger(final_output_file, increment_ms):
             row2 = rows[i + 1]
             t1 = parse_timestamp(row1[1])
             t2 = parse_timestamp(row2[1])
+
+            if t1 == t2:
+                new_t2 = t1 + increment
+                row2[1] = format_timestamp(new_t2)
+
+                if new_t2.time() < t1.time():
+                    row2_date = datetime.strptime(row1[0].strip(), "%Y-%m-%d") + timedelta(days=1)
+                    row2[0] = row2_date.strftime("%Y-%m-%d")
+
+                i += 1
+                continue
 
             gap = abs(t2 - t1)
             if not (gap == increment * 2):
@@ -1568,12 +1596,13 @@ def averaging_opclogger(final_output_file, increment_ms):
             mid_row[0] = date_obj.strftime("%Y-%m-%d")
             mid_row[1] = format_timestamp(mid_time)
 
-            for col_index, col_name in enumerate(col_names):
+            for col_index in range(len(header)):
                 if col_index < 2:
                     continue
+                col_name = header[col_index]
                 v1 = row1[col_index]
                 v2 = row2[col_index]
-                if col_name.startswith("ANA"):
+                if str(col_name).startswith("ANA"):
                     try:
                         mid_row[col_index] = str((float(v1) + float(v2)) / 2)
                     except:
@@ -1586,7 +1615,7 @@ def averaging_opclogger(final_output_file, increment_ms):
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=",")
-            writer.writerows(header)
+            writer.writerow(header)
             writer.writerows(rows)
 
     except Exception as e:
