@@ -20,6 +20,7 @@ from tkinterdnd2 import TkinterDnD, DND_FILES
 from PIL import Image, ImageTk
 import base64
 import sys
+import tkinter as tk
 
 
 selected_ids = set()
@@ -714,8 +715,8 @@ def process_files():
     source_selected = source_var.get()
     use_timestamp = timestamp_var.get()
     cutting = cutting_var.get()
-    start_time = start_time_entry.get()
-    end_time = end_time_entry.get()
+    start_time = start_time_var.get()
+    end_time = end_time_var.get()
     averaging = averaging_var.get()
 
     if use_timestamp or averaging:
@@ -1716,13 +1717,23 @@ cutting_var = BooleanVar(value=False)
 cutting_check = Checkbutton(cutting_var_frame, text="Cutting Data", variable=cutting_var)
 cutting_check.grid(row=1, column=0, padx=(10, 10), sticky="w")
 
-Label(cutting_var_frame, text="Start Time (hh:mm:ss.mss):").grid(row=1, column=1, padx=(0, 5), sticky="e")
-start_time_entry = Entry(cutting_var_frame, width=20)
+start_time_var = tk.StringVar()
+end_time_var = tk.StringVar()
+
+def on_time_change(*args):
+    current_start = start_time_var.get()
+    current_end = end_time_var.get()
+
+Label(cutting_var_frame, text="Start Time (hh:mm:ss.mss):").grid(row=1, column=1, padx=(0,5), sticky="e")
+start_time_entry = Entry(cutting_var_frame, width=20, textvariable=start_time_var)
 start_time_entry.grid(row=1, column=2, padx=(0, 5), sticky="w")
 
-Label(cutting_var_frame, text="End Time (hh:mm:ss.mss):").grid(row=1, column=3, padx=(0, 5), sticky="e")
-end_time_entry = Entry(cutting_var_frame, width=20)
+Label(cutting_var_frame, text="End Time (hh:mm:ss.mss):").grid(row=1, column=3, padx=(0,5), sticky="e")
+end_time_entry = Entry(cutting_var_frame, width=20, textvariable=end_time_var)
 end_time_entry.grid(row=1, column=4, padx=(0, 5), sticky="w")
+
+start_time_var.trace_add("write", on_time_change)
+end_time_var.trace_add("write", on_time_change)
 
 filter_search_frame = Frame(root)
 filter_search_frame.grid(row=3, column=1, pady=(5, 0)) 
