@@ -805,7 +805,7 @@ def process_files():
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 1s.")
         elif averaging and cutting:
-            if increment_ms in (10, 40):
+            if increment_ms == 1:
                 temp_file = final_output_file.replace(".csv", "_corrected.csv")
                 averaging_opclogger(final_output_file, increment_ms)
                 temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
@@ -815,7 +815,7 @@ def process_files():
                 cutting_data_opclogger(start_time, end_time, temp_file)
                 os.rename(temp_file, final_output_file)
             else:
-                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 1s.")
         elif(use_timestamp):
             if(increment_ms == 1):
                 correct_time_opclogger(final_output_file, increment_ms)
@@ -826,11 +826,11 @@ def process_files():
             cutting_data_opclogger(start_time,end_time,final_output_file)
             print("🔄 Applying range on final file ...")
         elif(averaging):
-            if increment_ms in (10, 40):
+            if (increment_ms == 1):
                 averaging_opclogger(final_output_file, increment_ms)
                 print("🔄 Averaging final file ...")
             else:
-                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 1s.")
         print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
