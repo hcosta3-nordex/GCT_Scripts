@@ -1551,6 +1551,14 @@ def averaging_opclogger(final_output_file, increment_ms):
         def format_timestamp(dt):
             return f"'{dt.strftime('%H:%M:%S')}'"
 
+        def preserve_decimal_format(v1, avg_value):
+            if "." in v1:
+                decimals = len(v1.split(".")[1])
+                fmt = "{:." + str(decimals) + "f}"
+                return fmt.format(avg_value)
+            else:
+                return str(int(round(avg_value)))
+
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=",")
             header = next(reader)
@@ -1567,6 +1575,7 @@ def averaging_opclogger(final_output_file, increment_ms):
         while i < len(rows) - 1:
             row1 = rows[i]
             row2 = rows[i + 1]
+
             t1 = parse_timestamp(row1[1])
             t2 = parse_timestamp(row2[1])
 
@@ -1575,19 +1584,21 @@ def averaging_opclogger(final_output_file, increment_ms):
                 row2[1] = format_timestamp(new_t2)
 
                 if new_t2.time() < t1.time():
-                    row2_date = datetime.strptime(row1[0].strip(), "%Y-%m-%d") + timedelta(days=1)
-                    row2[0] = row2_date.strftime("%Y-%m-%d")
+                    nextday = datetime.strptime(row1[0], "%Y-%m-%d") + timedelta(days=1)
+                    row2[0] = nextday.strftime("%Y-%m-%d")
 
                 i += 1
                 continue
 
             gap = abs(t2 - t1)
-            if not (0.9 * increment <= gap <= 1.1 * increment):
+
+            if gap <= increment:
                 i += 1
                 continue
 
             mid_time = t1 + increment
             end_of_day = datetime.strptime("23:59:59", "%H:%M:%S").time()
+
             date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
 
             if mid_time.time() > end_of_day:
@@ -1600,18 +1611,22 @@ def averaging_opclogger(final_output_file, increment_ms):
             for col_index in range(len(header)):
                 if col_index < 2:
                     continue
+
                 col_name = header[col_index]
                 v1 = row1[col_index]
                 v2 = row2[col_index]
+
                 if str(col_name).startswith("ANA"):
                     try:
-                        mid_row[col_index] = str((float(v1) + float(v2)) / 2)
+                        avg_val = (float(v1) + float(v2)) / 2
+                        mid_row[col_index] = preserve_decimal_format(v1, avg_val)
                     except:
                         mid_row[col_index] = v1
                 else:
                     mid_row[col_index] = v1
 
             rows.insert(i + 1, mid_row)
+
             i += 1
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
