@@ -1425,7 +1425,7 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
                 continue            
 
             gap = abs(t2 - t1)
-            if not (0.9 * increment <= gap <= 1.1 * increment):
+            if gap <= increment:
                 i += 1
                 continue
 
@@ -1503,7 +1503,7 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
                 continue
 
             gap = abs(t2 - t1)
-            if not (0.9 * increment <= gap <= 1.1 * increment):
+            if gap <= increment:
                 i += 1
                 continue
 
