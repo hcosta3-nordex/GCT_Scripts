@@ -1430,7 +1430,11 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
                     row2_date = datetime.strptime(row1[0].strip(), "%Y-%m-%d") + timedelta(days=1)
                     row2[0] = row2_date.strftime("%Y-%m-%d")
                 i += 1
-                continue            
+                continue
+
+            if t2 < t1:
+                rows.pop(i + 1)
+                continue           
 
             gap = abs(t2 - t1)
             if gap <= increment:
@@ -1455,7 +1459,7 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
                 v2 = row2[col_index]
                 if col_name.startswith("ANA"):
                     try:
-                        avg_val = str((float(v1) + float(v2)) / 2)
+                        avg_val = (float(v1) + float(v2) / 2)
                         mid_row[col_index] = preserve_decimal_format(v1, avg_val)
                     except:
                         mid_row[col_index] = v1
@@ -1519,6 +1523,10 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
                 i += 1
                 continue
 
+            if t2 < t1:
+                rows.pop(i + 1)
+                continue
+
             gap = abs(t2 - t1)
             if gap <= increment:
                 i += 1
@@ -1542,7 +1550,7 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
                 v2 = row2[col_index]
                 if col_name.startswith("ANA"):
                     try:
-                        avg_val = str((float(v1) + float(v2)) / 2)
+                        avg_val = (float(v1) + float(v2) / 2)
                         mid_row[col_index] = preserve_decimal_format(v1, avg_val)
                     except:
                         mid_row[col_index] = v1
@@ -1606,6 +1614,10 @@ def averaging_opclogger(final_output_file, increment_ms):
                     row2[0] = nextday.strftime("%Y-%m-%d")
 
                 i += 1
+                continue
+            
+            if t2 < t1:
+                rows.pop(i + 1)
                 continue
 
             gap = abs(t2 - t1)
