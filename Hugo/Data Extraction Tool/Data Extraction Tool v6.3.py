@@ -1459,7 +1459,7 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
                 v2 = row2[col_index]
                 if col_name.startswith("ANA"):
                     try:
-                        avg_val = (float(v1) + float(v2) / 2)
+                        avg_val = (float(v1) + float(v2)) / 2
                         mid_row[col_index] = preserve_decimal_format(v1, avg_val)
                     except:
                         mid_row[col_index] = v1
@@ -1499,7 +1499,7 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
             header = next(reader)
             data = list(reader)
 
-        col_names = header[2]
+        col_names = header
         if len(data) < 2:
             messagebox.showerror("Error", "Not enough data rows.")
             return
@@ -1550,7 +1550,7 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
                 v2 = row2[col_index]
                 if col_name.startswith("ANA"):
                     try:
-                        avg_val = (float(v1) + float(v2) / 2)
+                        avg_val = (float(v1) + float(v2)) / 2
                         mid_row[col_index] = preserve_decimal_format(v1, avg_val)
                     except:
                         mid_row[col_index] = v1
@@ -1562,7 +1562,7 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=",")
-            writer.writerows(header)
+            writer.writerow(header)
             writer.writerows(rows)
 
     except Exception as e:
