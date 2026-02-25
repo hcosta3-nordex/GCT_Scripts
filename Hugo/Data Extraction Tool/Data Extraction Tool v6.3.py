@@ -1457,7 +1457,7 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
                     continue
                 v1 = row1[col_index]
                 v2 = row2[col_index]
-                if col_name.startswith("ANA"):
+                if (str(col_name.startswith("ANA")) or str(col_name.startswith("TR"))):
                     try:
                         avg_val = (float(v1) + float(v2)) / 2
                         mid_row[col_index] = preserve_decimal_format(v1, avg_val)
@@ -1548,7 +1548,7 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
                     continue
                 v1 = row1[col_index]
                 v2 = row2[col_index]
-                if col_name.startswith("ANA"):
+                if (str(col_name.startswith("ANA")) or str(col_name.startswith("TR"))):
                     try:
                         avg_val = (float(v1) + float(v2)) / 2
                         mid_row[col_index] = preserve_decimal_format(v1, avg_val)
@@ -1646,7 +1646,7 @@ def averaging_opclogger(final_output_file, increment_ms):
                 v1 = row1[col_index]
                 v2 = row2[col_index]
 
-                if str(col_name).startswith("ANA"):
+                if (str(col_name).startswith("ANA") or str(col_name).startswith("TR")):
                     try:
                         avg_val = (float(v1) + float(v2)) / 2
                         mid_row[col_index] = preserve_decimal_format(v1, avg_val)
