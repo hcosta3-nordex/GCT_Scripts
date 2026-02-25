@@ -1394,6 +1394,14 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
 
         def format_timestamp(dt):
             return f"'{dt.strftime('%H:%M:%S')}.{int(dt.microsecond/1000):03d}'"
+        
+        def preserve_decimal_format(v1, avg_value):
+            if "." in v1:
+                decimals = len(v1.split(".")[1])
+                fmt = "{:." + str(decimals) + "f}"
+                return fmt.format(avg_value)
+            else:
+                return str(int(round(avg_value)))
 
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=",")
@@ -1447,7 +1455,8 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
                 v2 = row2[col_index]
                 if col_name.startswith("ANA"):
                     try:
-                        mid_row[col_index] = str((float(v1) + float(v2)) / 2)
+                        avg_val = str((float(v1) + float(v2)) / 2)
+                        mid_row[col_index] = preserve_decimal_format(v1, avg_val)
                     except:
                         mid_row[col_index] = v1
                 else:
@@ -1472,6 +1481,14 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
 
         def format_timestamp(dt):
             return f"'{dt.strftime('%H:%M:%S')}.{int(dt.microsecond/1000):03d}'"
+        
+        def preserve_decimal_format(v1, avg_value):
+            if "." in v1:
+                decimals = len(v1.split(".")[1])
+                fmt = "{:." + str(decimals) + "f}"
+                return fmt.format(avg_value)
+            else:
+                return str(int(round(avg_value)))
 
         with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
             reader = csv.reader(infile, delimiter=",")
@@ -1525,7 +1542,8 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
                 v2 = row2[col_index]
                 if col_name.startswith("ANA"):
                     try:
-                        mid_row[col_index] = str((float(v1) + float(v2)) / 2)
+                        avg_val = str((float(v1) + float(v2)) / 2)
+                        mid_row[col_index] = preserve_decimal_format(v1, avg_val)
                     except:
                         mid_row[col_index] = v1
                 else:
