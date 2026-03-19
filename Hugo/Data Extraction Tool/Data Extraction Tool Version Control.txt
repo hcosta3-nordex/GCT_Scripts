@@ -64,3 +64,14 @@ Added timestamp correction.
 V6.2
 
 Added cutting feature.
+
+V6.3 
+
+Minor bug fix: Message when applying wrong timestamp on OPClogger was incorrect.
+Added Averaging.
+Cutting data times bug fix.
+
+V6.4
+
+Cancel button fix. Now it only deletes generated files from the current export.
+Removed the console. Now "prints" are shown as a windows notification.
