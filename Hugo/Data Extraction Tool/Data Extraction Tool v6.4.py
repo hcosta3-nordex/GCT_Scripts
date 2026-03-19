@@ -21,6 +21,7 @@ from PIL import Image, ImageTk
 import base64
 import sys
 import tkinter as tk
+from win11toast import toast
 
 
 selected_ids = set()
@@ -49,7 +50,7 @@ def get_ana_limit_index_tsdl(xml_path, prefix="ANA"):
         signal_indices = [i for i, header in enumerate(headers) if header.startswith(prefix)]
         return max(signal_indices, default=0) + 2
     except Exception as e:
-        print(f"Error reading XML: {e}")
+        toast("Data Extraction Tool",f"Error reading XML: {e}")
         return None
     
 def extract_datetime(filename):
@@ -150,7 +151,7 @@ def create_final_file_tsdl_from_nested_zip(zip_path, xml_path, xml_variables, se
                                 process_csv_file(csv_file, 'iso-8859-1')
 
     except Exception as e:
-        print(f"Error processing ZIPs: {e}")
+        toast("Data Extraction Tool",f"Error processing ZIPs: {e}")
 
 # ─────────────────────────────────────────────────────────── OPCLOGGER ──────────────────────────────────────────────────────────────────────
 
@@ -162,7 +163,7 @@ def get_ana_limit_index_opc(xml_path,prefix="ANA"):
         ana_indices = [i for i, header in enumerate(headers) if header.startswith(prefix)]
         return max(ana_indices, default=0) + 1
     except Exception as e:
-        print(f"Error reading XML: {e}")
+        toast("Data Extraction Tool",f"Error reading XML: {e}")
         return None
     
 def extract_datetime_opc(filename):
@@ -177,7 +178,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
     ana_limit_index = get_ana_limit_index_opc(xml_path, prefix)
     adjusted_indices = [i + 1 for i in selected_indices]  
     if ana_limit_index is None:
-        print("ANA limit index not found. Aborting.")
+        toast("Data Extraction Tool","ANA limit index not found. Aborting.")
         return
 
     try:
@@ -276,7 +277,7 @@ def create_final_file_opc_from_nested_zip(zip_path, xml_path, xml_variables, sel
                                 process_csv(csv_file, 'iso-8859-1')
 
     except Exception as e:
-        print(f"Error processing ZIPs: {e}")
+        toast("Data Extraction Tool",f"Error processing ZIPs: {e}")
 
 # ─────────────────────────────────────────────────────────── TSDL BIN FUNCTIONS ─────────────────────────────────────────────────────────────
 
@@ -288,7 +289,7 @@ def get_ana_limit_index_tsdl_bin(xml_path, prefix="ANA"):
         signal_indices = [i for i, header in enumerate(headers) if header.startswith(prefix)]
         return max(signal_indices, default=0) + 1
     except Exception as e:
-        print(f"Error reading XML: {e}")
+        toast("Data Extraction Tool",f"Error reading XML: {e}")
         return None
     
 def get_ana_fm_st_number(xml_path,prefix):
@@ -431,7 +432,7 @@ def create_final_file_tsdl_bin_from_nested_zip(zip_path, xml_path, xml_variables
                             process_bin(bin)
 
     except Exception as e:
-        print(f"Error processing ZIPs: {e}")
+        toast("Data Extraction Tool",f"Error processing ZIPs: {e}")
 
 # ─────────────────────────────────────────────────────────── TSDL MFR FUNCTIONS ─────────────────────────────────────────────────────────────
 
@@ -443,7 +444,7 @@ def get_ana_limit_index_tsdl_mfr(xml_path, prefix="ANA"):
         signal_indices = [i for i, header in enumerate(headers) if header.startswith(prefix)]
         return max(signal_indices, default=0) 
     except Exception as e:
-        print(f"Error reading XML: {e}")
+        toast("Data Extraction Tool",f"Error reading XML: {e}")
         return None
 
 def extract_datetime_mfr(filename):
@@ -543,14 +544,14 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
                             process_mfr(mfr, writer, xml_variables, adjusted_indices, base_timestamp, headers_written)
 
     except Exception as e:
-        print(f"Error processing ZIPs: {e}")
+        toast("Data Extraction Tool",f"Error processing ZIPs: {e}")
 
 # ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────────
 
 def get_xml_variables(path_xml):
     try:
         if not os.path.isfile(path_xml):
-            print(f"XML file not found: {path_xml}")
+            toast("Data Extraction Tool",f"XML file not found: {path_xml}")
             return []
 
         tree = ET.parse(path_xml)
@@ -567,9 +568,9 @@ def get_xml_variables(path_xml):
         return result
 
     except ET.ParseError as e:
-        print(f"XML parsing error: {e}")
+        toast("Data Extraction Tool",f"XML parsing error: {e}")
     except Exception as e:
-        print(f"Error reading XML: {e}")
+        toast("Data Extraction Tool",f"Error reading XML: {e}")
     
     return []
 
@@ -695,7 +696,7 @@ def update_variable_choices():
             selected_indices = [i for i, (id, _) in enumerate(xml_variables) if id in selected_ids]
 
         except Exception as e:
-            print(f"Error applying filter: {e}")
+            toast("Data Extraction Tool",f"Error applying filter: {e}")
 
     filter_var.bind("<<ComboboxSelected>>", lambda e: apply_filter_selection())
 
@@ -706,6 +707,7 @@ def start_processing_thread():
     processing_thread.start()
 
 def process_files():
+    created_files.clear()
     zip_path = zip_path_entry.get()
     script_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
     xml_path = os.path.join(script_dir, "namespaces", xml_combobox.get())
@@ -735,7 +737,7 @@ def process_files():
         return
 
     if source_selected == "TSDL (Export CSV)":
-        print("🔄 Processing and creating final file from TSDL (Export CSV) zip...")
+        toast("Data Extraction Tool","🔄 Processing and creating final file from TSDL (Export CSV) zip...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
@@ -747,8 +749,8 @@ def process_files():
                 correct_time_tsdl_csv(final_output_file, increment_ms)
                 temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
-                print("🔄 Correcting timestamp on final file ...")
-                print("🔄 Applying range on final file ...")
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
                 cutting_data_tsdl_csv(start_time, end_time, temp_file)
                 os.rename(temp_file, final_output_file)
             else:
@@ -759,8 +761,8 @@ def process_files():
                 averaging_tsdl_csv(final_output_file, increment_ms)
                 temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
-                print("🔄 Averaging final file ...")
-                print("🔄 Applying range on final file ...")
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
                 cutting_data_tsdl_csv(start_time, end_time, temp_file)
                 os.rename(temp_file, final_output_file)
             else:
@@ -768,27 +770,27 @@ def process_files():
         elif(use_timestamp):
             if(increment_ms == 10 or increment_ms == 40):
                 correct_time_tsdl_csv(final_output_file, increment_ms)
-                print("🔄 Correcting timestamp on final file ...")
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
             else:
                 messagebox.showerror("Error", f"Incorrect Timestamp, make sure you select either 10 or 40ms.")
         elif(cutting):
             cutting_data_tsdl_csv(start_time,end_time,final_output_file)
-            print("🔄 Applying range on final file ...")
+            toast("Data Extraction Tool","🔄 Applying range on final file ...")
         elif(averaging):
             if increment_ms in (10, 40):
                 averaging_tsdl_csv(final_output_file, increment_ms)
-                print("🔄 Averaging final file ...")
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
+        toast("Data Extraction Tool",f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
 
     elif source_selected == "OPClogger" or source_selected == "MFR OPClogger":
         if source_selected == "OPClogger":
-            print("🔄 Processing and creating final file from OPClogger zip...")
+            toast("Data Extraction Tool","🔄 Processing and creating final file from OPClogger zip...")
         else:
-            print("🔄 Processing and creating final file from MFR OPClogger zip...")
+            toast("Data Extraction Tool","🔄 Processing and creating final file from MFR OPClogger zip...")
         t0 = time.time()
         prefix = "ANA" if (mode_selected == "CWE" or mode_selected == "MFR")  else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
@@ -799,8 +801,8 @@ def process_files():
                 correct_time_opclogger(final_output_file, increment_ms)
                 temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
-                print("🔄 Correcting timestamp on final file ...")
-                print("🔄 Applying range on final file ...")
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
                 cutting_data_opclogger(start_time, end_time, temp_file)
                 os.rename(temp_file, final_output_file)
             else:
@@ -811,8 +813,8 @@ def process_files():
                 averaging_opclogger(final_output_file, increment_ms)
                 temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
-                print("🔄 Averaging final file ...")
-                print("🔄 Applying range on final file ...")
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
                 cutting_data_opclogger(start_time, end_time, temp_file)
                 os.rename(temp_file, final_output_file)
             else:
@@ -820,24 +822,24 @@ def process_files():
         elif(use_timestamp):
             if(increment_ms == 1):
                 correct_time_opclogger(final_output_file, increment_ms)
-                print("🔄 Correcting timestamp on final file ...")
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
             else:
                 messagebox.showerror("Error", f"Incorrect Timestamp, make sure you select 1s.")
         elif(cutting):
             cutting_data_opclogger(start_time,end_time,final_output_file)
-            print("🔄 Applying range on final file ...")
+            toast("Data Extraction Tool","🔄 Applying range on final file ...")
         elif(averaging):
             if (increment_ms == 1):
                 averaging_opclogger(final_output_file, increment_ms)
-                print("🔄 Averaging final file ...")
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 1s.")
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
+        toast("Data Extraction Tool",f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
 
     elif source_selected == "TSDL (Export)":
-        print("🔄 Processing and creating final file from TSDL (Export) zip...")
+        toast("Data Extraction Tool","🔄 Processing and creating final file from TSDL (Export) zip...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
@@ -848,8 +850,8 @@ def process_files():
                 correct_time_tsdl_bin(final_output_file, increment_ms)
                 temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
-                print("🔄 Correcting timestamp on final file ...")
-                print("🔄 Applying range on final file ...")
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
                 cutting_data_tsdl_bin(start_time, end_time, temp_file)
                 os.rename(temp_file, final_output_file)
             else:
@@ -860,8 +862,8 @@ def process_files():
                 averaging_tsdl_bin(final_output_file, increment_ms)
                 temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
                 os.rename(final_output_file, temp_file)
-                print("🔄 Averaging final file ...")
-                print("🔄 Applying range on final file ...")
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
                 cutting_data_tsdl_bin(start_time, end_time, temp_file)
                 os.rename(temp_file, final_output_file)
             else:
@@ -869,30 +871,30 @@ def process_files():
         elif(use_timestamp):
             if(increment_ms == 10 or increment_ms == 40):
                 correct_time_tsdl_bin(final_output_file, increment_ms)
-                print("🔄 Correcting timestamp on final file ...")
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
             else:
                 messagebox.showerror("Error", f"Incorrect Timestamp, make sure you select either 10 or 40ms.")
         elif(cutting):
             cutting_data_tsdl_bin(start_time,end_time,final_output_file)
-            print("🔄 Applying range on final file ...")
+            toast("Data Extraction Tool","🔄 Applying range on final file ...")
         elif(averaging):
             if increment_ms in (10, 40):
                 averaging_tsdl_bin(final_output_file, increment_ms)
-                print("🔄 Averaging final file ...")
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
             else:
                 messagebox.showerror("Error", "Incorrect Timestamp, make sure you select either 10 or 40ms.")
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
+        toast("Data Extraction Tool",f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
         
     elif source_selected == "MFR TSDL":
-        print("🔄 Processing and creating final file from MFR TSDL zip...")
+        toast("Data Extraction Tool","🔄 Processing and creating final file from MFR TSDL zip...")
         t0 = time.time()
         prefix = "ANA" if mode_selected == "CWE" else "TR"
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         created_files.append(final_output_file)
         create_final_file_tsdl_mfr(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
-        print(f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
+        toast("Data Extraction Tool",f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
 
@@ -1677,7 +1679,7 @@ icon_image = Image.open(icon_stream)
 
 icon_photo = ImageTk.PhotoImage(icon_image)
 root.iconphoto(False, icon_photo)
-root.title("Data Extraction Tool v6.3")
+root.title("Data Extraction Tool v6.4")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(5, 0), padx=10)
@@ -1840,7 +1842,7 @@ try:
     logo_label.image = logo
     logo_label.place(relx=0.98, rely=0.98, anchor="se")
 except Exception as e:
-    print(f"P&OT Logo not found or failed to load: {e}")
+    toast("Data Extraction Tool",f"P&OT Logo not found or failed to load: {e}")
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 logo_POT_path = os.path.join(script_dir, "logo_POT.png")
@@ -1852,7 +1854,7 @@ try:
     logo_POT_label.image = logo_POT
     logo_POT_label.place(relx=0.09, rely=0.98, anchor="se")
 except Exception as e:
-    print(f"Logo not found or failed to load: {e}")
+    toast("Data Extraction Tool",f"Logo not found or failed to load: {e}")
 
 populate_xml_list()
 
