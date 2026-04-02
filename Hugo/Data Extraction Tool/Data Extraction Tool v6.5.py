@@ -621,6 +621,16 @@ def update_variable_choices():
     search_entry = Entry(vars_frame, textvariable=search_var)
     search_entry.pack(fill='x', padx=0, pady=(0, 5))
 
+    show_selected_only_var = BooleanVar(value=False)
+
+    show_selected_check = Checkbutton(
+        vars_frame,
+        text="Show selected only",
+        variable=show_selected_only_var,
+        command=lambda: update_listbox()
+    )
+    show_selected_check.pack(anchor="w", padx=(0, 0), pady=(0, 5))
+
     scrollbar = ttk.Scrollbar(vars_frame)
     scrollbar.pack(side='right', fill='y')
 
@@ -632,13 +642,22 @@ def update_variable_choices():
 
     def update_listbox():
         query = search_var.get().strip().lower()
+        only_selected = show_selected_only_var.get()
+
         var_listbox.delete(0, 'end')
         visible_items = []
 
         for item in full_variable_list:
-            if query in item.lower():
-                var_listbox.insert('end', item)
-                visible_items.append(item)
+            var_id = item.split(":")[0].strip()
+
+            if query and query not in item.lower():
+                continue
+        
+            if only_selected and var_id not in selected_ids:
+                continue
+
+            var_listbox.insert('end', item)
+            visible_items.append(item)
 
         for i, item in enumerate(visible_items):
             var_id = item.split(":")[0].strip()
