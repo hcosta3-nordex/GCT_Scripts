@@ -1706,7 +1706,7 @@ zip_path_entry = Entry(root, width=110)
 zip_path_entry.grid(row=0, column=1, pady=(5, 0))
 zip_path_entry.drop_target_register(DND_FILES)
 zip_path_entry.dnd_bind("<<Drop>>", handle_drop)
-Button(root, text="Browse...", command=browse_zip).grid(row=0, column=2, pady=(5, 0), padx=10)
+ttk.Button(root, text="Browse...", command=browse_zip).grid(row=0, column=2, pady=(5, 0), padx=10)
 
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=0)
@@ -1816,16 +1816,16 @@ Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(5, 
 filter_var = ttk.Combobox(filter_search_frame, state="readonly", width=20)
 filter_var.grid(row=0, column=1, padx=(0, 10))
 
-Button(filter_search_frame, text="Load Filters", command=load_filters).grid(row=0, column=2, padx=(0, 10))
+ttk.Button(filter_search_frame, text="Load Filters", command=load_filters).grid(row=0, column=2, padx=(0, 10))
 
 Label(filter_search_frame, text="Filter Name:").grid(row=0, column=3, padx=(10, 5), sticky="e")
 
 filter_name_entry = Entry(filter_search_frame, width=20)
 filter_name_entry.grid(row=0, column=4, padx=(0, 10))
 
-Button(filter_search_frame, text="Save Filter", command=lambda: save_filter_to_file(filter_name_entry.get())).grid(row=0, column=5, padx=(0, 10))
+ttk.Button(filter_search_frame, text="Save Filter", command=lambda: save_filter_to_file(filter_name_entry.get())).grid(row=0, column=5, padx=(0, 10))
 
-Button(filter_search_frame, text="Delete Filter", command=lambda: delete_filter(filter_name_entry.get())).grid(row=0, column=6, padx=(0, 10))
+ttk.Button(filter_search_frame, text="Delete Filter", command=lambda: delete_filter(filter_name_entry.get())).grid(row=0, column=6, padx=(0, 10))
 
 Label(root, text="Select Variables:").grid(row=5, column=0, pady=(5, 0), padx=10)
 vars_frame = Frame(root)
@@ -1840,16 +1840,16 @@ final_path_entry = Entry(root, width=110)
 final_path_entry.grid(row=6, column=1, pady=(5, 0))
 final_path_entry.drop_target_register(DND_FILES)
 final_path_entry.dnd_bind("<<Drop>>", handle_output_drop)
-Button(root, text="Browse...", command=browse_output).grid(row=6, column=2, pady=(5, 0), padx=10)
+ttk.Button(root, text="Browse...", command=browse_output).grid(row=6, column=2, pady=(5, 0), padx=10)
 
 Label(root, text="Final File Name (without .csv):").grid(row=7, column=0, pady=(5, 0), padx=10)
 final_name_entry = Entry(root, width=110)
 final_name_entry.grid(row=7, column=1, pady=(5, 0))
 
-button_frame = Frame(root)
-button_frame.grid(row=8, column=1, pady=(20, 10))
-Button(button_frame, text="Process Files", command=start_processing_thread).grid(row=0, column=0, padx=(0, 10))
-Button(button_frame, text="Cancel", command=cancel_and_cleanup).grid(row=0, column=1)
+ttk.Button_frame = Frame(root)
+ttk.Button_frame.grid(row=8, column=1, pady=(20, 10))
+ttk.Button(ttk.Button_frame, text="Process Files", command=start_processing_thread).grid(row=0, column=0, padx=(0, 10))
+ttk.Button(ttk.Button_frame, text="Cancel", command=cancel_and_cleanup).grid(row=0, column=1)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(script_dir, "logo.png")
