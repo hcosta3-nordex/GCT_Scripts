@@ -3,13 +3,15 @@ import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+TEXT_EXTENSIONS = ('.txt', '.csv', '.xml', '.json', '.yaml', '.yml', '.ini', '.cfg', '.conf', '.log', '.md')
+
 def get_exe_dir():
     return os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
 
-def list_xml_files(path):
+def list_files(path):
     if not os.path.isdir(path):
         return []
-    return sorted(f for f in os.listdir(path) if f.lower().endswith(".xml"))
+    return sorted(f for f in os.listdir(path) if f.lower().endswith(TEXT_EXTENSIONS))
 
 def load_file(path):
     try:
@@ -18,10 +20,42 @@ def load_file(path):
     except Exception:
         return ""
 
-class XMLFileZillaTextApp(tk.Tk):
+class FileZillaTextApp(tk.Tk):
+    def auto_refresh(self):
+        for side in ("left", "right"):
+            panel = self.left if side == "left" else self.right
+            path = panel["path"].get()
+            if not os.path.isdir(path):
+                continue
+            files = list_files(path)
+            combo = panel["combo"]
+            if tuple(combo["values"]) != tuple(files):
+                current = combo.get()
+                combo["values"] = files
+                if current in files:
+                    combo.set(current)
+                elif files:
+                    combo.current(0)
+                    self.load_file(side)
+                else:
+                    panel["text"].delete("1.0", "end")
+        self.after(1000, self.auto_refresh)
+
+    def raise_selection_tag(self):
+        for panel in (self.left, self.right):
+            panel["text"].tag_raise("line_sel")
+
+    def sync_scroll_x(self, side, *args):
+        if side == "left":
+            self.left["text"].xview(*args)
+            self.right["text"].xview_moveto(self.left["text"].xview()[0])
+        else:
+            self.right["text"].xview(*args)
+            self.left["text"].xview_moveto(self.right["text"].xview()[0])
+
     def __init__(self):
         super().__init__()
-        self.title("XML Filezilla")
+        self.title("Nordex Filezilla")
         self.geometry("1200x700")
 
         base = get_exe_dir()
@@ -33,6 +67,7 @@ class XMLFileZillaTextApp(tk.Tk):
 
         self._build_ui()
         self._refresh_all()
+        self.auto_refresh()
 
         self.bind_all("<Control-z>", lambda e: self.undo_copy())
 
@@ -43,11 +78,11 @@ class XMLFileZillaTextApp(tk.Tk):
         self.left = self._build_panel(main, "File 1", self.left_path, "left")
         self.right = self._build_panel(main, "File 2", self.right_path, "right")
 
-        scrollbar = ttk.Scrollbar(main, orient="vertical", command=self.sync_scroll)
-        scrollbar.pack(side="right", fill="y")
+        vscroll = ttk.Scrollbar(main, orient="vertical", command=self.sync_scroll)
+        vscroll.pack(side="right", fill="y")
 
-        self.left["text"].config(yscrollcommand=scrollbar.set)
-        self.right["text"].config(yscrollcommand=scrollbar.set)
+        self.left["text"].config(yscrollcommand=vscroll.set)
+        self.right["text"].config(yscrollcommand=vscroll.set)
 
         bottom = ttk.Frame(self)
         bottom.pack(fill="x", padx=10, pady=(0, 10))
@@ -82,8 +117,18 @@ class XMLFileZillaTextApp(tk.Tk):
         search.pack(fill="x", padx=5, pady=(4, 2))
         search.bind("<KeyRelease>", lambda e, sv=search_var, s=side: self.search_text(s, sv.get()))
 
-        text = tk.Text(frame, wrap="none", undo=True)
-        text.pack(fill="both", expand=True, padx=5, pady=5)
+        text_frame = ttk.Frame(frame)
+        text_frame.pack(fill="both", expand=True)
+
+        text = tk.Text(text_frame, wrap="none", undo=True)
+        text.grid(row=0, column=0, sticky="nsew")
+
+        hscroll = ttk.Scrollbar(text_frame, orient="horizontal", command=lambda *a, s=side: self.sync_scroll_x(s, *a))
+        hscroll.grid(row=1, column=0, sticky="ew")
+        text.config(xscrollcommand=hscroll.set)
+
+        text_frame.columnconfigure(0, weight=1)
+        text_frame.rowconfigure(0, weight=1)
 
         text.tag_configure("line_sel", background="#3399ff")
         text.tag_configure("diff", background="#ffb3b3")
@@ -125,6 +170,8 @@ class XMLFileZillaTextApp(tk.Tk):
             t.tag_remove("line_sel", "1.0", "end")
             t.tag_add("line_sel", start, end)
             t.see(start)
+
+        self.raise_selection_tag()
         return "break"
 
     def clear_selection(self):
@@ -133,20 +180,14 @@ class XMLFileZillaTextApp(tk.Tk):
             panel["text"].tag_remove("line_sel", "1.0", "end")
 
     def search_text(self, side, pattern):
-        panel = self.left if side == "left" else self.right
-        text = panel["text"]
-
         for p in (self.left, self.right):
-            p["text"].tag_remove("search", "1.0", "end")
+            t = p["text"]
+            t.tag_remove("search", "1.0", "end")
 
         if not pattern:
             return
 
-        idx = text.search(pattern, "1.0", nocase=True, stopindex="end")
-        if not idx:
-            return
-
-        line = idx.split(".")[0]
+        first_hit = None
 
         for p in (self.left, self.right):
             t = p["text"]
@@ -155,9 +196,14 @@ class XMLFileZillaTextApp(tk.Tk):
                 hit = t.search(pattern, cur, nocase=True, stopindex="end")
                 if not hit:
                     break
+                if first_hit is None:
+                    first_hit = hit
                 t.tag_add("search", hit, f"{hit}+{len(pattern)}c")
                 cur = f"{hit}+{len(pattern)}c"
-            t.see(f"{line}.0")
+
+        if first_hit:
+            self.left["text"].see(first_hit)
+            self.right["text"].see(first_hit)
 
     def compare_lines(self):
         l = self.left["text"].get("1.0", "end").splitlines()
@@ -172,6 +218,8 @@ class XMLFileZillaTextApp(tk.Tk):
                 self.left["text"].tag_add("diff", f"{ln}.0", f"{ln}.end")
                 self.right["text"].tag_add("diff", f"{ln}.0", f"{ln}.end")
 
+        self.raise_selection_tag()
+
     def snapshot(self):
         return (
             self.left["text"].get("1.0", "end"),
@@ -182,16 +230,12 @@ class XMLFileZillaTextApp(tk.Tk):
 
     def restore(self, snap):
         left, right, ly, ry = snap
-
         self.left["text"].delete("1.0", "end")
         self.right["text"].delete("1.0", "end")
-
         self.left["text"].insert("1.0", left)
         self.right["text"].insert("1.0", right)
-
         self.left["text"].yview_moveto(ly[0])
         self.right["text"].yview_moveto(ry[0])
-
         self.clear_selection()
         self.compare_lines()
 
@@ -224,7 +268,7 @@ class XMLFileZillaTextApp(tk.Tk):
 
     def refresh_one_side(self, side):
         panel = self.left if side == "left" else self.right
-        files = list_xml_files(panel["path"].get())
+        files = list_files(panel["path"].get())
         panel["combo"]["values"] = files
         if files:
             panel["combo"].current(0)
@@ -245,4 +289,4 @@ class XMLFileZillaTextApp(tk.Tk):
         self.compare_lines()
 
 if __name__ == "__main__":
-    XMLFileZillaTextApp().mainloop()
+    FileZillaTextApp().mainloop()
