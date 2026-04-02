@@ -633,8 +633,9 @@ def update_variable_choices():
 
     scrollbar = ttk.Scrollbar(vars_frame)
     scrollbar.pack(side='right', fill='y')
+    
+    var_listbox = Listbox(vars_frame,selectmode='multiple',yscrollcommand=scrollbar.set,exportselection=False)
 
-    var_listbox = Listbox(vars_frame, selectmode='multiple', yscrollcommand=scrollbar.set)
     var_listbox.pack(side='left', fill='both', expand=True)
     scrollbar.config(command=var_listbox.yview)
 
@@ -1698,7 +1699,7 @@ icon_image = Image.open(icon_stream)
 
 icon_photo = ImageTk.PhotoImage(icon_image)
 root.iconphoto(False, icon_photo)
-root.title("Data Extraction Tool v6.4")
+root.title("Data Extraction Tool v6.5")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(5, 0), padx=10)
