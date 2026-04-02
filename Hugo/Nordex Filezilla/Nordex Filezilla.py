@@ -84,7 +84,7 @@ class FileZillaTextApp(tk.Tk):
         self.left_path = tk.StringVar(value=os.path.join(base, "namespaces"))
         self.right_path = tk.StringVar(value=os.path.join(base, "namespaces"))
 
-        self.selected_range = None
+        self.selected_ranges = set()
         self.history = []
 
         self._build_ui()
@@ -161,8 +161,8 @@ class FileZillaTextApp(tk.Tk):
         text.tag_configure("diff", background="#ffb3b3")
         text.tag_configure("search", background="#ffff66")
 
-        text.bind("<Double-Button-1>", self.select_line_both)
-        text.bind("<Key>", lambda e: self.clear_selection())
+        text.bind("<Double-Button-1>", self.select_line_both)        
+        text.bind("<Key>",lambda e: None if e.keysym in ("Control_L", "Control_R") else self.clear_selection())
         text.bind("<<Modified>>", self.on_text_modified)
 
         text.bind("<MouseWheel>", self.on_mousewheel)
@@ -186,17 +186,30 @@ class FileZillaTextApp(tk.Tk):
         line = int(widget.index(f"@{event.x},{event.y}").split(".")[0])
         start = f"{line}.0"
         end = f"{line}.end+1c"
-        self.selected_range = (start, end)
-        for p in (self.left, self.right):
-            t = p["text"]
-            t.tag_remove("line_sel", "1.0", "end")
-            t.tag_add("line_sel", start, end)
-            t.see(start)
+        key = (start, end)
+
+        ctrl = (event.state & 0x0004) != 0
+
+        if not ctrl:
+            self.selected_ranges.clear()
+            for p in (self.left, self.right):
+                p["text"].tag_remove("line_sel", "1.0", "end")
+
+        if key in self.selected_ranges:
+            self.selected_ranges.remove(key)
+            for p in (self.left, self.right):
+                p["text"].tag_remove("line_sel", start, end)
+        else:
+            self.selected_ranges.add(key)
+            for p in (self.left, self.right):
+                p["text"].tag_add("line_sel", start, end)
+                p["text"].see(start)
+
         self.raise_selection_tag()
         return "break"
 
     def clear_selection(self):
-        self.selected_range = None
+        self.selected_ranges.clear()
         for p in (self.left, self.right):
             p["text"].tag_remove("line_sel", "1.0", "end")
 
@@ -261,13 +274,16 @@ class FileZillaTextApp(tk.Tk):
         self.compare_lines()
 
     def copy_selected(self, src, dst):
-        if not self.selected_range:
-            messagebox.showinfo("Copy", "Double-click a line first.")
+        if not self.selected_ranges:
+            messagebox.showinfo("Copy", "Double-click lines (use Ctrl for multi-select).")
             return
+
         self.history.append(self.snapshot())
-        start, end = self.selected_range
-        dst.delete(start, end)
-        dst.insert(start, src.get(start, end))
+
+        for start, end in sorted(self.selected_ranges):
+            dst.delete(start, end)
+            dst.insert(start, src.get(start, end))
+
         self.clear_selection()
         self.compare_lines()
 
