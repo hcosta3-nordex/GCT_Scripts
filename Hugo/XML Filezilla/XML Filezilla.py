@@ -42,8 +42,8 @@ class FileZillaTextApp(tk.Tk):
         self.after(1000, self.auto_refresh)
 
     def raise_selection_tag(self):
-        for panel in (self.left, self.right):
-            panel["text"].tag_raise("line_sel")
+        for p in (self.left, self.right):
+            p["text"].tag_raise("line_sel")
 
     def sync_scroll_x(self, side, *args):
         if side == "left":
@@ -52,6 +52,28 @@ class FileZillaTextApp(tk.Tk):
         else:
             self.right["text"].xview(*args)
             self.left["text"].xview_moveto(self.right["text"].xview()[0])
+
+    def sync_scroll(self, *args):
+        self.left["text"].yview(*args)
+        self.right["text"].yview(*args)
+
+    def update_diff_overview(self, diff_lines, total):
+        c = self.diff_canvas
+        c.delete("all")
+        h = c.winfo_height()
+        if total == 0 or h <= 1:
+            return
+        for ln in diff_lines:
+            y = int((ln / total) * h)
+            c.create_rectangle(2, y, 8, y + 3, fill="red", outline="")
+
+    def on_diff_click(self, event):
+        h = self.diff_canvas.winfo_height()
+        if h <= 1:
+            return
+        f = event.y / h
+        self.left["text"].yview_moveto(f)
+        self.right["text"].yview_moveto(f)
 
     def __init__(self):
         super().__init__()
@@ -76,6 +98,11 @@ class FileZillaTextApp(tk.Tk):
         main.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.left = self._build_panel(main, "File 1", self.left_path, "left")
+
+        self.diff_canvas = tk.Canvas(main, width=10, highlightthickness=0)
+        self.diff_canvas.pack(side="left", fill="y")
+        self.diff_canvas.bind("<Button-1>", self.on_diff_click)
+
         self.right = self._build_panel(main, "File 2", self.right_path, "right")
 
         vscroll = ttk.Scrollbar(main, orient="vertical", command=self.sync_scroll)
@@ -144,10 +171,6 @@ class FileZillaTextApp(tk.Tk):
 
         return {"path": path_var, "combo": combo, "text": text, "search": search_var}
 
-    def sync_scroll(self, *args):
-        self.left["text"].yview(*args)
-        self.right["text"].yview(*args)
-
     def on_mousewheel(self, event):
         delta = -1 if event.num == 4 or event.delta > 0 else 1
         self.left["text"].yview_scroll(delta, "units")
@@ -164,31 +187,25 @@ class FileZillaTextApp(tk.Tk):
         start = f"{line}.0"
         end = f"{line}.end+1c"
         self.selected_range = (start, end)
-
-        for panel in (self.left, self.right):
-            t = panel["text"]
+        for p in (self.left, self.right):
+            t = p["text"]
             t.tag_remove("line_sel", "1.0", "end")
             t.tag_add("line_sel", start, end)
             t.see(start)
-
         self.raise_selection_tag()
         return "break"
 
     def clear_selection(self):
         self.selected_range = None
-        for panel in (self.left, self.right):
-            panel["text"].tag_remove("line_sel", "1.0", "end")
+        for p in (self.left, self.right):
+            p["text"].tag_remove("line_sel", "1.0", "end")
 
     def search_text(self, side, pattern):
         for p in (self.left, self.right):
-            t = p["text"]
-            t.tag_remove("search", "1.0", "end")
-
+            p["text"].tag_remove("search", "1.0", "end")
         if not pattern:
             return
-
-        first_hit = None
-
+        first = None
         for p in (self.left, self.right):
             t = p["text"]
             cur = "1.0"
@@ -196,14 +213,13 @@ class FileZillaTextApp(tk.Tk):
                 hit = t.search(pattern, cur, nocase=True, stopindex="end")
                 if not hit:
                     break
-                if first_hit is None:
-                    first_hit = hit
+                if first is None:
+                    first = hit
                 t.tag_add("search", hit, f"{hit}+{len(pattern)}c")
                 cur = f"{hit}+{len(pattern)}c"
-
-        if first_hit:
-            self.left["text"].see(first_hit)
-            self.right["text"].see(first_hit)
+        if first:
+            self.left["text"].see(first)
+            self.right["text"].see(first)
 
     def compare_lines(self):
         l = self.left["text"].get("1.0", "end").splitlines()
@@ -212,12 +228,17 @@ class FileZillaTextApp(tk.Tk):
         for t in (self.left["text"], self.right["text"]):
             t.tag_remove("diff", "1.0", "end")
 
-        for i in range(max(len(l), len(r))):
+        diff_lines = []
+        total = max(len(l), len(r))
+
+        for i in range(total):
             if (l[i] if i < len(l) else "") != (r[i] if i < len(r) else ""):
                 ln = i + 1
+                diff_lines.append(ln)
                 self.left["text"].tag_add("diff", f"{ln}.0", f"{ln}.end")
                 self.right["text"].tag_add("diff", f"{ln}.0", f"{ln}.end")
 
+        self.update_diff_overview(diff_lines, total)
         self.raise_selection_tag()
 
     def snapshot(self):
