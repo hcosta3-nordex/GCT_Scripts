@@ -60,12 +60,29 @@ class FileZillaTextApp(tk.Tk):
     def update_diff_overview(self, diff_lines, total):
         c = self.diff_canvas
         c.delete("all")
+
         h = c.winfo_height()
-        if total == 0 or h <= 1:
+        if total <= 0 or h <= 1:
             return
-        for ln in diff_lines:
-            y = int((ln / total) * h)
-            c.create_rectangle(2, y, 8, y + 3, fill="red", outline="")
+
+        diff_set = set(diff_lines)
+
+        for i in range(total):
+            if (i + 1) not in diff_set:
+                continue
+
+            y0 = int(i * h / total)
+            y1 = int((i + 1) * h / total)
+
+            if y1 <= y0:
+                y1 = y0 + 1
+
+            c.create_rectangle(
+                2, y0,
+                8, y1,
+                fill="red",
+                outline=""
+            )
 
     def on_diff_click(self, event):
         h = self.diff_canvas.winfo_height()
@@ -80,6 +97,9 @@ class FileZillaTextApp(tk.Tk):
         self.title("Nordex Filezilla")
         self.geometry("1200x700")
 
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
         base = get_exe_dir()
         self.left_path = tk.StringVar(value=os.path.join(base, "namespaces"))
         self.right_path = tk.StringVar(value=os.path.join(base, "namespaces"))
@@ -93,26 +113,38 @@ class FileZillaTextApp(tk.Tk):
 
         self.bind_all("<Control-z>", lambda e: self.undo_copy())
 
+    def _on_diff_canvas_resize(self, event):
+        self.compare_lines()
+
     def _build_ui(self):
         main = ttk.Frame(self)
-        main.pack(fill="both", expand=True, padx=10, pady=10)
+        main.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+
+        main.columnconfigure(0, weight=1)
+        main.columnconfigure(1, weight=0)
+        main.columnconfigure(2, weight=0)
+        main.columnconfigure(3, weight=1)
+        main.rowconfigure(0, weight=1)
 
         self.left = self._build_panel(main, "File 1", self.left_path, "left")
+        self.left["frame"].grid(row=0, column=0, sticky="nsew", padx=(0, 4))
+
+        self.vscroll = ttk.Scrollbar(main, orient="vertical", command=self.sync_scroll)
+        self.vscroll.grid(row=0, column=1, sticky="nsew")
 
         self.diff_canvas = tk.Canvas(main, width=10, highlightthickness=0)
-        self.diff_canvas.pack(side="left", fill="y")
-        self.diff_canvas.bind("<Button-1>", self.on_diff_click)
+        self.diff_canvas.grid(row=0, column=2, sticky="ns", pady=(18, 18))
+
+        self.diff_canvas.bind("<Configure>", self._on_diff_canvas_resize)
 
         self.right = self._build_panel(main, "File 2", self.right_path, "right")
+        self.right["frame"].grid(row=0, column=3, sticky="nsew", padx=(4, 0))
 
-        vscroll = ttk.Scrollbar(main, orient="vertical", command=self.sync_scroll)
-        vscroll.pack(side="right", fill="y")
-
-        self.left["text"].config(yscrollcommand=vscroll.set)
-        self.right["text"].config(yscrollcommand=vscroll.set)
+        self.left["text"].config(yscrollcommand=self.vscroll.set)
+        self.right["text"].config(yscrollcommand=lambda *args: None)
 
         bottom = ttk.Frame(self)
-        bottom.pack(fill="x", padx=10, pady=(0, 10))
+        bottom.grid(row=1, column=0, columnspan=4, sticky="ew", padx=10, pady=(0, 10))
 
         btns = ttk.Frame(bottom)
         btns.pack()
@@ -123,7 +155,6 @@ class FileZillaTextApp(tk.Tk):
 
     def _build_panel(self, parent, title, path_var, side):
         frame = ttk.LabelFrame(parent, text=title)
-        frame.pack(side=side, fill="both", expand=True, padx=5)
 
         path_frame = ttk.Frame(frame)
         path_frame.pack(fill="x", padx=5, pady=5)
@@ -169,7 +200,13 @@ class FileZillaTextApp(tk.Tk):
         text.bind("<Button-4>", self.on_mousewheel)
         text.bind("<Button-5>", self.on_mousewheel)
 
-        return {"path": path_var, "combo": combo, "text": text, "search": search_var}
+        return {
+            "frame": frame,
+            "path": path_var,
+            "combo": combo,
+            "text": text,
+            "search": search_var,
+        }
 
     def on_mousewheel(self, event):
         delta = -1 if event.num == 4 or event.delta > 0 else 1
