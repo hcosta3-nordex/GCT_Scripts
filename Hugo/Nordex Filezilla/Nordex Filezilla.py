@@ -377,12 +377,23 @@ class FileZillaTextApp(tk.Tk):
     def load_file(self, side):
         panel = self.left if side == "left" else self.right
         name = panel["combo"].get()
+
         if name:
             panel["text"].delete("1.0", "end")
-            panel["text"].insert("1.0", load_file(os.path.join(panel["path"].get(), name)))
+            panel["text"].insert("1.0", load_file(
+                os.path.join(panel["path"].get(), name)
+            ))
             self._trim_trailing_blank_lines(panel["text"])
 
-        self.total_lines = 0
+        other = "right" if side == "left" else "left"
+        other_panel = self.left if other == "left" else self.right
+        other_name = other_panel["combo"].get()
+        if other_name:
+            other_panel["text"].delete("1.0", "end")
+            other_panel["text"].insert("1.0", load_file(
+                os.path.join(other_panel["path"].get(), other_name)
+            ))
+            self._trim_trailing_blank_lines(other_panel["text"])
 
         l_lines = int(self.left["text"].index("end-1c").split(".")[0])
         r_lines = int(self.right["text"].index("end-1c").split(".")[0])
