@@ -1,7 +1,8 @@
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, PhotoImage, Label
+from win11toast import toast
 
 TEXT_EXTENSIONS = ('.txt', '.csv', '.xml', '.json', '.yaml', '.yml', '.ini', '.cfg', '.conf', '.log', '.md')
 
@@ -158,6 +159,30 @@ class FileZillaTextApp(tk.Tk):
         ttk.Button(btns, text="Copy →", command=self.copy_left_to_right).grid(row=0, column=0, padx=10)
         ttk.Button(btns, text="← Copy", command=self.copy_right_to_left).grid(row=0, column=1, padx=10)
         ttk.Button(bottom, text="← Back", command=self.undo_copy).pack(pady=6)
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.join(script_dir, "logo.png")
+
+        try:
+            logo = PhotoImage(file=logo_path)
+            logo = logo.subsample(2, 2)
+            logo_label = Label(bottom, image=logo)
+            logo_label.image = logo
+            logo_label.place(relx=1, rely=0.99, anchor="se")
+        except Exception as e:
+            toast("Data Extraction Tool",f"P&OT Logo not found or failed to load: {e}")
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        logo_POT_path = os.path.join(script_dir, "logo_POT.png")
+
+        try:
+            logo_POT = PhotoImage(file=logo_POT_path)
+            logo_POT = logo_POT.subsample(3, 3)
+            logo_POT_label = Label(bottom, image=logo_POT)
+            logo_POT_label.image = logo_POT
+            logo_POT_label.place(relx=0.0, rely=0.99, anchor="sw")
+        except Exception as e:
+            toast("Data Extraction Tool",f"Logo not found or failed to load: {e}")
 
     def _build_panel(self, parent, title, path_var, side):
         frame = ttk.LabelFrame(parent, text=title)
