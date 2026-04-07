@@ -1,0 +1,7 @@
+python -m PyInstaller --onefile --windowed --icon="C:\Users\CostaH5\AppData\Local\Programs\Microsoft VS Code\FZ_logo_all_sizes.ico" --add-data "logo.png;." --add-data "logo_POT.png;." "C:\Users\CostaH5\OneDrive - Nordex SE\Desktop\Scripts\Data Extraction Tool\Nordex Filezilla.py"
+
+make sure you change it to your own desktop and that you're using VSCode. Then you need to do:
+1) pip install tkinterdnd2
+2) pip install pillow
+
+Only after that you'll be able to generate the application
