@@ -1907,7 +1907,7 @@ try:
     logo_POT = logo_POT.subsample(3, 3)
     logo_POT_label = Label(root, image=logo_POT)
     logo_POT_label.image = logo_POT
-    logo_POT_label.place(relx=0.09, rely=0.98, anchor="se")
+    logo_POT_label.place(relx=0.02, rely=0.99, anchor="sw")
 except Exception as e:
     toast("Data Extraction Tool",f"Logo not found or failed to load: {e}")
 
