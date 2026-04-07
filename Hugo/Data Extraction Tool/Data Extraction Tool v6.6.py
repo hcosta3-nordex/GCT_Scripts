@@ -590,10 +590,6 @@ def load_filters():
             filter_options = ["Manual"] + lines[0].split(',')
             filter_signals = [[]] + [line.split(',') for line in lines[1:]]
 
-            if "All" not in filter_options:
-                filter_options.insert(1, "All")
-                filter_signals.insert(1, [])
-
             filter_var['values'] = filter_options
             filter_var.set("Manual")
     except Exception as e:
@@ -615,31 +611,38 @@ def update_variable_choices():
     
     for widget in vars_frame.winfo_children():
         widget.destroy()
-
-    search_var = StringVar()
-    search_var.trace_add("write", lambda *args: update_listbox()) 
-    search_entry = Entry(vars_frame, textvariable=search_var)
-    search_entry.pack(fill='x', padx=0, pady=(0, 5))
-
-    show_selected_only_var = BooleanVar(value=False)
-
-    show_selected_check = Checkbutton(
-        vars_frame,
-        text="Show selected only",
-        variable=show_selected_only_var,
-        command=lambda: update_listbox()
-    )
-    show_selected_check.pack(anchor="w", padx=(0, 0), pady=(0, 5))
-
-    scrollbar = ttk.Scrollbar(vars_frame)
-    scrollbar.pack(side='right', fill='y')
     
-    var_listbox = Listbox(vars_frame,selectmode='multiple',yscrollcommand=scrollbar.set,exportselection=False)
+    ALL_FILTER_PREFIXES = ("ANA", "TR", "FM", "ST")
 
-    var_listbox.pack(side='left', fill='both', expand=True)
-    scrollbar.config(command=var_listbox.yview)
+    def select_all_visible():
+        var_listbox.selection_clear(0, "end")
+        selected_ids.clear()
 
-    full_variable_list = [f"{var[0]}: {var[1]}" for var in xml_variables]
+        visible_items = [var_listbox.get(i) for i in range(var_listbox.size())]
+
+        for i, item in enumerate(visible_items):
+            var_id = item.split(":")[0].strip().upper()
+
+            if var_id.startswith(ALL_FILTER_PREFIXES):
+                var_listbox.selection_set(i)
+                selected_ids.add(var_id)
+
+        global selected_indices
+        selected_indices = [
+            idx
+            for idx, (vid, _) in enumerate(xml_variables)
+            if vid.upper() in selected_ids
+        ]
+    
+    def unselect_all():
+        var_listbox.selection_clear(0, 'end')
+        selected_ids.clear()
+
+        global selected_indices
+        selected_indices = []
+
+        if show_selected_only_var.get():
+            update_listbox()
 
     def update_listbox():
         query = search_var.get().strip().lower()
@@ -664,6 +667,35 @@ def update_variable_choices():
             var_id = item.split(":")[0].strip()
             if var_id in selected_ids:
                 var_listbox.selection_set(i)
+
+    search_var = StringVar()
+    search_var.trace_add("write", lambda *args: update_listbox()) 
+    search_entry = Entry(vars_frame, textvariable=search_var)
+    search_entry.pack(fill='x', padx=0, pady=(0, 5))
+
+    show_selected_only_var = BooleanVar(value=False)
+
+    controls_row = Frame(vars_frame)
+    controls_row.pack(fill="x", pady=(0, 5))
+
+    controls_inner = Frame(controls_row)
+    controls_inner.pack(anchor="center")
+
+    show_selected_check = Checkbutton(controls_inner,text="Show selected only",variable=show_selected_only_var,command=update_listbox)
+    show_selected_check.pack(side="left", padx=(0, 8))
+
+    ttk.Button(controls_inner,text="Select all",width=10,command=select_all_visible).pack(side="left", padx=(0, 4))
+    ttk.Button(controls_inner,text="Clear selection",width=15,command=unselect_all).pack(side="left")
+
+    scrollbar = ttk.Scrollbar(vars_frame)
+    scrollbar.pack(side='right', fill='y')
+    
+    var_listbox = Listbox(vars_frame,selectmode='multiple',yscrollcommand=scrollbar.set,exportselection=False)
+
+    var_listbox.pack(side='left', fill='both', expand=True)
+    scrollbar.config(command=var_listbox.yview)
+
+    full_variable_list = [f"{var[0]}: {var[1]}" for var in xml_variables]
 
     update_listbox()
 
@@ -698,13 +730,10 @@ def update_variable_choices():
         if not selected_filter or not xml_variables:
             return
         try:
-            if selected_filter == "All":
-                signals_to_select = set(all_filter_ids)
-            else:
-                index = filter_options.index(selected_filter)
-                if index == 0:
-                    return
-                signals_to_select = set(filter_signals[index])
+            index = filter_options.index(selected_filter)
+            if index == 0:
+                return
+            signals_to_select = set(filter_signals[index])
 
             visible_items = [var_listbox.get(i) for i in range(var_listbox.size())]
             id_to_visible_idx = {}
