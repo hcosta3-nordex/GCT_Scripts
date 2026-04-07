@@ -117,8 +117,8 @@ class FileZillaTextApp(tk.Tk):
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
         base = get_exe_dir()
-        self.left_path = tk.StringVar(value=os.path.join(base, "namespaces"))
-        self.right_path = tk.StringVar(value=os.path.join(base, "namespaces"))
+        self.left_path = tk.StringVar(value=os.path.join(base))
+        self.right_path = tk.StringVar(value=os.path.join(base))
         self.selected_ranges = set()
         self.history = []
         self._build_ui()
