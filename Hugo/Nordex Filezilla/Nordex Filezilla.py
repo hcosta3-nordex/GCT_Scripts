@@ -88,6 +88,9 @@ class FileZillaTextApp(tk.Tk):
     def update_diff_overview(self, diff_lines, total):
         c = self.diff_canvas
         c.delete("all")
+        
+        c = self.diff_canvas
+        c.delete("all")
         h = c.winfo_height()
         if total <= 0 or h <= 1:
             return
@@ -121,13 +124,26 @@ class FileZillaTextApp(tk.Tk):
         self.right_path = tk.StringVar(value=os.path.join(base))
         self.selected_ranges = set()
         self.history = []
+        self._suspend_compare = False
+        self._diff_only_active = False
+        self._last_jump_line = None
+        self._in_compare = False
+        self.show_diff_only = tk.BooleanVar(value=False)
         self._build_ui()
         self._refresh_all()
         self.auto_refresh()
         self.bind_all("<Control-z>", lambda e: self.undo_copy())
 
     def _on_diff_canvas_resize(self, event):
+        if self._suspend_compare:
+            return
         self.compare_lines()
+
+    def on_toggle_show_diff(self):
+        if self.show_diff_only.get():
+            self._enter_diff_only_mode()
+        else:
+            self._exit_diff_only_mode()
 
     def _build_ui(self):
         main = ttk.Frame(self)
@@ -165,8 +181,11 @@ class FileZillaTextApp(tk.Tk):
         bottom = ttk.Frame(self)
         bottom.grid(row=1, column=0, columnspan=4, sticky="ew", padx=10, pady=(0, 10))
 
+        ttk.Checkbutton(bottom,text="Show differences only",variable=self.show_diff_only,command=self.on_toggle_show_diff).pack(pady=(0, 6))
+
         btns = ttk.Frame(bottom)
         btns.pack()
+
         ttk.Button(btns, text="Copy →", command=self.copy_left_to_right).grid(row=0, column=0, padx=10)
         ttk.Button(btns, text="← Copy", command=self.copy_right_to_left).grid(row=0, column=1, padx=10)
         ttk.Button(bottom, text="← Back", command=self.undo_copy).pack(pady=6)
@@ -206,12 +225,16 @@ class FileZillaTextApp(tk.Tk):
         entry.bind("<KeyRelease>", lambda e, s=side: self.refresh_one_side(s))
         entry.bind("<FocusOut>", lambda e, s=side: self.refresh_one_side(s))
 
-        ttk.Button(path_frame, text="Browse",
-                   command=lambda v=path_var, s=side: self.browse_path(v, s)).pack(side="left", padx=5)
+        ttk.Button(path_frame, text="Browse",command=lambda v=path_var, s=side: self.browse_path(v, s)).pack(side="left", padx=5)
 
-        combo = ttk.Combobox(frame, state="readonly")
-        combo.pack(fill="x", padx=5)
+        file_row = ttk.Frame(frame)
+        file_row.pack(fill="x", padx=5)
+
+        combo = ttk.Combobox(file_row, state="readonly")
+        combo.pack(side="left", fill="x", expand=True)
         combo.bind("<<ComboboxSelected>>", lambda e, s=side: self.load_file(s))
+
+        ttk.Button(file_row,text="Save",width=6,command=lambda s=side: self.save_file(s)).pack(side="left", padx=(5, 0))
 
         search_var = tk.StringVar()
         search = ttk.Entry(frame, textvariable=search_var)
@@ -221,8 +244,7 @@ class FileZillaTextApp(tk.Tk):
         text_frame = ttk.Frame(frame)
         text_frame.pack(fill="both", expand=True)
 
-        lines = tk.Text(text_frame, width=5, padx=5, pady=2,
-                        takefocus=0, border=0, background="#f0f0f0", state="disabled")
+        lines = tk.Text(text_frame, width=5, padx=5, pady=2,takefocus=0, border=0, background="#f0f0f0", state="disabled")
         lines.grid(row=0, column=0, sticky="ns")
 
         text = tk.Text(text_frame, wrap="none", undo=True)
@@ -247,8 +269,7 @@ class FileZillaTextApp(tk.Tk):
         text.bind("<Button-4>", self.on_mousewheel)
         text.bind("<Button-5>", self.on_mousewheel)
 
-        return {"frame": frame, "path": path_var, "combo": combo,
-                "text": text, "lines": lines, "search": search_var}
+        return {"frame": frame, "path": path_var, "combo": combo,"text": text, "lines": lines, "search": search_var}
 
     def on_mousewheel(self, event):
         delta = -1 if event.num == 4 or event.delta > 0 else 1
@@ -258,6 +279,11 @@ class FileZillaTextApp(tk.Tk):
         return "break"
 
     def on_text_modified(self, event):
+        if self._suspend_compare:
+            event.widget.edit_modified(False)
+            return
+        if not event.widget.edit_modified():
+            return
         event.widget.edit_modified(False)
         self.compare_lines()
 
@@ -320,63 +346,240 @@ class FileZillaTextApp(tk.Tk):
             self.left["text"].see(first)
             self.right["text"].see(first)
 
-    def compare_lines(self):
+    def _clear_modified_flags(self):
+        for p in (self.left, self.right):
+            txt = p["text"]
+            txt.edit_modified(False)
+
+    def _enter_diff_only_mode(self):
+        self._diff_map = []
+        self._diff_only_active = True
+        self._suspend_compare = True
+
         ltxt = self.left["text"]
         rtxt = self.right["text"]
 
-        l = ltxt.get("1.0", "end-1c").splitlines()
-        r = rtxt.get("1.0", "end-1c").splitlines()
+        l_full = self._last_full_left
+        r_full = self._last_full_right
 
-        total = max(len(l), len(r))
+        total = max(len(l_full), len(r_full))
 
-        if len(l) < total:
-            ltxt.insert("end", "\n" * (total - len(l)))
-        if len(r) < total:
-            rtxt.insert("end", "\n" * (total - len(r)))
+        diff_lines = []
+        left_out = []
+        right_out = []
+
+        for i in range(total):
+            li = l_full[i] if i < len(l_full) else ""
+            ri = r_full[i] if i < len(r_full) else ""
+            if li != ri:
+                orig_line = i + 1
+                self._diff_map.append(orig_line)
+                diff_lines.append(orig_line)
+                left_out.append(li)
+                right_out.append(ri)
 
         for t in (ltxt, rtxt):
             t.tag_remove("diff", "1.0", "end")
+            t.delete("1.0", "end")
 
-        diff_lines = []
-        for i in range(total):
-            if (l[i] if i < len(l) else "") != (r[i] if i < len(r) else ""):
-                ln = i + 1
-                diff_lines.append(ln)
-                ltxt.tag_add("diff", f"{ln}.0", f"{ln}.end")
-                rtxt.tag_add("diff", f"{ln}.0", f"{ln}.end")
+        ltxt.insert("1.0", "\n".join(left_out))
+        rtxt.insert("1.0", "\n".join(right_out))
+
+        for i in range(len(left_out)):
+            ln = i + 1
+            ltxt.tag_add("diff", f"{ln}.0", f"{ln}.end+1c")
+            rtxt.tag_add("diff", f"{ln}.0", f"{ln}.end+1c")
+
+        nums = "\n".join(str(n) for n in diff_lines) + "\n"
+        for p in (self.left, self.right):
+            lnw = p["lines"]
+            lnw.config(state="normal")
+            lnw.delete("1.0", "end")
+            lnw.insert("1.0", nums)
+            lnw.config(state="disabled")
 
         self.update_diff_overview(diff_lines, total)
+
+        self._clear_modified_flags()
+        self._suspend_compare = False
         self.raise_selection_tag()
 
-    def snapshot(self):
-        return (
-            self.left["text"].get("1.0", "end"),
-            self.right["text"].get("1.0", "end"),
-            self.left["text"].yview(),
-            self.right["text"].yview()
-        )
+        self.left["text"].config(state="disabled")
+        self.right["text"].config(state="disabled")
+    
+    def _exit_diff_only_mode(self):
+        self.left["text"].config(state="normal")
+        self.right["text"].config(state="normal")
+        self._suspend_compare = True
 
-    def restore(self, snap):
-        left, right, ly, ry = snap
         self.left["text"].delete("1.0", "end")
         self.right["text"].delete("1.0", "end")
-        self.left["text"].insert("1.0", left)
-        self.right["text"].insert("1.0", right)
-        self.left["text"].yview_moveto(ly[0])
-        self.right["text"].yview_moveto(ry[0])
-        self.clear_selection()
+
+        self.left["text"].insert("1.0", "\n".join(self._last_full_left))
+        self.right["text"].insert("1.0", "\n".join(self._last_full_right))
+
+        self._diff_only_active = False
+        self._diff_map = []
+
+        self.update_line_numbers(
+            max(len(self._last_full_left), len(self._last_full_right))
+        )
+
+        self.diff_canvas.delete("all")
+
+        self._suspend_compare = False
         self.compare_lines()
+
+    def compare_lines(self):
+        if self._suspend_compare or self._diff_only_active:
+            return
+
+        ltxt = self.left["text"]
+        rtxt = self.right["text"]
+
+        ly = ltxt.yview()[0]
+        ry = rtxt.yview()[0]
+
+        ltxt.tag_remove("diff", "1.0", "end")
+        rtxt.tag_remove("diff", "1.0", "end")
+
+        self._suspend_compare = True
+        try:
+            l_full = self._last_full_left
+            r_full = self._last_full_right
+            total = max(len(l_full), len(r_full))
+            diff_lines = []
+
+            for i in range(total):
+                li = l_full[i] if i < len(l_full) else ""
+                ri = r_full[i] if i < len(r_full) else ""
+                if li != ri:
+                    ln = i + 1
+                    diff_lines.append(ln)
+                    max_line = int(ltxt.index("end-1c").split(".")[0])
+                    widget_line = min(ln, max_line)
+                    ltxt.tag_add("diff", f"{widget_line}.0", f"{widget_line}.end+1c")
+                    rtxt.tag_add("diff", f"{widget_line}.0", f"{widget_line}.end+1c")
+
+            self.update_line_numbers(total)
+            self.update_diff_overview(diff_lines, total)
+            self.raise_selection_tag()
+
+        finally:
+            self._clear_modified_flags()
+            self._suspend_compare = False
+            ltxt.yview_moveto(ly)
+            rtxt.yview_moveto(ry)
+
+    def snapshot(self):
+        return {
+            "left": self._last_full_left.copy(),
+            "right": self._last_full_right.copy(),
+            "ly": self.left["text"].yview()[0],
+            "ry": self.right["text"].yview()[0],
+            "diff_only": self._diff_only_active,
+            "checkbox": self.show_diff_only.get(),
+        }
+    
+    def save_file(self, side):
+        panel = self.left if side == "left" else self.right
+        path = panel["path"].get()
+        filename = panel["combo"].get()
+
+        if not filename:
+            messagebox.showwarning("Save", "No file selected.")
+            return
+
+        full_path = os.path.join(path, filename)
+
+        content = (
+            self._last_full_left
+            if side == "left"
+            else self._last_full_right
+        )
+
+        try:
+            with open(full_path, "w", encoding="utf-8", errors="ignore") as f:
+                f.write("\n".join(content))
+
+            messagebox.showinfo("Save successful", f"File saved:\n{filename}")
+        except Exception as e:
+            messagebox.showerror("Save failed", str(e))
+
+    def restore(self, snap):
+        self._suspend_compare = True
+
+        self._last_full_left = snap["left"].copy()
+        self._last_full_right = snap["right"].copy()
+
+        self.show_diff_only.set(snap["checkbox"])
+
+        self.left["text"].config(state="normal")
+        self.right["text"].config(state="normal")
+
+        self.left["text"].delete("1.0", "end")
+        self.right["text"].delete("1.0", "end")
+
+        self.left["text"].insert("1.0", "\n".join(self._last_full_left))
+        self.right["text"].insert("1.0", "\n".join(self._last_full_right))
+
+        if snap["diff_only"]:
+            self._enter_diff_only_mode()
+        else:
+            self._exit_diff_only_mode()
+
+        self.left["text"].yview_moveto(snap["ly"])
+        self.right["text"].yview_moveto(snap["ry"])
+
+        self.clear_selection()
+        self._suspend_compare = False
 
     def copy_selected(self, src, dst):
         if not self.selected_ranges:
             messagebox.showinfo("Copy", "Double-click lines (use Ctrl for multi-select).")
             return
+
+        ly = self.left["text"].yview()[0]
+        ry = self.right["text"].yview()[0]
+        was_diff_only = self._diff_only_active
+
         self.history.append(self.snapshot())
-        for start, end in sorted(self.selected_ranges):
-            dst.delete(start, end)
-            dst.insert(start, src.get(start, end))
+
+        diff_map = None
+        if was_diff_only:
+            diff_map = []
+            max_i = int(self.left["lines"].index("end-1c").split(".")[0])
+            for i in range(1, max_i + 1):
+                v = self.left["lines"].get(f"{i}.0", f"{i}.end").strip()
+                if v.isdigit():
+                    diff_map.append(int(v))
+
+        for start, _ in sorted(self.selected_ranges):
+            line = int(start.split(".")[0])
+            ln = diff_map[line - 1] - 1 if diff_map else line - 1
+            value = self._last_full_left[ln] if src is self.left["text"] else self._last_full_right[ln]
+            if dst is self.left["text"]:
+                self._last_full_left[ln] = value
+            else:
+                self._last_full_right[ln] = value
+
+        self.left["text"].config(state="normal")
+        self.right["text"].config(state="normal")
+
+        self.left["text"].delete("1.0", "end")
+        self.right["text"].delete("1.0", "end")
+        self.left["text"].insert("1.0", "\n".join(self._last_full_left))
+        self.right["text"].insert("1.0", "\n".join(self._last_full_right))
+
         self.clear_selection()
-        self.compare_lines()
+
+        if was_diff_only:
+            self._enter_diff_only_mode()
+        else:
+            self.compare_lines()
+
+        self.left["text"].yview_moveto(ly)
+        self.right["text"].yview_moveto(ry)
 
     def copy_left_to_right(self):
         self.copy_selected(self.left["text"], self.right["text"])
@@ -386,6 +589,7 @@ class FileZillaTextApp(tk.Tk):
 
     def undo_copy(self):
         if self.history:
+            self._suspend_compare = True
             self.restore(self.history.pop())
 
     def browse_path(self, var, side):
@@ -434,6 +638,9 @@ class FileZillaTextApp(tk.Tk):
         l_lines = int(self.left["text"].index("end-1c").split(".")[0])
         r_lines = int(self.right["text"].index("end-1c").split(".")[0])
         self.update_line_numbers(max(l_lines, r_lines))
+
+        self._last_full_left = self.left["text"].get("1.0", "end-1c").split("\n")
+        self._last_full_right = self.right["text"].get("1.0", "end-1c").split("\n")
 
         self.compare_lines()
 
