@@ -476,6 +476,7 @@ class FileZillaTextApp(tk.Tk):
             "ry": self.right["text"].yview()[0],
             "diff_only": self._diff_only_active,
             "checkbox": self.show_diff_only.get(),
+            "changed_lines": []
         }
     
     def save_file(self, side):
@@ -533,7 +534,10 @@ class FileZillaTextApp(tk.Tk):
 
     def copy_selected(self, src, dst):
         if not self.selected_ranges:
-            messagebox.showinfo("Copy", "Double-click lines (use Ctrl for multi-select).")
+            messagebox.showinfo(
+                "Copy",
+                "Double-click lines (use Ctrl for multi-select)."
+            )
             return
 
         ly = self.left["text"].yview()[0]
@@ -551,20 +555,34 @@ class FileZillaTextApp(tk.Tk):
                 if v.isdigit():
                     diff_map.append(int(v))
 
+        changed = set()
+
         for start, _ in sorted(self.selected_ranges):
-            line = int(start.split(".")[0])
-            ln = diff_map[line - 1] - 1 if diff_map else line - 1
-            value = self._last_full_left[ln] if src is self.left["text"] else self._last_full_right[ln]
+            visible_line = int(start.split(".")[0])
+
+            ln = diff_map[visible_line - 1] - 1 if diff_map else visible_line - 1
+
+            changed.add(ln + 1)
+
+            value = (
+                self._last_full_left[ln]
+                if src is self.left["text"]
+                else self._last_full_right[ln]
+            )
+
             if dst is self.left["text"]:
                 self._last_full_left[ln] = value
             else:
                 self._last_full_right[ln] = value
+
+        self.history[-1]["changed_lines"] = sorted(changed)
 
         self.left["text"].config(state="normal")
         self.right["text"].config(state="normal")
 
         self.left["text"].delete("1.0", "end")
         self.right["text"].delete("1.0", "end")
+
         self.left["text"].insert("1.0", "\n".join(self._last_full_left))
         self.right["text"].insert("1.0", "\n".join(self._last_full_right))
 
@@ -589,7 +607,6 @@ class FileZillaTextApp(tk.Tk):
             return
 
         snap = self.history.pop()
-
         keep_diff_mode = self.show_diff_only.get()
 
         self._suspend_compare = True
@@ -599,8 +616,14 @@ class FileZillaTextApp(tk.Tk):
             self.show_diff_only.set(False)
             self._exit_diff_only_mode()
 
-        self.left["text"].yview_moveto(snap["ly"])
-        self.right["text"].yview_moveto(snap["ry"])
+            if snap.get("changed_lines"):
+                ln = snap["changed_lines"][0]
+                self.left["text"].see(f"{ln}.0")
+                self.right["text"].see(f"{ln}.0")
+
+        else:
+            self.left["text"].yview_moveto(snap["ly"])
+            self.right["text"].yview_moveto(snap["ry"])
 
         self._suspend_compare = False
 
