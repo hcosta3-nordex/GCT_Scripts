@@ -380,7 +380,7 @@ def load_mode_specific_ui(*args):
             entry.grid(row=i, column=1, sticky='nsew', pady=(10, 0))
             entry.drop_target_register(DND_FILES)
             entry.dnd_bind('<<Drop>>', lambda e, idx=i: handle_drop(idx, e))
-            tk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
+            ttk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
             file_entries.append(entry)
             file_types.append("CSV")
 
@@ -402,7 +402,7 @@ def load_mode_specific_ui(*args):
             entry.grid(row=i, column=1, sticky='nsew', pady=(10, 0))
             entry.drop_target_register(DND_FILES)
             entry.dnd_bind('<<Drop>>', lambda e, idx=i: handle_drop(idx, e))
-            tk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
+            ttk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
             file_entries.append(entry)
             file_types.append("ZIP")
 
@@ -426,7 +426,7 @@ def load_mode_specific_ui(*args):
         entry.grid(row=i, column=1, sticky='nsew', pady=(10, 0))
         entry.drop_target_register(DND_FILES)
         entry.dnd_bind('<<Drop>>', lambda e, idx=i: handle_drop(idx, e))
-        tk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
+        ttk.Button(dynamic_frame, text="Browse...", command=lambda idx=i: select_file(idx)).grid(row=i, column=2, padx=10, pady=(10, 0))
         file_entries.append(entry)
         file_types.append("CSV")
 
@@ -437,7 +437,7 @@ def load_mode_specific_ui(*args):
         entry.grid(row=idx, column=1, sticky='nsew', pady=(10, 0))
         entry.drop_target_register(DND_FILES)
         entry.dnd_bind('<<Drop>>', lambda e, k=idx: handle_drop(k, e))
-        tk.Button(dynamic_frame, text="Browse...", command=lambda k=idx: select_file(k)).grid(row=idx, column=2, padx=10, pady=(10, 0))
+        ttk.Button(dynamic_frame, text="Browse...", command=lambda k=idx: select_file(k)).grid(row=idx, column=2, padx=10, pady=(10, 0))
         file_entries.append(entry)
         file_types.append("ZIP")
 
@@ -462,7 +462,7 @@ try:
 except Exception:
     pass
 
-root.title("Parameter Comparison Tool v2")
+root.title("Parameter Comparison Tool v2.1")
 root.geometry("900x600")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
@@ -551,10 +551,10 @@ actions_frame.grid(row=1, column=0, padx=0, pady=(6, 0), sticky='ew')
 actions_inner = tk.Frame(actions_frame)
 actions_inner.pack(anchor='center')
 
-process_btn = tk.Button(actions_inner, text="Process Files", command=lambda: process_n_files())
+process_btn = ttk.Button(actions_inner, text="Process Files", command=lambda: process_n_files())
 process_btn.pack(side='left', padx=8)
 
-save_button = tk.Button(actions_inner, text="Save", command=lambda: save(output_tree), state=tk.DISABLED)
+save_button = ttk.Button(actions_inner, text="Save", command=lambda: save(output_tree), state=tk.DISABLED)
 save_button.pack(side='left', padx=8)
 
 output_frame = tk.Frame(root)
@@ -668,7 +668,7 @@ try:
     logo_POT = logo_POT.subsample(3, 3)
     logo_POT_label = Label(root, image=logo_POT)
     logo_POT_label.image = logo_POT
-    logo_POT_label.place(relx=0.1, rely=0.01, anchor="ne")
+    logo_POT_label.place(relx=0.02, rely=0.07, anchor="sw")
 except Exception as e:
     print(f"Logo not found or failed to load: {e}")
 
