@@ -14,12 +14,10 @@ TEXT_EXTENSIONS = ('.txt', '.csv', '.xml', '.json', '.yaml', '.yml', '.ini', '.c
 def get_exe_dir():
     return os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
 
-
 def list_files(path):
     if not os.path.isdir(path):
         return []
     return sorted(f for f in os.listdir(path) if f.lower().endswith(TEXT_EXTENSIONS))
-
 
 def load_file(path):
     try:
@@ -27,7 +25,6 @@ def load_file(path):
             return f.read()
     except Exception:
         return ""
-
 
 class FileZillaTextApp(tk.Tk):
     def _yscroll(self, *args):
@@ -588,9 +585,24 @@ class FileZillaTextApp(tk.Tk):
         self.copy_selected(self.right["text"], self.left["text"])
 
     def undo_copy(self):
-        if self.history:
-            self._suspend_compare = True
-            self.restore(self.history.pop())
+        if not self.history:
+            return
+
+        snap = self.history.pop()
+
+        keep_diff_mode = self.show_diff_only.get()
+
+        self._suspend_compare = True
+        self.restore(snap)
+
+        if not keep_diff_mode:
+            self.show_diff_only.set(False)
+            self._exit_diff_only_mode()
+
+        self.left["text"].yview_moveto(snap["ly"])
+        self.right["text"].yview_moveto(snap["ry"])
+
+        self._suspend_compare = False
 
     def browse_path(self, var, side):
         folder = filedialog.askdirectory(initialdir=var.get())
