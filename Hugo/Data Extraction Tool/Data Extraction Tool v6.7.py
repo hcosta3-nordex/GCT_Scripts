@@ -515,7 +515,7 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
                         headers_written[0] = True
 
                     selected_values = [row[i] for i in adjusted_indices]
-                    date_str = current_timestamp.strftime("%d/%m/%Y")
+                    date_str = current_timestamp.strftime("%Y-%m-%d")
                     time_str = current_timestamp.strftime("%H:%M:%S.%f")
                     if cancel_requested:
                         return
@@ -784,6 +784,8 @@ def process_files():
             increment_ms = 40
         elif selected_increment == "1 s":
             increment_ms = 1
+        elif selected_increment == "100 us":
+            increment_ms = 100
         else:
             increment_ms = None
 
@@ -949,15 +951,47 @@ def process_files():
         final_output_file = os.path.join(final_path, f"{final_name}.csv")
         created_files.append(final_output_file)
         create_final_file_tsdl_mfr(zip_path=zip_path,xml_path=xml_path,xml_variables=xml_variables,selected_indices=selected_indices,final_output=final_output_file,prefix=prefix)
+        if use_timestamp and cutting:
+            if increment_ms == 100:
+                correct_time_mfr(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
+                os.rename(final_output_file, temp_file)
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
+                cutting_data_mfr(start_time, end_time, temp_file)
+                os.rename(temp_file, final_output_file)
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 100 us.")
+        elif averaging and cutting:
+            if increment_ms == 100:
+                temp_file = final_output_file.replace(".csv", "_corrected.csv")
+                #averaging_mfr(final_output_file, increment_ms)
+                temp_file = os.path.join(final_path, f"{final_name}_temp.csv")
+                os.rename(final_output_file, temp_file)
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
+                toast("Data Extraction Tool","🔄 Applying range on final file ...")
+                #cutting_data_mfr(start_time, end_time, temp_file)
+                os.rename(temp_file, final_output_file)
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 100 us.")
+        elif(use_timestamp):
+            if(increment_ms == 100):
+                correct_time_mfr(final_output_file, increment_ms)
+                toast("Data Extraction Tool","🔄 Correcting timestamp on final file ...")
+            else:
+                messagebox.showerror("Error", f"Incorrect Timestamp, make sure you select 100 us.")
+        elif(cutting):
+            cutting_data_mfr(start_time,end_time,final_output_file)
+            toast("Data Extraction Tool","🔄 Applying range on final file ...")
+        elif(averaging):
+            if (increment_ms == 100):
+                #averaging_mfr(final_output_file, increment_ms)
+                toast("Data Extraction Tool","🔄 Averaging final file ...")
+            else:
+                messagebox.showerror("Error", "Incorrect Timestamp, make sure you select 1s.")
         toast("Data Extraction Tool",f"✅ Final file created in {time.time() - t0:.2f} seconds at: {final_output_file}")
         if cancel_requested:
             return
-
-    else:
-        messagebox.showerror("Error", f"Unknown source selected: {source_selected}")
-        return
-
-    messagebox.showinfo("Success", f"Final file '{final_output_file}' created successfully.")
 
 def cancel_and_cleanup():
     global cancel_requested, processing_thread, created_files
@@ -1263,6 +1297,46 @@ def correct_time_opclogger(final_output_file, increment_s):
     except Exception as e:
         messagebox.showerror("Error", f"Timestamp correction failed:\n{str(e)}")
 
+def correct_time_mfr(final_output_file, increment_ms):
+    try:
+        with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
+            reader = csv.reader(infile, delimiter=',')
+            header = next(reader)   
+            data = list(reader)
+
+        cleaned_data = [[field.strip().strip('"') for field in row] for row in data]
+
+        if len(cleaned_data) < 1 or len(cleaned_data[0]) < 2:
+            messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
+            return
+
+        file_date = cleaned_data[0][0].strip("'")
+        start_time_str = cleaned_data[0][1].strip("'")
+
+        fmt = "%Y-%m-%d %H:%M:%S.%f"  
+        start_time = datetime.strptime(f"{file_date} {start_time_str}", fmt)
+
+        increment = timedelta(microseconds=increment_ms)
+
+        updated_data = []
+        for i, row in enumerate(cleaned_data):
+            if len(row) >= 2:
+                timestamp = start_time + i * increment
+                formatted_date = timestamp.strftime("%Y-%m-%d")
+                formatted_time = timestamp.strftime("%H:%M:%S.%f")
+
+                row[0] = formatted_date
+                row[1] = f"'{formatted_time}'"
+            updated_data.append(row)
+
+        with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
+            writer = csv.writer(outfile, delimiter=',')
+            writer.writerow(header)
+            writer.writerows(updated_data)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Timestamp correction failed:\n{str(e)}")
+
 def cutting_data_tsdl_csv(start_time_str, end_time_str, final_output_file):
     try:
         start_time_str = start_time_str.strip().replace('"', '').replace('\r', '').replace('\n', '')
@@ -1425,6 +1499,64 @@ def cutting_data_opclogger(start_time_str, end_time_str, final_output_file):
 
             try:
                 current_dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                continue
+
+            if current_dt > end_dt:
+                start_dt += timedelta(days=1)
+                end_dt   += timedelta(days=1)
+
+            if start_dt <= current_dt <= end_dt:
+                filtered_data.append(row)
+
+        with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
+            writer = csv.writer(outfile, delimiter=',')
+            writer.writerow(header)
+            writer.writerows(filtered_data)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Cutting data failed:\n{str(e)}")
+
+def cutting_data_mfr(start_time_str, end_time_str, final_output_file):
+    try:
+        start_time_str = start_time_str.strip().replace('"', '').replace('\r', '').replace('\n', '')
+        end_time_str   = end_time_str.strip().replace('"', '').replace('\r', '').replace('\n', '')
+
+        time_fmt = "%H:%M:%S.%f"
+        start_time = datetime.strptime(start_time_str, time_fmt).time()
+        end_time   = datetime.strptime(end_time_str, time_fmt).time()
+
+        time_pattern = r"^\d{2}:\d{2}:\d{2}\.\d{6}$"
+        filtered_data = []
+
+        with open(final_output_file, mode="r", newline="", encoding="utf-8") as infile:
+            reader = csv.reader(infile, delimiter=',')
+            header = next(reader) 
+            data = list(reader)
+
+        if not data or len(data[0]) < 2:
+            messagebox.showerror("Error", "File does not have enough rows/columns for timestamp extraction.")
+            return
+
+        base_date = data[0][0].strip().strip('"\'')
+        base_date_dt = datetime.strptime(base_date, "%Y-%m-%d")
+
+        start_dt = datetime.combine(base_date_dt.date(), start_time)
+        end_dt   = datetime.combine(base_date_dt.date(), end_time)
+        if start_time > end_time:
+            end_dt += timedelta(days=1)
+
+        for row in data:
+            if len(row) < 2:
+                continue
+
+            date_part = row[0].strip().strip('"\'')
+            time_part = row[1].strip().strip('"\'')
+            if not re.match(time_pattern, time_part):
+                continue
+
+            try:
+                current_dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S.%f")
             except ValueError:
                 continue
 
@@ -1734,7 +1866,7 @@ icon_image = Image.open(icon_stream)
 
 icon_photo = ImageTk.PhotoImage(icon_image)
 root.iconphoto(False, icon_photo)
-root.title("Data Extraction Tool v6.6")
+root.title("Data Extraction Tool v6.7")
 root.geometry("1000x600")
 
 Label(root, text="ZIP File:").grid(row=0, column=0, pady=(5, 0), padx=10)
@@ -1797,7 +1929,7 @@ averaging_check.pack(side="left")
 
 Label(combined_modes, text="Timestamp:").pack(side="left", padx=(20, 5))
 
-increment_var = ttk.Combobox(combined_modes, values=["10 ms", "40 ms", "1 s"], state="readonly", width=7)
+increment_var = ttk.Combobox(combined_modes, values=["10 ms", "40 ms", "1 s", "100 us"], state="readonly", width=7)
 increment_var.pack(side="left")
 increment_var.set("40 ms")
 
