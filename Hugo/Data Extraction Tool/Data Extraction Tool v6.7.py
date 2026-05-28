@@ -509,7 +509,7 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
                         continue
 
                     if not headers_written[0]:
-                        headers = ['Date', 'Time'] + [xml_variables[i][1].strip("()\"'") for i in selected_indices]
+                        headers = ['Date', 'Time'] + [f"{xml_variables[i][0]} {xml_variables[i][1].strip('()\"\'')}"for i in selected_indices]
                         cleaned_headers = [header.replace(',', '') for header in headers]
                         writer.writerow(cleaned_headers)
                         headers_written[0] = True
