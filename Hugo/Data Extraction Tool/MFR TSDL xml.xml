@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><common:rfc xmlns:common="http://www.nordex-online.com/nc2/config/common/1.0" xmlns:ns2="http://www.nordex-online.com/nc2/config/settings/1.0" xmlns:ns3="http://www.nordex-online.com/nc2/config/kks/1.0" xmlns:ns4="http://www.nordex-online.com/nc2/config/groups/1.0" xmlns:ns5="http://www.nordex-online.com/nc2/config/client-navigation/1.0" xmlns:ns6="http://www.nordex-online.com/nc2/config/client-report/1.0" xmlns:ns7="http://www.nordex-online.com/nc2/config/client-visual/1.0" xmlns:ns8="http://www.nordex-online.com/nc2/config/common/1.0" xmlns:ns9="http://www.nordex-online.com/nc2/config/L10N/1.0" group="MFR" subType="1">
+    <kks:locale xmlns:kks="http://www.nordex-online.com/nc2/config/kks/1.0" language="en">
+        <file name="kks">
+			<text id="ANA0">Validation Column</text>
+            <text id="ANA1">U_L1N_INST</text>
+            <text id="ANA2">U_L2N_INST</text>
+            <text id="ANA3">U_L3N_INST</text>
+            <text id="ANA4">U_L1L2_INST</text>
+            <text id="ANA5">U_L2L3_INST</text>
+            <text id="ANA6">U_L3L1_INST</text>
+            <text id="ANA7">I_L1_INST</text>
+            <text id="ANA8">I_L2_INST</text>
+            <text id="ANA9">I_L3_INST</text>
+            <text id="ANA10">I_L1_TRMS_HCC</text>
+            <text id="ANA11">I_L2_TRMS_HCC</text>
+            <text id="ANA12">I_L3_TRMS_HCC</text>
+            <text id="ANA13">U_pos_FRMS_FCS</text>
+            <text id="ANA14">U_neg_FRMS_FCS</text>
+            <text id="ANA15">U_null_FRMS_FCS</text>
+            <text id="ANA16">F</text>
+            <text id="ANA17">ROCOF</text>
+            <text id="ANA18">P_sumpos_FRMS_FCS</text>
+            <text id="ANA19">P_sum2_FRMS_FCC</text>
+            <text id="ANA20">P_sum_TRMS_HCS</text>
+            <text id="ANA21">Q_sumpos_FRMS_FCS</text>
+            <text id="ANA22">Q_sum2_FRMS_FCC</text>
+            <text id="ANA23">Q_sum_TRMS_HCS</text>
+            <text id="ANA24">Relay</text>
+        </file>
+    </kks:locale>
+</common:rfc>
+
