@@ -1990,17 +1990,21 @@ def open_plot_window():
     plot_win.after(100, set_pane_size)
 
     df = pd.read_csv(
-    final_csv_path,
-    engine="python",
-    sep=None
+        final_csv_path,
+        sep=";",
+        engine="c",
+        low_memory=False,
+        on_bad_lines="skip"
     )
 
     if "Date" not in df.columns:
         df = pd.read_csv(
             final_csv_path,
-            engine="python",
-            sep=None,
-            header=2
+            engine="c",
+            sep=",",
+            header=2,
+            low_memory=False,
+            on_bad_lines="skip"
         )
 
     df["Time_clean"] = df["Time"].astype(str).str.replace("'", "", regex=False)
