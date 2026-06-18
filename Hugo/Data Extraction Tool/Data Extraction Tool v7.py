@@ -2115,8 +2115,9 @@ def open_plot_window():
                 tick = "☑" if legend_state[var] else "☐"
                 labels.append(f"{tick} {var}    ⨯")
 
-            if lines_local:
+            if lines_local:          
                 legend = ax.legend(lines_local, labels, fontsize=8)
+                legend.set_draggable(True)
                 for txt, line_obj, var in zip(legend.get_texts(), lines_local, plot_data[i]):
                     txt.set_picker(True)
                     txt._line = line_obj
