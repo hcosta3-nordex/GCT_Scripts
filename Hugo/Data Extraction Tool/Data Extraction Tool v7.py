@@ -1965,6 +1965,7 @@ def averaging_mfr(final_output_file, increment_ms):
 
 def open_plot_window():
     global final_csv_path
+    source_selected = source_var.get()
 
     if not processing_finished:
         messagebox.showwarning("Warning", "Processing not finished yet")
@@ -1991,7 +1992,7 @@ def open_plot_window():
 
     df = pd.read_csv(
         final_csv_path,
-        sep=";",
+        sep=",",
         engine="c",
         low_memory=False,
         on_bad_lines="skip"
@@ -2008,7 +2009,7 @@ def open_plot_window():
         )
 
     df["Time_clean"] = df["Time"].astype(str).str.replace("'", "", regex=False)
-    df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time_clean"], errors="coerce")
+    df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time_clean"], format="mixed", errors="coerce")
     df = df.dropna(subset=["Datetime"]).set_index("Datetime")
     df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
 
@@ -2083,7 +2084,15 @@ def open_plot_window():
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
     def format_time(x, pos=None):
-        return mdates.num2date(x).strftime("%H:%M:%S.%f").rstrip("0").rstrip(".")
+        dt = mdates.num2date(x)
+
+        if source_selected == "OPClogger" or source_selected == "MFR OPClogger":
+            return f"{dt.strftime("%H:%M:%S")}".rstrip("0").rstrip(".")
+        elif source_selected == "MFR TSDL":
+            return f"{dt.strftime('%H:%M:%S')}.{dt.microsecond:06d}".rstrip("0").rstrip(".")
+        else:
+            ms = int(dt.microsecond / 1000)
+            return f"{dt.strftime('%H:%M:%S')}.{ms:03d}".rstrip("0").rstrip(".")
 
     def rebuild_axes():
         fig.clf()
@@ -2126,7 +2135,7 @@ def open_plot_window():
                     legend_links[txt] = line_obj
 
             ax.set_xlim(df.index.min(), df.index.max())
-            ax.margins(x=0)
+            ax.margins(x=0)      
 
             ax.xaxis.set_major_formatter(plt.FuncFormatter(format_time))
             ax.yaxis.set_major_formatter(
@@ -2216,10 +2225,16 @@ def open_plot_window():
         if mode["type"] == "v":
             x_time = mdates.num2date(event.xdata)
             x_time = pd.Timestamp(x_time).tz_localize(None)
-            idx = df.index.get_indexer([x_time], method="nearest")[0]
-            label = df["Time_clean"].iloc[idx]
 
-            line = ax.axvline(x_time, color="red", linestyle="--")
+            if (df.index.microsecond == 0).all():
+                x_time = x_time.round("1s")
+
+            idx = (df.index - x_time).to_series().abs().idxmin()
+            
+            nearest_time = min(df.index, key=lambda t: abs(t - x_time))
+            label = df.loc[nearest_time, "Time_clean"]
+
+            line = ax.axvline(nearest_time, color="red", linestyle="--")
 
             txt = ax.text(
                 x_time,
