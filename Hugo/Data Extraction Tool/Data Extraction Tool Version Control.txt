@@ -75,3 +75,22 @@ V6.4
 
 Cancel button fix. Now it only deletes generated files from the current export.
 Removed the console. Now "prints" are shown as a windows notification.
+
+V6.5
+
+Show selected variables only button.
+Fixed unselected variables by clicking somewhere else on the app (GUI interface).
+
+V6.6
+
+Added "Select all" and "clear selection" buttons.
+Interface fixes.
+Removed all from filters.
+
+V6.7
+
+Minor bugfixes. Corrected MFR TSDL xml file.
+
+V7
+
+Added plotting button.
