@@ -2076,8 +2076,6 @@ def open_plot_window(root, final_csv_path, source_selected):
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-    print(source_selected)
-
     def format_time(x, pos=None):
         dt = mdates.num2date(x)
         if source_selected == "OPClogger" or source_selected == "MFR OPClogger":
@@ -2278,7 +2276,9 @@ def open_plot_window(root, final_csv_path, source_selected):
         end_time.grid(row=3, column=3, padx=5)
 
         output_path_var = tk.StringVar()
-        output_path_var.set(final_csv_path.replace(".csv", "_cut.csv"))
+        full_default_path = final_csv_path.replace(".csv", "_cut.csv")
+        default_filename = os.path.basename(full_default_path)
+        output_path_var.set(default_filename)
 
         tk.Label(top_frame, text="").grid(row=4, column=0, pady=5)
 
@@ -2290,10 +2290,10 @@ def open_plot_window(root, final_csv_path, source_selected):
         end_dt = df.index.max()
 
         start_date.insert(0, str(start_dt.date()))
-        start_time.insert(0, format_time_display(start_dt, time_precision))
+        start_time.insert(0, start_dt.strftime("%H:%M:%S"))
 
         end_date.insert(0, str(end_dt.date()))
-        end_time.insert(0, format_time_display(end_dt, time_precision))
+        end_time.insert(0, end_dt.strftime("%H:%M:%S"))
 
         fig2 = plt.figure(figsize=(10, 5))
         canvas2 = FigureCanvasTkAgg(fig2, master=left_frame)
@@ -2447,7 +2447,14 @@ def open_plot_window(root, final_csv_path, source_selected):
                 messagebox.showerror("Error", "Invalid date/time")
                 return
 
-            output = output_path_var.get().strip()
+            filename = output_path_var.get().strip()
+
+            if not filename.endswith(".csv"):
+                filename += ".csv"
+
+            folder = os.path.dirname(final_csv_path)
+            output = os.path.join(folder, filename)
+
             if not output:
                 messagebox.showerror("Error", "Please provide an output file path")
                 return
@@ -2493,10 +2500,10 @@ def open_plot_window(root, final_csv_path, source_selected):
             end_time.delete(0, tk.END)
 
             start_date.insert(0, str(start_dt.date()))
-            start_time.insert(0, format_time_display(start_dt, time_precision))
+            start_time.insert(0, start_dt.strftime("%H:%M:%S"))
 
             end_date.insert(0, str(end_dt.date()))
-            end_time.insert(0, format_time_display(end_dt, time_precision))
+            end_time.insert(0, end_dt.strftime("%H:%M:%S"))
 
             update_plot()
 
