@@ -2486,6 +2486,18 @@ def open_plot_window(root, final_csv_path, source_selected):
         def clear_all():
             plotted.clear()
             legend_state.clear()
+
+            start_date.delete(0, tk.END)
+            start_time.delete(0, tk.END)
+            end_date.delete(0, tk.END)
+            end_time.delete(0, tk.END)
+
+            start_date.insert(0, str(start_dt.date()))
+            start_time.insert(0, format_time_display(start_dt, time_precision))
+
+            end_date.insert(0, str(end_dt.date()))
+            end_time.insert(0, format_time_display(end_dt, time_precision))
+
             update_plot()
 
         ttk.Button(right_frame, text="Clear All", command=clear_all).pack(pady=5)
