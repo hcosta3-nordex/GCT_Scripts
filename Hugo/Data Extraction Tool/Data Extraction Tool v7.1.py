@@ -2214,9 +2214,15 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
 
         left_frame = tk.Frame(paned)
         right_frame = tk.Frame(paned)
-
+        
         paned.add(left_frame, stretch="always")
-        paned.add(right_frame)
+        paned.add(right_frame, minsize=300)
+
+        def set_pane_size():
+            width = cutter_win.winfo_width()
+            paned.sash_place(0, int(width * 0.75), 0)
+        
+        cutter_win.after(100, set_pane_size)
 
         def detect_time_precision():
             for val in df["Time"].astype(str):
@@ -2267,6 +2273,15 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
         end_time = tk.Entry(top_frame, width=15)
         end_time.grid(row=3, column=3, padx=5)
 
+        output_path_var = tk.StringVar()
+        output_path_var.set(final_csv_path.replace(".csv", "_cut.csv"))
+
+        tk.Label(top_frame, text="").grid(row=4, column=0, pady=5)
+
+        tk.Label(top_frame, text="Output file").grid(row=5, column=0, padx=5, sticky="w")
+        output_entry = tk.Entry(top_frame, textvariable=output_path_var, width=80)
+        output_entry.grid(row=5, column=1, columnspan=3, padx=5, pady=5, sticky="we")
+
         start_dt = df.index.min()
         end_dt = df.index.max()
 
@@ -2276,7 +2291,7 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
         end_date.insert(0, str(end_dt.date()))
         end_time.insert(0, format_time_display(end_dt, time_precision))
 
-        fig2 = plt.figure()
+        fig2 = plt.figure(figsize=(10, 5))
         canvas2 = FigureCanvasTkAgg(fig2, master=left_frame)
         canvas2.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
 
@@ -2284,9 +2299,12 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
 
         plotted = []
         selected_var = {"name": None}
+        legend_state = {}
+        legend_links = {}
 
         def update_plot():
             ax.clear()
+            legend_links.clear()
 
             try:
                 start = pd.to_datetime(start_date.get() + " " + start_time.get())
@@ -2296,16 +2314,62 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
 
             data = df.loc[(df.index >= start) & (df.index <= end)]
 
-            for var in plotted:
-                y = pd.to_numeric(data[var], errors="coerce")
-                ax.plot(data.index, y, label=var)
+            lines_local = []
+            labels = []
 
-            if plotted:
-                legend = ax.legend(fontsize=8)
+            for i, var in enumerate(plotted):
+                legend_state.setdefault(var, True)
+
+                y = pd.to_numeric(data[var], errors="coerce")
+                line, = ax.plot(data.index, y)
+
+                line.set_visible(legend_state[var])
+                line._var = var
+
+                lines_local.append(line)
+
+                tick = "☑" if legend_state[var] else "☐"
+                labels.append(f"{tick} {var}    ⨯")
+
+            if lines_local:
+                legend = ax.legend(lines_local, labels, fontsize=8)
                 legend.set_draggable(True)
+
+                for txt, line_obj, var in zip(legend.get_texts(), lines_local, plotted):
+                    txt.set_picker(True)
+                    txt._line = line_obj
+                    txt._var = var
+                    legend_links[txt] = line_obj
+
+            ax.set_xlim(data.index.min(), data.index.max())
+            ax.margins(x=0)
+
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.3f}".rstrip("0").rstrip(".")))
 
             ax.grid(True)
             canvas2.draw()
+        
+        def on_pick(event):
+            txt = event.artist
+
+            if txt in legend_links:
+                line = txt._line
+                var = txt._var
+
+                bbox = txt.get_window_extent()
+                click_x = event.mouseevent.x
+
+                if click_x > bbox.x0 + bbox.width * 0.7:
+                    if var in plotted:
+                        plotted.remove(var)
+                    legend_state.pop(var, None)
+
+                else:
+                    legend_state[var] = not line.get_visible()
+
+                update_plot()
+        
+        canvas2.mpl_connect("pick_event", on_pick)
 
         def on_time_change(event=None):
             update_plot()
@@ -2319,8 +2383,17 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
         list_frame = tk.Frame(right_frame)
         list_frame.pack(fill="both", expand=True, padx=5, pady=5)
 
-        listbox = tk.Listbox(list_frame, font=("Segoe UI", 10))
-        listbox.pack(fill="both", expand=True)
+        y_scroll = tk.Scrollbar(list_frame, orient=tk.VERTICAL)
+        x_scroll = tk.Scrollbar(list_frame, orient=tk.HORIZONTAL)
+
+        listbox = tk.Listbox(list_frame,selectmode=tk.SINGLE,exportselection=False,yscrollcommand=y_scroll.set,xscrollcommand=x_scroll.set,font=("Segoe UI", 9))
+
+        y_scroll.config(command=listbox.yview)
+        x_scroll.config(command=listbox.xview)
+
+        y_scroll.pack(side="right", fill="y")
+        x_scroll.pack(side="bottom", fill="x")
+        listbox.pack(side="left", fill="both", expand=True)
 
         def update_list(*args):
             search = search_var.get().lower()
@@ -2370,6 +2443,11 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
                 messagebox.showerror("Error", "Invalid date/time")
                 return
 
+            output = output_path_var.get().strip()
+            if not output:
+                messagebox.showerror("Error", "Please provide an output file path")
+                return
+
             with open(final_csv_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
 
@@ -2385,34 +2463,28 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
                 except:
                     header_lines.append(line)
 
-            raw_df = pd.read_csv(
-                final_csv_path,
-                skiprows=data_start_idx,
-                header=None
-            )
+            raw_df = pd.read_csv(final_csv_path, skiprows=data_start_idx, header=None)
 
-            dt = pd.to_datetime(
-                raw_df.iloc[:, 0].astype(str) + " " + raw_df.iloc[:, 1].astype(str)
-            )
+            dt = pd.to_datetime(raw_df.iloc[:, 0].astype(str) + " " + raw_df.iloc[:, 1].astype(str))
 
             mask = (dt >= start) & (dt <= end)
             raw_cut = raw_df.loc[mask]
 
-            output = final_csv_path.replace(".csv", "_cut.csv")
-
             with open(output, "w", encoding="utf-8") as f:
                 f.writelines(header_lines)
 
-            raw_cut.to_csv(
-                output,
-                mode="a",
-                index=False,
-                header=False
-            )
+            raw_cut.to_csv(output, mode="a", index=False, header=False)
 
             messagebox.showinfo("Success", "Cutted file created")
 
-        tk.Button(right_frame, text="Process", bg="lightgreen", command=process).pack(pady=10)
+        ttk.Button(right_frame, text="Process", command=process).pack(pady=10)
+
+        def clear_all():
+            plotted.clear()
+            legend_state.clear()
+            update_plot()
+
+        ttk.Button(right_frame, text="Clear All", command=clear_all).pack(pady=5)
 
     tk.Button(toolbar, text="✂", command=open_cutter, relief="flat").pack(side="left")
 
