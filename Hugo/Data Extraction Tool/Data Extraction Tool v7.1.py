@@ -1965,6 +1965,8 @@ def averaging_mfr(final_output_file, increment_ms):
     except Exception as e:
         messagebox.showerror("Error", f"Error during averaging: {e}")
 
+# ─────────────────────────────────────────────────────────── PLOT AREA ──────────────────────────────────────────────────────────────────────
+
 def open_plot_window(root, final_csv_path, source_selected):
     if not final_csv_path:
         messagebox.showwarning("Warning", "No file selected")
