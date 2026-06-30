@@ -1965,7 +1965,7 @@ def averaging_mfr(final_output_file, increment_ms):
     except Exception as e:
         messagebox.showerror("Error", f"Error during averaging: {e}")
 
-def open_plot_window(root, final_csv_path, source_selected="Custom"):
+def open_plot_window(root, final_csv_path, source_selected):
     if not final_csv_path:
         messagebox.showwarning("Warning", "No file selected")
         return
@@ -2073,6 +2073,8 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
     mouse_pressed = {"state": False}
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    print(source_selected)
 
     def format_time(x, pos=None):
         dt = mdates.num2date(x)
@@ -2485,8 +2487,133 @@ def open_plot_window(root, final_csv_path, source_selected="Custom"):
             update_plot()
 
         ttk.Button(right_frame, text="Clear All", command=clear_all).pack(pady=5)
+    
+    def open_manual_vline():
+        win = tk.Toplevel(plot_win)
+        win.title("Add Vertical Line")
+
+        def get_time_format_label():
+            if source_selected in ["OPClogger", "MFR OPClogger"]:
+                return "Enter Time (HH:MM:SS)"
+            elif source_selected == "MFR TSDL":
+                return "Enter Time (HH:MM:SS.ffffff)"
+            elif source_selected in ["TSDL (Export CSV)", "TSDL (Export)"]:
+                return "Enter Time (HH:MM:SS.mss)"
+            else:
+                return "Enter Time (HH:MM:SS.[mss,us,0])"
+
+        ttk.Label(win, text=get_time_format_label()).pack(padx=10, pady=5)
+
+        entry = tk.Entry(win, width=30)
+        entry.pack(padx=10, pady=5)
+
+        def apply():
+            try:
+                user_input = entry.get().strip()
+
+                if source_selected in ["OPClogger", "MFR OPClogger"]:
+                    fmt = "%H:%M:%S"
+                elif source_selected == "MFR TSDL":
+                    fmt = "%H:%M:%S.%f"
+                else:
+                    fmt = "%H:%M:%S.%f"
+
+                parsed_time = pd.to_datetime(user_input, format=fmt, errors="coerce")
+
+                if pd.isna(parsed_time):
+                    raise ValueError("Invalid time format")
+
+                target_time = parsed_time.time()
+
+                nearest_time = min(
+                    df.index,
+                    key=lambda t: abs(
+                        (t.hour * 3600 + t.minute * 60 + t.second + t.microsecond / 1e6)
+                        -
+                        (target_time.hour * 3600 + target_time.minute * 60 + target_time.second + target_time.microsecond / 1e6)
+                    )
+                )
+
+                def format_label(ts):
+                    if source_selected in ["OPClogger", "MFR OPClogger"]:
+                        return ts.strftime('%H:%M:%S').rstrip("0").rstrip(".")
+                    elif source_selected == "MFR TSDL":
+                        return f"{ts.strftime('%H:%M:%S')}.{ts.microsecond:06d}".rstrip("0").rstrip(".")
+                    else:
+                        ms = int(ts.microsecond / 1000)
+                        return f"{ts.strftime('%H:%M:%S')}.{ms:03d}".rstrip("0").rstrip(".")
+
+                label = format_label(nearest_time)
+
+                for ax in axes:
+                    line = ax.axvline(nearest_time, color="red", linestyle="--")
+
+                    ylim = ax.get_ylim()
+
+                    txt = ax.text(
+                        nearest_time,
+                        ylim[1] - (ylim[1] - ylim[0]) * 0.05,
+                        label,
+                        rotation=90,
+                        color="red",
+                        ha="right",
+                        va="top",
+                        picker=True
+                    )
+                    txt.set_clip_on(True)
+
+                    lines.append((line, txt, ax))
+
+                canvas.draw()
+                win.destroy()
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Invalid time\n{e}")
+
+        ttk.Button(win, text="Apply", command=apply).pack(pady=10)
+
+    def open_manual_hline():
+        win = tk.Toplevel(plot_win)
+        win.title("Add Horizontal Line")
+
+        ttk.Label(win, text="Enter Y value:").pack(padx=10, pady=5)
+
+        entry = tk.Entry(win, width=20)
+        entry.pack(padx=10, pady=5)
+
+        def apply():
+            try:
+                y = float(entry.get())
+
+                for ax in axes:
+                    line = ax.axhline(y, color="green", linestyle="--")
+
+                    xlim = ax.get_xlim()
+
+                    txt = ax.text(
+                        xlim[1] - (xlim[1] - xlim[0]) * 0.01,
+                        y,
+                        f"{y:.3f}".rstrip("0").rstrip("."),
+                        color="green",
+                        ha="right",
+                        va="bottom",
+                        picker=True
+                    )
+                    txt.set_clip_on(True)
+
+                    lines.append((line, txt, ax))
+
+                canvas.draw()
+                win.destroy()
+
+            except:
+                messagebox.showerror("Error", "Invalid Y value")
+
+        ttk.Button(win, text="Apply", command=apply).pack(pady=10)
 
     tk.Button(toolbar, text="✂", command=open_cutter, relief="flat").pack(side="left")
+    tk.Button(toolbar, text="│*", command=lambda: open_manual_vline(), relief="flat").pack(side="left")
+    tk.Button(toolbar, text="─*", command=lambda: open_manual_hline(), relief="flat").pack(side="left")
 
     def on_click(event):
         if mode["type"] is None or event.inaxes is None:
@@ -2722,7 +2849,7 @@ ttk.Button_frame.grid(row=8, column=1, pady=(20, 10))
 ttk.Button(ttk.Button_frame, text="Process Files", command=start_processing_thread).grid(row=0, column=0, padx=(0, 10))
 ttk.Button(ttk.Button_frame, text="Cancel", command=cancel_and_cleanup).grid(row=0, column=1)
 
-plot_button = ttk.Button(root,text="Plot",state="disabled", command=lambda: open_plot_window(root, os.path.join(final_path_entry.get(), final_name_entry.get() + ".csv")))
+plot_button = ttk.Button(root,text="Plot",state="disabled", command=lambda: open_plot_window(root, os.path.join(final_path_entry.get(), final_name_entry.get() + ".csv"),source_var.get()))
 
 plot_button.grid(row=9, column=1, pady=5)
 
