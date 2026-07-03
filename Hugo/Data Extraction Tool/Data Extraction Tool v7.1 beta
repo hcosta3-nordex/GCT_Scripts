@@ -677,10 +677,50 @@ def auto_populate_dropdowns_from_zip(zip_file):
         mode_var.set(detected_mode)
 
     if detected_export:
-        source_var.set(detected_export)
+        source_var.set(detected_export)    
 
     if details["detected_increment"]:
         increment_var.set(details["detected_increment"])
+
+    if detected_export == "MFR TSDL":
+
+        xml_files = list(xml_combobox["values"])
+
+        for xml_file in xml_files:
+            if xml_file.lower() == "mfr tsdl xml.xml":
+                xml_combobox.set(xml_file)
+                update_variable_choices()
+                break
+
+    elif detected_export == "MFR OPClogger":
+
+        xml_files = list(xml_combobox["values"])
+
+        for xml_file in xml_files:
+            if xml_file.lower() == "mfr opclogger xml.xml":
+                xml_combobox.set(xml_file)
+                update_variable_choices()
+                break
+
+    elif detected_mode == "WEA":
+
+        xml_files = list(xml_combobox["values"])
+
+        for xml_file in xml_files:
+            if xml_file.lower() == "turbine_corrected_xml.xml":
+                xml_combobox.set(xml_file)
+                update_variable_choices()
+                break
+    
+    elif detected_mode == "CWE":
+        
+        xml_files = list(xml_combobox["values"])
+
+        for xml_file in xml_files:
+            if "cwe" in xml_file.lower():
+                xml_combobox.set(xml_file)
+                update_variable_choices()
+                break
 
 def get_xml_variables(path_xml):
     try:
