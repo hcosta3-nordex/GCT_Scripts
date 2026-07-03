@@ -2238,44 +2238,105 @@ def open_plot_window(root, final_csv_path, source_selected):
 
     variables = [c for c in df.columns if c not in ["Date", "Time", "Time_clean"]]
 
-    search_var = tk.StringVar()
-    search_entry = tk.Entry(right_frame, textvariable=search_var)
-    search_entry.pack(fill="x", padx=2, pady=2)
+    analog_signals = []
+    st_signals = []
+    fm_signals = []
 
-    list_frame = tk.Frame(right_frame)
-    list_frame.pack(fill="both", expand=True)
+    for var in variables:
 
-    y_scroll = tk.Scrollbar(list_frame, orient=tk.VERTICAL)
-    x_scroll = tk.Scrollbar(list_frame, orient=tk.HORIZONTAL)
+        y = pd.to_numeric(
+            df[var].astype(str).str.replace(",", ".", regex=False),
+            errors="coerce"
+        )
 
-    listbox = tk.Listbox(list_frame,selectmode=tk.SINGLE,exportselection=False,yscrollcommand=y_scroll.set,xscrollcommand=x_scroll.set,font=("Segoe UI", 9))
+        vmin = y.min()
+        vmax = y.max()
+
+        name = var.upper()
+
+        if name.startswith("FM"):
+            fm_signals.append((var, vmin, vmax))
+
+        elif name.startswith("ST"):
+            st_signals.append((var, vmin, vmax))
+
+        else:
+            analog_signals.append((var, vmin, vmax))
+
+    right_panel = tk.Frame(right_frame)
+    right_panel.pack(fill="both", expand=True)
+
+    for r in range(4):
+        right_panel.rowconfigure(r, weight=1)
+
+    right_panel.rowconfigure(3, weight=0)
+
+    right_panel.columnconfigure(0, weight=1)
+
+    analog_frame = ttk.LabelFrame(right_panel, text="ANA/TR")
+    analog_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=3)
+
     
-    y_scroll.config(command=listbox.yview)
-    x_scroll.config(command=listbox.xview)
+    analog_scroll = ttk.Scrollbar(analog_frame, orient="vertical")
 
-    y_scroll.pack(side="right", fill="y")
-    x_scroll.pack(side="bottom", fill="x")
-    listbox.pack(side="left", fill="both", expand=True)
+    analog_tree = ttk.Treeview(analog_frame,columns=("Signal", "Min", "Max"),show="headings",yscrollcommand=analog_scroll.set)
 
-    dragged = {"var": None}
+    analog_scroll.config(command=analog_tree.yview)
 
-    def on_list_click(event):
-        idx = listbox.nearest(event.y)
-        listbox.selection_clear(0, tk.END)
-        listbox.selection_set(idx)
-        dragged["var"] = listbox.get(idx)
+    analog_tree.heading("Signal", text="Signal")
+    analog_tree.heading("Min", text="Min")
+    analog_tree.heading("Max", text="Max")
 
-    listbox.bind("<ButtonPress-1>", on_list_click)
+    analog_tree.column("Signal", width=240, stretch=True)
+    analog_tree.column("Min", width=70, stretch=False, anchor="center")
+    analog_tree.column("Max", width=70, stretch=False, anchor="center")
 
-    def update_list(*args):
-        search = search_var.get().lower()
-        listbox.delete(0, tk.END)
-        for v in variables:
-            if search in v.lower():
-                listbox.insert(tk.END, v)
+    analog_tree.pack(side="left", fill="both", expand=True)
+    analog_scroll.pack(side="right", fill="y")
 
-    update_list()
-    search_var.trace_add("write", update_list)
+    for var, vmin, vmax in analog_signals:analog_tree.insert("","end",values=(var,f"{vmin:.3f}",f"{vmax:.3f}"))
+
+    fm_frame = ttk.LabelFrame(right_panel, text="FM")
+    fm_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=3)
+    
+    fm_scroll = ttk.Scrollbar(fm_frame, orient="vertical")
+    fm_tree = ttk.Treeview(fm_frame,columns=("Signal", "Min", "Max"),show="headings",yscrollcommand=fm_scroll.set)
+
+    fm_scroll.config(command=fm_tree.yview)
+
+    fm_tree.heading("Signal", text="Signal")
+    fm_tree.heading("Min", text="Min")
+    fm_tree.heading("Max", text="Max")
+
+    fm_tree.column("Signal", width=240, stretch=True)
+    fm_tree.column("Min", width=70, stretch=False, anchor="center")
+    fm_tree.column("Max", width=70, stretch=False, anchor="center")
+
+    fm_tree.pack(side="left", fill="both", expand=True)
+    fm_scroll.pack(side="right", fill="y")
+
+    for var, vmin, vmax in fm_signals:fm_tree.insert("","end",values=(var,str(int(vmin)) if pd.notna(vmin) else "",str(int(vmax)) if pd.notna(vmax) else ""))
+    
+    st_frame = ttk.LabelFrame(right_panel, text="ST")
+    st_frame.grid(row=2, column=0, sticky="nsew", padx=5, pady=3)
+
+    st_scroll = ttk.Scrollbar(st_frame, orient="vertical")
+    st_tree = ttk.Treeview(st_frame,columns=("Signal", "Min", "Max"),show="headings",yscrollcommand=st_scroll.set)
+
+    st_scroll.config(command=st_tree.yview)
+
+    st_tree.heading("Signal", text="Signal")
+    st_tree.heading("Min", text="Min")
+    st_tree.heading("Max", text="Max")
+
+    st_tree.column("Signal", width=240, stretch=True)
+    st_tree.column("Min", width=70, stretch=False, anchor="center")
+    st_tree.column("Max", width=70, stretch=False, anchor="center")
+
+    st_tree.pack(side="left", fill="both", expand=True)
+    st_scroll.pack(side="right", fill="y")
+
+    for var, vmin, vmax in st_signals:st_tree.insert("","end",values=(var,str(int(vmin)) if pd.notna(vmin) else "",str(int(vmax)) if pd.notna(vmax) else ""))
 
     fig = plt.figure()
     canvas = FigureCanvasTkAgg(fig, master=center_frame)
@@ -2295,6 +2356,7 @@ def open_plot_window(root, final_csv_path, source_selected):
     mode = {"type": None}
     selected_text = {"obj": None}
     mouse_pressed = {"state": False}
+    dragged = {"var": None}
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
@@ -2367,8 +2429,6 @@ def open_plot_window(root, final_csv_path, source_selected):
         plot_data.append([])
         rebuild_axes()
 
-    ttk.Button(right_frame, text="Add Plot Area", command=add_subplot).pack(pady=5)
-
     def add_plot(var, ax):
         for i, axis in enumerate(axes):
             if axis == ax:
@@ -2382,6 +2442,35 @@ def open_plot_window(root, final_csv_path, source_selected):
             add_plot(dragged["var"], event.inaxes)
         dragged["var"] = None
         selected_text["obj"] = None
+    
+    def on_tree_select(event):
+        tree = event.widget
+
+        selected = tree.selection()
+        if not selected:
+            dragged["var"] = None
+            return
+
+        item = selected[0]
+        dragged["var"] = tree.item(item)["values"][0]
+    
+    def on_tree_click(event):
+        tree = event.widget
+
+        item = tree.identify_row(event.y)
+
+        if item and item in tree.selection():
+            tree.selection_remove(item)
+            dragged["var"] = None
+            return "break"
+    
+    analog_tree.bind("<Button-1>", on_tree_click)
+    fm_tree.bind("<Button-1>", on_tree_click)
+    st_tree.bind("<Button-1>", on_tree_click)
+
+    analog_tree.bind("<<TreeviewSelect>>", on_tree_select)
+    st_tree.bind("<<TreeviewSelect>>", on_tree_select)
+    fm_tree.bind("<<TreeviewSelect>>", on_tree_select)
 
     canvas.mpl_connect("button_release_event", on_release)
     canvas.mpl_connect("button_press_event", lambda e: mouse_pressed.update(state=True))
@@ -2818,33 +2907,42 @@ def open_plot_window(root, final_csv_path, source_selected):
     def open_manual_hline():
         win = tk.Toplevel(plot_win)
         win.title("Add Horizontal Line")
+        selected_axis = {"ax": None}
 
         ttk.Label(win, text="Enter Y value:").pack(padx=10, pady=5)
 
         entry = tk.Entry(win, width=20)
         entry.pack(padx=10, pady=5)
+            
+        def remember_axis(event):
+            if event.inaxes:
+                selected_axis["ax"] = event.inaxes
+
+        canvas.mpl_connect("button_press_event", remember_axis)
 
         def apply():
             try:
                 y = float(entry.get())
 
-                for ax in axes:
-                    line = ax.axhline(y, color="green", linestyle="--")
+                
+                ax = selected_axis["ax"]
 
-                    xlim = ax.get_xlim()
-
-                    txt = ax.text(
-                        xlim[1] - (xlim[1] - xlim[0]) * 0.01,
-                        y,
-                        f"{y:.3f}".rstrip("0").rstrip("."),
-                        color="green",
-                        ha="right",
-                        va="bottom",
-                        picker=True
+                if ax is None:
+                    messagebox.showwarning(
+                        "Warning",
+                        "Click on a plot first to select where the horizontal line should be added."
                     )
-                    txt.set_clip_on(True)
+                    return
 
-                    lines.append((line, txt, ax))
+                line = ax.axhline(y, color="green", linestyle="--")
+
+
+                xlim = ax.get_xlim()
+
+                txt = ax.text(xlim[1] - (xlim[1] - xlim[0]) * 0.01,y,f"{y:.3f}".rstrip("0").rstrip("."),color="green",ha="right",va="bottom",picker=True)
+                txt.set_clip_on(True)
+
+                lines.append((line, txt, ax))
 
                 canvas.draw()
                 win.destroy()
@@ -2928,8 +3026,38 @@ def open_plot_window(root, final_csv_path, source_selected):
         legend_state.clear()
         rebuild_axes()
 
-    ttk.Button(right_frame, text="Clear All", command=clear_all).pack(pady=5)
-    ttk.Button(right_frame,text="New Window",command=lambda: open_plot_window(root,os.path.join(final_path_entry.get(), final_name_entry.get() + ".csv"),source_selected)).pack(pady=5)
+
+    button_frame = tk.Frame(right_panel)
+    button_frame.grid(row=3, column=0, sticky="ew", padx=5, pady=5)
+
+    button_frame.columnconfigure(0, weight=1)
+    button_frame.columnconfigure(1, weight=1)
+    button_frame.columnconfigure(2, weight=1)
+    
+    ttk.Button(
+        button_frame,
+        text="Add Plot Area",
+        command=add_subplot
+    ).grid(row=0, column=0, padx=2, sticky="ew")
+
+    ttk.Button(
+        button_frame,
+        text="Clear All",
+        command=clear_all
+    ).grid(row=0, column=1, padx=2, sticky="ew")
+
+    ttk.Button(
+        button_frame,
+        text="New Window",
+        command=lambda: open_plot_window(
+            root,
+            os.path.join(
+                final_path_entry.get(),
+                final_name_entry.get() + ".csv"
+            ),
+            source_selected
+        )
+    ).grid(row=0, column=2, padx=2, sticky="ew")
 
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 
