@@ -825,11 +825,15 @@ def update_listbox():
 
         var_id = item.split(":")[0].strip().upper()
 
-        if query and query not in item.lower():
-            continue
+        if only_selected:
 
-        if only_selected and var_id not in selected_ids:
-            continue
+            if var_id not in selected_ids:
+                continue
+
+        else:
+
+            if query and query not in item.lower():
+                continue
 
         if var_id.startswith(("ANA", "TR")):
             ana_listbox.insert(END, item)
@@ -857,6 +861,8 @@ def update_variable_choices(*args):
     global full_variable_list
     ALL_FILTER_PREFIXES = ("ANA", "TR", "FM", "ST")
 
+    apply_search = not show_selected_only_var.get()
+
     for vid, desc in xml_variables:
 
         item = f"{vid}: {desc}"
@@ -879,6 +885,8 @@ def update_variable_choices(*args):
 
     search_text = search_var.get().strip().lower()
 
+    current_selection = set(selected_ids)
+
     ana_listbox.delete(0, END)
     st_listbox.delete(0, END)
     fm_listbox.delete(0, END)
@@ -891,8 +899,8 @@ def update_variable_choices(*args):
 
         variable_text = f"{variable[0]}: {variable[1]}"
         signal_name = variable[0].strip().upper()
-
-        if search_text and search_text not in variable_text.lower():
+        
+        if apply_search and search_text and search_text not in variable_text.lower():
             continue
 
         if signal_name.startswith(("ANA", "TR")):
@@ -908,6 +916,14 @@ def update_variable_choices(*args):
             visible_fm.append(variable_text)
 
     last_xml_name = xml_name
+    
+    for lb in (ana_listbox, st_listbox, fm_listbox):
+        for i in range(lb.size()):
+            item = lb.get(i)
+            var_id = item.split(":")[0].strip().upper()
+
+            if var_id in current_selection:
+                lb.selection_set(i)
 
     def on_selection_change(event=None):
 
@@ -922,8 +938,18 @@ def update_variable_choices(*args):
 
                 current_selection.add(var_id)
 
-        selected_ids.clear()
+        
+        for lb in (ana_listbox, st_listbox, fm_listbox):
+
+            visible_ids = {
+                lb.get(i).split(":")[0].strip().upper()
+                for i in range(lb.size())
+            }
+
+            selected_ids.difference_update(visible_ids)
+
         selected_ids.update(current_selection)
+
 
         global selected_indices
 
@@ -982,6 +1008,9 @@ def update_variable_choices(*args):
     fm_listbox.bind("<<ListboxSelect>>", on_selection_change)
 
     filter_var.bind("<<ComboboxSelected>>",lambda e: apply_filter_selection())
+ 
+    if show_selected_only_var.get():
+        update_listbox()
     
 def start_processing_thread():
     global cancel_requested, processing_thread
