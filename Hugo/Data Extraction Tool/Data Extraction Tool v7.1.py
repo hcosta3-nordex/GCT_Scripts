@@ -556,6 +556,130 @@ def create_final_file_tsdl_mfr(zip_path, xml_path, xml_variables, selected_indic
 
 # ──────────────────────────────────────────────────────────────── GUI functions ─────────────────────────────────────────────────────────────
 
+def _inspect_zip_contents(zip_file):
+    result = {
+        "has_tsdl": False,
+        "has_opclogger": False,
+        "has_default_log": False,
+        "has_bin_zip": False,
+        "has_bin_csv_zip": False,
+        "mode_hints": [],
+        "detected_increment": None
+    }
+
+    try:
+        zip_name_upper = os.path.basename(zip_file).upper()
+
+        with zipfile.ZipFile(zip_file, "r") as z:
+            names = [name.upper() for name in z.namelist()]
+
+            for name in names:
+                if ".BIN.CSV.ZIP" in name:
+                    result["has_bin_csv_zip"] = True
+
+                elif ".BIN.ZIP" in name:
+                    result["has_bin_zip"] = True
+
+                if "40MS" in name:
+                    result["detected_increment"] = "40 ms"
+
+                elif "10MS" in name:
+                    result["detected_increment"] = "10 ms"
+
+                elif "100US" in name:
+                    result["detected_increment"] = "100 us"
+
+                if "TSDL" in name:
+                    result["has_tsdl"] = True
+
+                if "OPCLOGGER" in name:
+                    result["has_opclogger"] = True
+
+                if "DEFAULT_LOG" in name:
+                    result["has_default_log"] = True
+
+                if "CWE" in name and "CWE" not in result["mode_hints"]:
+                    result["mode_hints"].append("CWE")
+
+                if "WEA" in name and "WEA" not in result["mode_hints"]:
+                    result["mode_hints"].append("WEA")
+
+                if "MFR" in name and "MFR" not in result["mode_hints"]:
+                    result["mode_hints"].append("MFR")
+
+    except Exception as e:
+        print(f"ZIP inspection failed: {e}")
+
+    print(result)
+    return result
+
+def auto_populate_dropdowns_from_zip(zip_file):
+
+    zip_name = os.path.basename(zip_file)
+    zip_name_upper = zip_name.upper()
+
+    details = _inspect_zip_contents(zip_file)
+
+    has_mfr = "MFR" in zip_name_upper
+    has_cwe = "CWE" in zip_name_upper
+    has_wea = "WEA" in zip_name_upper
+
+    if not (has_mfr or has_cwe or has_wea):
+        if "CWE" in details["mode_hints"]:
+            has_cwe = True
+        elif "WEA" in details["mode_hints"]:
+            has_wea = True
+        elif "MFR" in details["mode_hints"]:
+            has_mfr = True
+
+    detected_mode = None
+    detected_export = None
+
+    if has_mfr:
+
+        detected_mode = "MFR"
+
+        if details["has_opclogger"]:
+            detected_export = "MFR OPClogger"
+
+        else:
+            detected_export = "MFR TSDL"
+
+    elif has_wea:
+
+        detected_mode = "WEA"
+
+        if details["has_opclogger"] or details["has_default_log"]:
+            detected_export = "OPClogger"
+
+        elif details["has_bin_zip"]:
+            detected_export = "TSDL (Export)"
+
+        elif details["has_bin_csv_zip"]:
+            detected_export = "TSDL (Export CSV)"
+
+    elif has_cwe:
+
+        detected_mode = "CWE"
+
+        if details["has_opclogger"] or details["has_default_log"]:
+            detected_export = "OPClogger"
+
+        elif details["has_bin_zip"]:
+            detected_export = "TSDL (Export)"
+
+        elif details["has_bin_csv_zip"]:
+            detected_export = "TSDL (Export CSV)"
+
+    if detected_mode:
+        mode_var.set(detected_mode)
+
+    if detected_export:
+        source_var.set(detected_export)
+
+    if details["detected_increment"]:
+        increment_var.set(details["detected_increment"])
+
 def get_xml_variables(path_xml):
     try:
         if not os.path.isfile(path_xml):
@@ -1143,6 +1267,8 @@ def browse_zip():
         zip_path_entry.delete(0, END)
         zip_path_entry.insert(0, zip_file)
 
+        auto_populate_dropdowns_from_zip(zip_file)
+
         zip_dir = os.path.dirname(zip_file)
         zip_name = os.path.splitext(os.path.basename(zip_file))[0]
 
@@ -1171,6 +1297,8 @@ def handle_drop(event):
 
     zip_path_entry.delete(0, END)
     zip_path_entry.insert(0, dropped_file)
+
+    auto_populate_dropdowns_from_zip(dropped_file)
 
     zip_dir = os.path.dirname(dropped_file)
     zip_name = os.path.splitext(os.path.basename(dropped_file))[0]
