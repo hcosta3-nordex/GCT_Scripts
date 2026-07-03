@@ -801,13 +801,15 @@ def select_all_visible():
     selected_indices = [idx for idx, (vid, _) in enumerate(xml_variables) if vid in selected_ids]
 
 def unselect_all():
+    global selected_indices
 
     for lb in (ana_listbox, st_listbox, fm_listbox):
         lb.selection_clear(0, END)
 
     selected_ids.clear()
+    selected_indices.clear()
+    update_listbox()
 
-    global selected_indices
     selected_indices = []
 
 def update_listbox():
