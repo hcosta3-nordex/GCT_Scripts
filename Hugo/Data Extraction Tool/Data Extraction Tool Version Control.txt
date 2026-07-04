@@ -94,3 +94,12 @@ Minor bugfixes. Corrected MFR TSDL xml file.
 V7
 
 Added plotting button.
+
+Data Extraction and Visualization Tool v0 (Replaced Data Extraction Tool v7)
+
+Fixed pop up message at the end.
+Introduced horizontal and vertical lines at a specific point. 
+Integration of advanced cutting tool inside of the plot window.
+Separated ANA, FM and ST on both the plot area and on main window).
+Automatic attribution of Source, export, timestamp and sometimes the XML file (namespaces).
+Introduced "plot from file" which allows the visualization of data from previous exports!
