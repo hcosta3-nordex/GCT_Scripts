@@ -1016,7 +1016,6 @@ def start_processing_thread():
     global cancel_requested, processing_thread
     cancel_requested = False
     processing_thread = threading.Thread(target=process_files)
-    plot_button.config(state="disabled")
     processing_thread.start()
 
 def process_files():
@@ -1255,8 +1254,6 @@ def process_files():
 
     final_csv_path = os.path.join(final_path, final_name + ".csv")
     processing_finished = True
-
-    plot_button.config(state="normal")
 
     messagebox.showinfo("File Creation", f"Final file created at:\n{final_output_file}")
 
@@ -2220,16 +2217,28 @@ def averaging_mfr(final_output_file, increment_ms):
 
 # ─────────────────────────────────────────────────────────── PLOT AREA ──────────────────────────────────────────────────────────────────────
 
-def open_plot_window(root, final_csv_path, source_selected):
+def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
+
+    current_csv_file = final_csv_path
+
     if not final_csv_path:
         messagebox.showwarning("Warning", "No file selected")
         return
 
-    plot_win = tk.Toplevel(root)
-    plot_win.title("Plot")
-    plot_win.geometry("1200x750")
+    if new_window:
+        plot_win = tk.Toplevel(root)
+        plot_win.title("Plot")
+        plot_win.geometry("1200x750")
 
-    paned = tk.PanedWindow(plot_win, orient=tk.HORIZONTAL)
+        container = plot_win
+
+    else:
+        container = parent
+
+        for widget in container.winfo_children():
+            widget.destroy()
+
+    paned = tk.PanedWindow(container, orient=tk.HORIZONTAL)
     paned.pack(fill="both", expand=True)
 
     center_frame = tk.Frame(paned)
@@ -2239,10 +2248,14 @@ def open_plot_window(root, final_csv_path, source_selected):
     paned.add(right_frame)
 
     def set_pane_size():
-        width = plot_win.winfo_width()
-        paned.sash_place(0, int(width * 2.75), 0)
+        paned.update_idletasks()
 
-    plot_win.after(100, set_pane_size)
+        total_width = paned.winfo_width()
+
+        paned.sash_place(0,total_width - 350,0)
+
+    if new_window:
+        plot_win.after(1000, set_pane_size)
 
     df = pd.read_csv(
         final_csv_path,
@@ -2372,9 +2385,10 @@ def open_plot_window(root, final_csv_path, source_selected):
     canvas = FigureCanvasTkAgg(fig, master=center_frame)
     canvas.get_tk_widget().pack(fill="both", expand=True)
 
-    toolbar = NavigationToolbar2Tk(canvas, center_frame)
+    toolbar = NavigationToolbar2Tk(canvas, center_frame, pack_toolbar=False)
     toolbar.update()
     toolbar.pack(side="bottom", fill="x")
+    toolbar.set_message = lambda s: None
 
     axes = []
     plot_data = [[]]
@@ -2617,7 +2631,7 @@ def open_plot_window(root, final_csv_path, source_selected):
         end_time.grid(row=3, column=3, padx=5)
 
         output_path_var = tk.StringVar()
-        full_default_path = final_csv_path.replace(".csv", "_cut.csv")
+        full_default_path = final_csv_path.replace(".csv", "_cut")
         default_filename = os.path.basename(full_default_path)
         output_path_var.set(default_filename)
 
@@ -2829,7 +2843,7 @@ def open_plot_window(root, final_csv_path, source_selected):
 
             messagebox.showinfo("Success", "Cutted file created")
 
-        ttk.Button(right_frame, text="Process", command=process).pack(pady=10)
+        ttk.Button(right_frame, text="Create cutted file", command=process).pack(pady=10)
 
         def clear_all():
             plotted.clear()
@@ -2851,7 +2865,7 @@ def open_plot_window(root, final_csv_path, source_selected):
         ttk.Button(right_frame, text="Clear All", command=clear_all).pack(pady=5)
     
     def open_manual_vline():
-        win = tk.Toplevel(plot_win)
+        win = tk.Toplevel(root)
         win.title("Add Vertical Line")
 
         def get_time_format_label():
@@ -2935,7 +2949,7 @@ def open_plot_window(root, final_csv_path, source_selected):
         ttk.Button(win, text="Apply", command=apply).pack(pady=10)
 
     def open_manual_hline():
-        win = tk.Toplevel(plot_win)
+        win = tk.Toplevel(root)
         win.title("Add Horizontal Line")
         selected_axis = {"ax": None}
 
@@ -3066,7 +3080,7 @@ def open_plot_window(root, final_csv_path, source_selected):
     
     ttk.Button(button_frame,text="Add Plot Area",command=add_subplot).grid(row=0, column=0, padx=2, sticky="ew")
     ttk.Button(button_frame,text="Clear All",command=clear_all).grid(row=0, column=1, padx=2, sticky="ew")
-    ttk.Button(button_frame,text="New Window",command=lambda: open_plot_window(root,os.path.join(final_path_entry.get(),final_name_entry.get() + ".csv"),source_selected)).grid(row=0, column=2, padx=2, sticky="ew")
+    ttk.Button(button_frame,text="New Window",command=lambda: open_plot_window(None,current_csv_file,source_selected,new_window=True)).grid(row=0, column=2, padx=2, sticky="ew")
 
 def detect_source(csv_file):
     try:
@@ -3144,39 +3158,67 @@ def detect_source(csv_file):
 
     except Exception:
         return None
+    
+def reload_plot_file():
+
+    csv_file = plot_file_path.get().strip()
+
+    if not csv_file:
+        messagebox.showwarning("Warning","Please select a file")
+        return
+
+    for widget in plot_file_container.winfo_children():
+        widget.destroy()
+
+    open_plot_window(plot_file_container,csv_file,plot_file_source.get())
 
 def plot_from_file():
-    csv_file = filedialog.askopenfilename(title="Select CSV File",filetypes=[("CSV Files", "*.csv")])
+
+    csv_file = filedialog.askopenfilename(
+        title="Select CSV File",
+        filetypes=[("CSV Files", "*.csv")]
+    )
 
     if not csv_file:
         return
 
     detected_source = detect_source(csv_file)
 
-    source_window = tk.Toplevel(root)
-    source_window.title("Select Source")
-    source_window.resizable(False, False)
-    source_window.geometry("300x120")
+    plot_file_path.delete(0, tk.END)
+    plot_file_path.insert(0, csv_file)
 
-    ttk.Label(source_window,text=f"Detected source: {detected_source or 'Unknown'}").pack(padx=10, pady=(10, 5))
-
-    source_var_local = tk.StringVar()
-
-    sources = ["TSDL (Export CSV)","TSDL (Export)","MFR TSDL","OPCLOGGER","MFR OPCLOGGER"]
-
-    source_combo = ttk.Combobox(source_window,textvariable=source_var_local,state="readonly",values=sources)
-    source_combo.pack(padx=10, pady=5)
-
-    if detected_source in sources:
-        source_combo.set(detected_source)
+    if detected_source:
+        plot_file_source.set(detected_source)
     else:
-        source_combo.current(0)
+        plot_file_source.set("TSDL (Export CSV)")
 
-    def confirm():
-        open_plot_window(root,csv_file,source_var_local.get())
-        source_window.destroy()
+    load_plot_file()
 
-    ttk.Button(source_window,text="Plot",command=confirm).pack(pady=(5, 10))
+def load_plot_file():
+
+    csv_file = plot_file_path.get().strip()
+
+    if not csv_file:
+        return
+
+    for widget in plot_file_container.winfo_children():
+        widget.destroy()
+
+    open_plot_window(plot_file_container,csv_file,plot_file_source.get())
+
+def handle_plot_file_drop(event):
+
+    csv_file = event.data.strip("{}")
+
+    plot_file_path.delete(0, tk.END)
+    plot_file_path.insert(0, csv_file)
+
+    detected_source = detect_source(csv_file)
+
+    if detected_source:
+        plot_file_source.set(detected_source)
+
+    load_plot_file()
 
 # ──────────────────────────────────────────────────────────────── GUI Window ────────────────────────────────────────────────────────────────
 
@@ -3189,20 +3231,78 @@ icon_image = Image.open(icon_stream)
 icon_photo = ImageTk.PhotoImage(icon_image)
 root.iconphoto(False, icon_photo)
 root.title("Data Extraction and Visualization Tool v0")
+main_notebook = ttk.Notebook(root)
+main_notebook.pack(fill="both", expand=True)
+
+data_tab = ttk.Frame(main_notebook)
+plot_tab = ttk.Frame(main_notebook)
+plot_file_tab = ttk.Frame(main_notebook)
+
+main_notebook.add(data_tab, text="Data Extraction")
+main_notebook.add(plot_tab, text="Plot")
+main_notebook.add(plot_file_tab, text="Plot from File")
+
+plot_file_top = ttk.Frame(plot_file_tab)
+plot_file_top.pack(fill="x", padx=5, pady=5)
+
+ttk.Label(plot_file_top,text="File:").pack(side="left", padx=(0, 5))
+
+plot_file_path = ttk.Entry(plot_file_top,width=100)
+plot_file_path.pack(side="left",fill="x",expand=True,padx=(0, 10))
+
+ttk.Button(plot_file_top,text="Browse",command=plot_from_file).pack(side="left", padx=(0, 20))
+
+ttk.Label(plot_file_top,text="Source:").pack(side="left", padx=(0, 5))
+
+plot_file_source = ttk.Combobox(plot_file_top,state="readonly",width=20,values=["TSDL (Export CSV)","TSDL (Export)","OPClogger","MFR OPClogger","MFR TSDL"])
+
+plot_file_source.pack(side="left")
+
+plot_file_source.bind("<<ComboboxSelected>>",lambda e: load_plot_file())
+
+plot_file_container = ttk.Frame(plot_file_tab)
+plot_file_container.pack(fill="both",expand=True)
+
+plot_file_path.drop_target_register(DND_FILES)
+plot_file_path.dnd_bind("<<Drop>>",handle_plot_file_drop)
+
+plot_loaded = False
+
+def on_tab_changed(event):
+    global plot_loaded
+
+    current = event.widget.select()
+
+    if str(current) == str(plot_tab):
+        if processing_finished and final_csv_path:
+
+            for widget in plot_container.winfo_children():
+                widget.destroy()
+
+            open_plot_window(plot_container,final_csv_path,source_var.get())
+
+main_notebook.bind("<<NotebookTabChanged>>", on_tab_changed)
+
+plot_container = ttk.Frame(plot_tab)
+plot_container.pack(fill="both", expand=True)
+
+plot_file_container = ttk.Frame(plot_file_tab)
+plot_file_container.pack(fill="both", expand=True)
+
 root.geometry("1000x600")
 
-Label(root, text="ZIP File:").grid(row=0, column=0, pady=(5, 0), padx=10)
-zip_path_entry = Entry(root, width=110)
+Label(data_tab, text="ZIP File:").grid(row=0, column=0, pady=(5, 0), padx=10)
+zip_path_entry = Entry(data_tab, width=110)
 zip_path_entry.grid(row=0, column=1, pady=(5, 0))
 zip_path_entry.drop_target_register(DND_FILES)
 zip_path_entry.dnd_bind("<<Drop>>", handle_drop)
-ttk.Button(root, text="Browse...", command=browse_zip).grid(row=0, column=2, pady=(5, 0), padx=10)
+ttk.Button(data_tab, text="Browse...", command=browse_zip).grid(row=0, column=2, pady=(5, 0), padx=10)
 
-root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=0)
-root.grid_columnconfigure(2, weight=1)
+data_tab.grid_columnconfigure(0, weight=1)
+data_tab.grid_columnconfigure(1, weight=0)
+data_tab.grid_columnconfigure(2, weight=1)
 
-combined_frame = Frame(root)
+combined_frame = Frame(data_tab)
 combined_frame.grid(row=1, column=1, pady=(5, 0)) 
 
 Label(combined_frame, text="Select XML File:").pack(side="left", padx=(0, 5))
@@ -3220,12 +3320,12 @@ source_var = ttk.Combobox(combined_frame, values=["TSDL (Export CSV)", "TSDL (Ex
 source_var.pack(side="left", padx=(0, 0))
 source_var.set("TSDL (Export CSV)")
 
-mode_frame = Frame(root)
+mode_frame = Frame(data_tab)
 mode_frame.grid(row=2, column=1, pady=(5, 0), sticky="w")
 
-root.grid_columnconfigure(1, weight=1)
+data_tab.grid_columnconfigure(1, weight=1)
 
-mode_frame = Frame(root)
+mode_frame = Frame(data_tab)
 mode_frame.grid(row=2, column=1, pady=(5, 0))
 
 combined_modes = Frame(mode_frame)
@@ -3264,7 +3364,7 @@ def on_averaging_toggle(*args):
 timestamp_var.trace_add("write", on_timestamp_toggle)
 averaging_var.trace_add("write", on_averaging_toggle)
 
-cutting_var_frame = Frame(root)
+cutting_var_frame = Frame(data_tab)
 cutting_var_frame.grid(row=3, column=1, pady=(5, 0))
 
 cutting_var = BooleanVar(value=False)
@@ -3289,14 +3389,14 @@ end_time_entry.grid(row=1, column=4, padx=(0, 5), sticky="w")
 start_time_var.trace_add("write", on_time_change)
 end_time_var.trace_add("write", on_time_change)
 
-filter_search_frame = Frame(root)
+filter_search_frame = Frame(data_tab)
 filter_search_frame.grid(row=3, column=1, pady=(5, 0)) 
 
-root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=0)  
-root.grid_columnconfigure(2, weight=1)
+data_tab.grid_columnconfigure(0, weight=1)
+data_tab.grid_columnconfigure(1, weight=0)  
+data_tab.grid_columnconfigure(2, weight=1)
 
-filter_search_frame = Frame(root)
+filter_search_frame = Frame(data_tab)
 filter_search_frame.grid(row=4, column=1, pady=(5, 0)) 
 
 Label(filter_search_frame, text="Apply Filter:").grid(row=0, column=0, padx=(5, 5), sticky="e")
@@ -3315,8 +3415,8 @@ ttk.Button(filter_search_frame, text="Save Filter", command=lambda: save_filter_
 
 ttk.Button(filter_search_frame, text="Delete Filter", command=lambda: delete_filter(filter_name_entry.get())).grid(row=0, column=6, padx=(0, 10))
 
-Label(root, text="Select Variables:").grid(row=5, column=0, pady=(5, 0), padx=10)
-vars_frame = Frame(root)
+Label(data_tab, text="Select Variables:").grid(row=5, column=0, pady=(5, 0), padx=10)
+vars_frame = Frame(data_tab)
 vars_frame.grid(row=5, column=0, columnspan=3, pady=(5, 0), padx=10, sticky="nsew")
 
 search_var = StringVar()
@@ -3377,32 +3477,26 @@ st_listbox.pack(side="left", fill="both", expand=True)
 
 st_scrollbar.config(command=st_listbox.yview)
 
-root.grid_rowconfigure(5, weight=1)
-root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=1)
-root.grid_columnconfigure(2, weight=1)
+data_tab.grid_rowconfigure(5, weight=1)
+data_tab.grid_columnconfigure(0, weight=1)
+data_tab.grid_columnconfigure(1, weight=1)
+data_tab.grid_columnconfigure(2, weight=1)
 
-Label(root, text="Final Output Path:").grid(row=6, column=0, pady=(5, 0), padx=10)
-final_path_entry = Entry(root, width=110)
+Label(data_tab, text="Final Output Path:").grid(row=6, column=0, pady=(5, 0), padx=10)
+final_path_entry = Entry(data_tab, width=110)
 final_path_entry.grid(row=6, column=1, pady=(5, 0))
 final_path_entry.drop_target_register(DND_FILES)
 final_path_entry.dnd_bind("<<Drop>>", handle_output_drop)
-ttk.Button(root, text="Browse...", command=browse_output).grid(row=6, column=2, pady=(5, 0), padx=10)
+ttk.Button(data_tab, text="Browse...", command=browse_output).grid(row=6, column=2, pady=(5, 0), padx=10)
 
-Label(root, text="Final File Name (without .csv):").grid(row=7, column=0, pady=(5, 0), padx=10)
-final_name_entry = Entry(root, width=110)
+Label(data_tab, text="Final File Name (without .csv):").grid(row=7, column=0, pady=(5, 0), padx=10)
+final_name_entry = Entry(data_tab, width=110)
 final_name_entry.grid(row=7, column=1, pady=(5, 0))
 
-ttk.Button_frame = Frame(root)
+ttk.Button_frame = Frame(data_tab)
 ttk.Button_frame.grid(row=8, column=1, pady=(20, 10))
 ttk.Button(ttk.Button_frame, text="Process Files", command=start_processing_thread).grid(row=0, column=0, padx=(0, 10))
 ttk.Button(ttk.Button_frame, text="Cancel", command=cancel_and_cleanup).grid(row=0, column=1)
-
-ttk.Plot_frame = Frame(root)
-ttk.Plot_frame.grid(row=9, column=1, pady=(5,5))
-plot_button = ttk.Button(ttk.Plot_frame,text="Plot",state="disabled",command=lambda: open_plot_window(root,os.path.join(final_path_entry.get(), final_name_entry.get() + ".csv"),source_var.get()))
-plot_button.grid(row=0, column=0, padx=(0, 10))
-ttk.Button(ttk.Plot_frame, text="Plot from File", command=plot_from_file).grid(row=0, column=1)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(script_dir, "logo.png")
@@ -3410,7 +3504,7 @@ logo_path = os.path.join(script_dir, "logo.png")
 try:
     logo = PhotoImage(file=logo_path)
     logo = logo.subsample(2, 2)
-    logo_label = Label(root, image=logo)
+    logo_label = Label(data_tab, image=logo)
     logo_label.image = logo
     logo_label.place(relx=0.98, rely=0.98, anchor="se")
 except Exception as e:
@@ -3422,7 +3516,7 @@ logo_POT_path = os.path.join(script_dir, "logo_POT.png")
 try:
     logo_POT = PhotoImage(file=logo_POT_path)
     logo_POT = logo_POT.subsample(3, 3)
-    logo_POT_label = Label(root, image=logo_POT)
+    logo_POT_label = Label(data_tab, image=logo_POT)
     logo_POT_label.image = logo_POT
     logo_POT_label.place(relx=0.02, rely=0.99, anchor="sw")
 except Exception as e:
