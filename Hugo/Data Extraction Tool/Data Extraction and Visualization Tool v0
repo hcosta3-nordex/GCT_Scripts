@@ -2722,12 +2722,43 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         def update_plot():
             ax.clear()
             legend_links.clear()
+        
+            def normalize_time(t):
+                    t = t.strip().replace("-", ":")
+
+                    parts = t.split(":")
+
+                    if len(parts) == 2:
+                        t += ":00"
+                    elif len(parts) == 1:
+                        t += ":00:00"
+
+                    return t
+                    
+            def format_time_entry(event):
+                entry = event.widget
+
+                value = entry.get().strip()
+                if not value:
+                    return
+
+                value = normalize_time(value)
+
+                entry.delete(0, tk.END)
+                entry.insert(0, value)
 
             try:
-                start = pd.to_datetime(start_date.get() + " " + start_time.get())
-                end = pd.to_datetime(end_date.get() + " " + end_time.get())
+                start_norm = normalize_time(start_time.get())
+                end_norm = normalize_time(end_time.get())
+
+                start = pd.to_datetime(start_date.get() + " " + start_norm)
+                end = pd.to_datetime(end_date.get() + " " + end_norm)
+
             except:
                 return
+            
+            start_time.bind("<FocusOut>", format_time_entry)
+            end_time.bind("<FocusOut>", format_time_entry)
 
             data = df.loc[(df.index >= start) & (df.index <= end)]
 
