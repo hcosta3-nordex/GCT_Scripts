@@ -1013,7 +1013,7 @@ def update_variable_choices(*args):
         update_listbox()
     
 def start_processing_thread():
-    global cancel_requested, processing_thread
+    global cancel_requested, processing_thread, plot_initialized
     cancel_requested = False
     processing_thread = threading.Thread(target=process_files)
     processing_thread.start()
@@ -1254,6 +1254,8 @@ def process_files():
 
     final_csv_path = os.path.join(final_path, final_name + ".csv")
     processing_finished = True
+
+    plot_tab.after(0,lambda: open_plot_window(plot_tab,final_csv_path,source_selected))
 
     messagebox.showinfo("File Creation", f"Final file created at:\n{final_output_file}")
 
@@ -2217,13 +2219,11 @@ def averaging_mfr(final_output_file, increment_ms):
 
 # ─────────────────────────────────────────────────────────── PLOT AREA ──────────────────────────────────────────────────────────────────────
 
-def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
+def open_plot_window(parent, final_csv_path, source_selected="", new_window=False):
 
     current_csv_file = final_csv_path
 
-    if not final_csv_path:
-        messagebox.showwarning("Warning", "No file selected")
-        return
+    empty_mode = not final_csv_path
 
     if new_window:
         plot_win = tk.Toplevel(root)
@@ -2256,56 +2256,72 @@ def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
 
     if new_window:
         plot_win.after(1000, set_pane_size)
+    
+    df = None
+    analog_signals = []
+    fm_signals = []
+    st_signals = []
+    variables = []
 
-    df = pd.read_csv(
-        final_csv_path,
-        sep=",",
-        engine="c",
-        low_memory=False,
-        on_bad_lines="skip"
-    )
+    fig = plt.figure()
+    canvas = FigureCanvasTkAgg(fig, master=center_frame)
+    canvas.get_tk_widget().pack(fill="both", expand=True)
 
-    if "Date" not in df.columns:
+    if final_csv_path:
+
         df = pd.read_csv(
             final_csv_path,
-            engine="c",
             sep=",",
-            header=2,
+            engine="c",
             low_memory=False,
             on_bad_lines="skip"
         )
 
-    df["Time_clean"] = df["Time"].astype(str).str.replace("'", "", regex=False)
-    df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time_clean"], format="mixed", errors="coerce")
-    df = df.dropna(subset=["Datetime"]).set_index("Datetime")
-    df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
+        if "Date" not in df.columns:
+            df = pd.read_csv(
+                final_csv_path,
+                engine="c",
+                sep=",",
+                header=2,
+                low_memory=False,
+                on_bad_lines="skip"
+            )
 
-    variables = [c for c in df.columns if c not in ["Date", "Time", "Time_clean"]]
-
-    analog_signals = []
-    st_signals = []
-    fm_signals = []
-
-    for var in variables:
-
-        y = pd.to_numeric(
-            df[var].astype(str).str.replace(",", ".", regex=False),
+        df["Time_clean"] = df["Time"].astype(str).str.replace("'", "", regex=False)
+        df["Datetime"] = pd.to_datetime(
+            df["Date"] + " " + df["Time_clean"],
+            format="mixed",
             errors="coerce"
         )
 
-        vmin = y.min()
-        vmax = y.max()
+        df = df.dropna(subset=["Datetime"]).set_index("Datetime")
+        df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
 
-        name = var.upper()
+        variables = [
+            c for c in df.columns
+            if c not in ["Date", "Time", "Time_clean"]
+        ]
 
-        if name.startswith("FM"):
-            fm_signals.append((var, vmin, vmax))
+        for var in variables:
 
-        elif name.startswith("ST"):
-            st_signals.append((var, vmin, vmax))
+            y = pd.to_numeric(
+                df[var].astype(str).str.replace(",", ".", regex=False),
+                errors="coerce"
+            )
 
-        else:
-            analog_signals.append((var, vmin, vmax))
+            vmin = y.min()
+            vmax = y.max()
+
+            name = var.upper()
+
+            if name.startswith("FM"):
+                fm_signals.append((var, vmin, vmax))
+
+            elif name.startswith("ST"):
+                st_signals.append((var, vmin, vmax))
+
+            else:
+                analog_signals.append((var, vmin, vmax))
 
     right_panel = tk.Frame(right_frame)
     right_panel.pack(fill="both", expand=True)
@@ -2314,15 +2330,20 @@ def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
         right_panel.rowconfigure(r, weight=1)
 
     right_panel.rowconfigure(3, weight=0)
-
     right_panel.columnconfigure(0, weight=1)
+
 
     analog_frame = ttk.LabelFrame(right_panel, text="ANA/TR")
     analog_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=3)
-    
+
     analog_scroll = ttk.Scrollbar(analog_frame, orient="vertical")
 
-    analog_tree = ttk.Treeview(analog_frame,columns=("Signal", "Min", "Max"),show="headings",yscrollcommand=analog_scroll.set)
+    analog_tree = ttk.Treeview(
+        analog_frame,
+        columns=("Signal", "Min", "Max"),
+        show="headings",
+        yscrollcommand=analog_scroll.set
+    )
 
     analog_scroll.config(command=analog_tree.yview)
 
@@ -2337,13 +2358,24 @@ def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
     analog_tree.pack(side="left", fill="both", expand=True)
     analog_scroll.pack(side="right", fill="y")
 
-    for var, vmin, vmax in analog_signals:analog_tree.insert("","end",values=(var,f"{vmin:.3f}",f"{vmax:.3f}"))
+    for var, vmin, vmax in analog_signals:
+        analog_tree.insert(
+            "",
+            "end",
+            values=(var, f"{vmin:.3f}", f"{vmax:.3f}")
+        )
 
     fm_frame = ttk.LabelFrame(right_panel, text="FM")
     fm_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=3)
-    
+
     fm_scroll = ttk.Scrollbar(fm_frame, orient="vertical")
-    fm_tree = ttk.Treeview(fm_frame,columns=("Signal", "Min", "Max"),show="headings",yscrollcommand=fm_scroll.set)
+
+    fm_tree = ttk.Treeview(
+        fm_frame,
+        columns=("Signal", "Min", "Max"),
+        show="headings",
+        yscrollcommand=fm_scroll.set
+    )
 
     fm_scroll.config(command=fm_tree.yview)
 
@@ -2358,13 +2390,28 @@ def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
     fm_tree.pack(side="left", fill="both", expand=True)
     fm_scroll.pack(side="right", fill="y")
 
-    for var, vmin, vmax in fm_signals:fm_tree.insert("","end",values=(var,str(int(vmin)) if pd.notna(vmin) else "",str(int(vmax)) if pd.notna(vmax) else ""))
-    
+    for var, vmin, vmax in fm_signals:
+        fm_tree.insert(
+            "",
+            "end",
+            values=(
+                var,
+                str(int(vmin)) if pd.notna(vmin) else "",
+                str(int(vmax)) if pd.notna(vmax) else ""
+            )
+        )
+
     st_frame = ttk.LabelFrame(right_panel, text="ST")
     st_frame.grid(row=2, column=0, sticky="nsew", padx=5, pady=3)
 
     st_scroll = ttk.Scrollbar(st_frame, orient="vertical")
-    st_tree = ttk.Treeview(st_frame,columns=("Signal", "Min", "Max"),show="headings",yscrollcommand=st_scroll.set)
+
+    st_tree = ttk.Treeview(
+        st_frame,
+        columns=("Signal", "Min", "Max"),
+        show="headings",
+        yscrollcommand=st_scroll.set
+    )
 
     st_scroll.config(command=st_tree.yview)
 
@@ -2379,13 +2426,21 @@ def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
     st_tree.pack(side="left", fill="both", expand=True)
     st_scroll.pack(side="right", fill="y")
 
-    for var, vmin, vmax in st_signals:st_tree.insert("","end",values=(var,str(int(vmin)) if pd.notna(vmin) else "",str(int(vmax)) if pd.notna(vmax) else ""))
 
-    fig = plt.figure()
-    canvas = FigureCanvasTkAgg(fig, master=center_frame)
-    canvas.get_tk_widget().pack(fill="both", expand=True)
+    for var, vmin, vmax in st_signals:
+        st_tree.insert(
+            "",
+            "end",
+            values=(
+                var,
+                str(int(vmin)) if pd.notna(vmin) else "",
+                str(int(vmax)) if pd.notna(vmax) else ""
+            )
+        )
 
-    toolbar = NavigationToolbar2Tk(canvas, center_frame, pack_toolbar=False)
+
+    toolbar = NavigationToolbar2Tk(canvas,center_frame,pack_toolbar=False)
+
     toolbar.update()
     toolbar.pack(side="bottom", fill="x")
     toolbar.set_message = lambda s: None
@@ -2397,6 +2452,7 @@ def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
     legend_links = {}
 
     lines = []
+
     mode = {"type": None}
     selected_text = {"obj": None}
     mouse_pressed = {"state": False}
@@ -2467,7 +2523,11 @@ def open_plot_window(parent, final_csv_path, source_selected, new_window=False):
         fig.tight_layout()
         canvas.draw()
 
-    rebuild_axes()
+    if not empty_mode:
+        rebuild_axes()
+    else:
+        ax = fig.add_subplot(111)
+        canvas.draw()
 
     def add_subplot():
         plot_data.append([])
@@ -3276,6 +3336,9 @@ def on_tab_changed(event):
     if str(current) == str(plot_tab):
         if processing_finished and final_csv_path:
 
+            if not plot_container.winfo_exists():
+                return
+
             for widget in plot_container.winfo_children():
                 widget.destroy()
 
@@ -3288,6 +3351,9 @@ plot_container.pack(fill="both", expand=True)
 
 plot_file_container = ttk.Frame(plot_file_tab)
 plot_file_container.pack(fill="both", expand=True)
+
+root.after(100, lambda: open_plot_window(plot_tab, None, ""))
+root.after(100, lambda: open_plot_window(plot_file_container, None, ""))
 
 root.geometry("1000x600")
 
