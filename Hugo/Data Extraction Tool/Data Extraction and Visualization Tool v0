@@ -2514,9 +2514,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             ax.margins(x=0)      
 
             ax.xaxis.set_major_formatter(plt.FuncFormatter(format_time))
-            ax.yaxis.set_major_formatter(
-                plt.FuncFormatter(lambda y, _: f"{y:.3f}".rstrip("0").rstrip("."))
-            )
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.3f}".rstrip("0").rstrip(".")))
 
             axes.append(ax)
 
@@ -2763,6 +2761,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             ax.set_xlim(data.index.min(), data.index.max())
             ax.margins(x=0)
 
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
             ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.3f}".rstrip("0").rstrip(".")))
 
             ax.grid(True)
