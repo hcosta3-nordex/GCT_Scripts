@@ -2712,7 +2712,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         canvas2 = FigureCanvasTkAgg(fig2, master=left_frame)
         canvas2.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
 
-        ax = fig2.add_subplot(111)
+        axes = [fig2.add_subplot(111)]
+        plot_areas = [{"plotted": [], "legend_state": {}}]
+        active_plot = {"idx": 0}
 
         plotted = []
         selected_var = {"name": None}
@@ -2720,21 +2722,22 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         legend_links = {}
 
         def update_plot():
-            ax.clear()
+
             legend_links.clear()
-        
+
             def normalize_time(t):
-                    t = t.strip().replace("-", ":")
 
-                    parts = t.split(":")
+                t = t.strip().replace("-", ":")
 
-                    if len(parts) == 2:
-                        t += ":00"
-                    elif len(parts) == 1:
-                        t += ":00:00"
+                parts = t.split(":")
 
-                    return t
-                    
+                if len(parts) == 2:
+                    t += ":00"
+                elif len(parts) == 1:
+                    t += ":00:00"
+
+                return t
+            
             def format_time_entry(event):
                 entry = event.widget
 
@@ -2748,6 +2751,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 entry.insert(0, value)
 
             try:
+
                 start_norm = normalize_time(start_time.get())
                 end_norm = normalize_time(end_time.get())
 
@@ -2756,67 +2760,165 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             except:
                 return
-            
+
             start_time.bind("<FocusOut>", format_time_entry)
             end_time.bind("<FocusOut>", format_time_entry)
 
             data = df.loc[(df.index >= start) & (df.index <= end)]
 
-            lines_local = []
-            labels = []
+            for plot_idx, ax in enumerate(axes):
 
-            for i, var in enumerate(plotted):
-                legend_state.setdefault(var, True)
+                ax.clear()
 
-                y = pd.to_numeric(data[var], errors="coerce")
-                line, = ax.plot(data.index, y)
+                plotted = plot_areas[plot_idx]["plotted"]
+                legend_state = plot_areas[plot_idx]["legend_state"]
 
-                line.set_visible(legend_state[var])
-                line._var = var
+                lines_local = []
+                labels = []
 
-                lines_local.append(line)
+                for var in plotted:
 
-                tick = "☑" if legend_state[var] else "☐"
-                labels.append(f"{tick} {var}    ⨯")
+                    if var not in data.columns:
+                        continue
 
-            if lines_local:
-                legend = ax.legend(lines_local, labels, fontsize=8)
-                legend.set_draggable(True)
+                    legend_state.setdefault(var, True)
 
-                for txt, line_obj, var in zip(legend.get_texts(), lines_local, plotted):
-                    txt.set_picker(True)
-                    txt._line = line_obj
-                    txt._var = var
-                    legend_links[txt] = line_obj
+                    y = pd.to_numeric(
+                        data[var],
+                        errors="coerce"
+                    )
 
-            ax.set_xlim(data.index.min(), data.index.max())
-            ax.margins(x=0)
+                    line, = ax.plot(
+                        data.index,
+                        y,
+                        label=var
+                    )
 
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.3f}".rstrip("0").rstrip(".")))
+                    line._var = var
+                    line.set_visible(legend_state[var])
 
-            ax.grid(True)
-            canvas2.draw()
-        
+                    lines_local.append(line)
+
+                    tick = "☑" if legend_state[var] else "☐"
+                    labels.append(f"{tick} {var}    ⨯")
+
+                if lines_local:
+
+                    legend = ax.legend(
+                        lines_local,
+                        labels,
+                        fontsize=8
+                    )
+
+                    legend.set_draggable(True)
+
+                    for txt, line_obj in zip(
+                        legend.get_texts(),
+                        lines_local
+                    ):
+
+                        txt.set_picker(True)
+
+                        txt._line = line_obj
+                        txt._var = line_obj._var
+                        txt._plot_idx = plot_idx
+
+                        legend_links[txt] = {
+                            "line": line_obj,
+                            "plot_idx": plot_idx
+                        }
+
+                if len(data):
+
+                    ax.set_xlim(
+                        data.index.min(),
+                        data.index.max()
+                    )
+
+                ax.margins(x=0)
+
+                ax.grid(True)
+
+                ax.xaxis.set_major_formatter(
+                    mdates.DateFormatter("%H:%M:%S")
+                )
+
+                ax.yaxis.set_major_formatter(
+                    plt.FuncFormatter(
+                        lambda y, _: f"{y:.3f}".rstrip("0").rstrip(".")
+                    )
+                )
+
+                ax.tick_params(
+                    axis="x",
+                    labelrotation=0
+                )
+
+            fig2.tight_layout()
+
+            canvas2.draw_idle()
+
         def on_pick(event):
+
             txt = event.artist
 
-            if txt in legend_links:
-                line = txt._line
-                var = txt._var
+            if txt not in legend_links:
+                return
 
-                bbox = txt.get_window_extent()
-                click_x = event.mouseevent.x
+            info = legend_links[txt]
 
-                if click_x > bbox.x0 + bbox.width * 0.7:
-                    if var in plotted:
-                        plotted.remove(var)
-                    legend_state.pop(var, None)
+            line = info["line"]
+            plot_idx = info["plot_idx"]
 
+            plotted = plot_areas[plot_idx]["plotted"]
+            legend_state = plot_areas[plot_idx]["legend_state"]
+
+            var = txt._var
+
+            bbox = txt.get_window_extent()
+
+            click_x = event.mouseevent.x
+
+            if click_x > bbox.x0 + bbox.width * 0.7:
+
+                if var in plotted:
+                    plotted.remove(var)
+
+                legend_state.pop(var, None)
+
+            else:
+
+                legend_state[var] = not line.get_visible()
+
+            update_plot()
+
+        def add_plot_area():
+
+            n = len(plot_areas) + 1
+
+            plot_areas.append({
+                "plotted": [],
+                "legend_state": {}
+            })
+
+            fig2.clear()
+            axes.clear()
+
+            for i in range(n):
+
+                if i == 0:
+                    ax = fig2.add_subplot(n, 1, i + 1)
                 else:
-                    legend_state[var] = not line.get_visible()
+                    ax = fig2.add_subplot(
+                        n,
+                        1,
+                        i + 1,
+                        sharex=axes[0]
+                    )
 
-                update_plot()
+                axes.append(ax)
+
+            update_plot()
         
         canvas2.mpl_connect("pick_event", on_pick)
 
@@ -2868,18 +2970,28 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             listbox.itemconfig(idx, {'bg': '#cce5ff'})
 
         def on_plot_click(event):
+
             if event.inaxes is None:
                 return
 
+            for i, ax in enumerate(axes):
+                if event.inaxes == ax:
+                    active_plot["idx"] = i
+                    break
+
             var = selected_var["name"]
+
             if not var:
                 return
 
-            if var not in plotted:
-                plotted.append(var)
-                update_plot()
+            target = plot_areas[active_plot["idx"]]["plotted"]
+
+            if var not in target:
+                target.append(var)
 
             selected_var["name"] = None
+
+            update_plot()
 
         listbox.bind("<<ListboxSelect>>", on_list_select)
         canvas2.mpl_connect("button_press_event", on_plot_click)
@@ -2936,8 +3048,17 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         ttk.Button(right_frame, text="Create cutted file", command=process).pack(pady=10)
 
         def clear_all():
-            plotted.clear()
-            legend_state.clear()
+
+            plot_areas.clear()
+
+            plot_areas.append({"plotted": [],"legend_state": {}})
+
+            fig2.clear()
+
+            axes.clear()
+            axes.append(fig2.add_subplot(111))
+
+            active_plot["idx"] = 0
 
             start_date.delete(0, tk.END)
             start_time.delete(0, tk.END)
@@ -2953,7 +3074,38 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             update_plot()
 
         ttk.Button(right_frame, text="Clear All", command=clear_all).pack(pady=5)
-    
+        
+        def add_plot_area():
+
+            plot_areas.append({"plotted": [],"legend_state": {}})
+
+            n = len(plot_areas)
+
+            fig2.clear()
+            axes.clear()
+
+            for i in range(n):
+
+                if i == 0:
+                    ax = fig2.add_subplot(n, 1, i + 1)
+                else:
+                    ax = fig2.add_subplot(
+                        n,
+                        1,
+                        i + 1,
+                        sharex=axes[0]
+                    )
+
+                axes.append(ax)
+
+            active_plot["idx"] = n - 1
+
+            fig2.tight_layout()
+
+            update_plot()
+
+        ttk.Button(right_frame, text="Add Plot Area",command=add_plot_area).pack(pady=5)
+
     def open_manual_vline():
         win = tk.Toplevel(root)
         win.title("Add Vertical Line")
