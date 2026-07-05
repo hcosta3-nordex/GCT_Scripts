@@ -3296,6 +3296,10 @@ main_notebook.pack(fill="both", expand=True)
 
 data_tab = ttk.Frame(main_notebook)
 plot_tab = ttk.Frame(main_notebook)
+
+style = ttk.Style()
+style.configure("TNotebook.Tab", padding=[8, 3],font=("Segoe UI", 10))
+
 plot_file_tab = ttk.Frame(main_notebook)
 
 main_notebook.add(data_tab, text="Data Extraction")
