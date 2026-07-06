@@ -601,6 +601,7 @@ def _inspect_zip_contents(zip_file):
 
                 if "DEFAULT_LOG" in name:
                     result["has_default_log"] = True
+                    result["detected_increment"] = "1 s"
 
                 if "CWE" in name and "CWE" not in result["mode_hints"]:
                     result["mode_hints"].append("CWE")
