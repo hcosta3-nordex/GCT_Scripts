@@ -3109,7 +3109,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 return "Enter Time (HH:MM:SS)"
             elif source_selected.lower() == "mfr tsdl":
                 return "Enter Time (HH:MM:SS.ffffff)"
-            elif source_selected.lower() in ["tsdl (export CSV)", "tsdl (export)"]:
+            elif source_selected.lower() in ["tsdl (export csv)", "tsdl (export)"]:
                 return "Enter Time (HH:MM:SS.mss)"
             else:
                 return "Enter Time (HH:MM:SS.[mss,us,0])"
