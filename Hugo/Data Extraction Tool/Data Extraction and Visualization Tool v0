@@ -980,6 +980,8 @@ def update_variable_choices(*args):
 
             signals_to_select = set(filter_signals[index])
 
+            selected_ids.clear()
+
             for lb in (ana_listbox, st_listbox, fm_listbox):
 
                 lb.selection_clear(0, END)
