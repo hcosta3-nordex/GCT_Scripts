@@ -3492,7 +3492,7 @@ plot_file_path.pack(side="left",fill="x",expand=True,padx=(0, 10))
 
 ttk.Button(plot_file_top,text="Browse",command=plot_from_file).pack(side="left", padx=(0, 20))
 
-ttk.Label(plot_file_top,text="Source:").pack(side="left", padx=(0, 5))
+ttk.Label(plot_file_top,text="Export:").pack(side="left", padx=(0, 5))
 
 plot_file_source = ttk.Combobox(plot_file_top,state="readonly",width=20,values=["TSDL (Export CSV)","TSDL (Export)","OPClogger","MFR OPClogger","MFR TSDL"])
 
