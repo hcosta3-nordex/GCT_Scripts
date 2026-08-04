@@ -3494,24 +3494,35 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     if (y1 - y) * (y2 - y) <= 0:
 
-                        ball_x = xdata[i]
+                        if (y1 - y) * (y2 - y) <= 0:
 
-                        ball, = ax.plot(
-                            [ball_x],
-                            [y],
-                            marker="o",
-                            markersize=5,
-                            color="orange",
-                            linestyle="None",
-                            picker=5,
-                            zorder=200
-                        )
+                            x1 = mdates.date2num(pd.to_datetime(xdata[i]))
+                            x2 = mdates.date2num(pd.to_datetime(xdata[i + 1]))
 
-                        ball._is_measure_ball = True
-                        ball._ball_x = mdates.date2num(pd.to_datetime(ball_x))
-                        ball._ball_y = float(y)
+                            if y2 != y1:
 
-                        intersection_balls.append(ball)
+                                frac = (y - y1) / (y2 - y1)
+
+                                cross_x_num = x1 + frac * (x2 - x1)
+
+                                cross_x = mdates.num2date(cross_x_num)
+
+                                ball, = ax.plot(
+                                    [cross_x],
+                                    [y],
+                                    marker="o",
+                                    markersize=5,
+                                    color="orange",
+                                    linestyle="None",
+                                    picker=5,
+                                    zorder=200
+                                )
+
+                                ball._is_measure_ball = True
+                                ball._ball_x = cross_x_num
+                                ball._ball_y = float(y)
+
+                                intersection_balls.append(ball)
 
             txt = ax.text(
                 xlim[1] - (xlim[1] - xlim[0]) * 0.01,
