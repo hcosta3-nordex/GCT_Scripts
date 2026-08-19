@@ -2229,7 +2229,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     lines = []
     measurement_items = []
     selected_measurement_points = []
-    dragged_line = None
 
     current_csv_file = final_csv_path
 
@@ -2723,15 +2722,38 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 txt.set_text(
                     f"{event.ydata:.3f}".rstrip("0").rstrip(".")
                 )
-
+            
             canvas.draw_idle()
             return
 
         if selected_text["obj"] is not None:
-            selected_text["obj"].set_position(
-                (event.xdata, event.ydata)
-            )
+
+            txt = selected_text["obj"]
+
+            x, y = txt.get_position()
+
+            if getattr(txt, "_measurement_type", "") == "x":
+
+                new_y = event.ydata
+
+                txt.set_position((x, new_y))
+
+                txt._line.set_ydata([new_y, new_y])
+
+            elif getattr(txt, "_measurement_type", "") == "y":
+
+                new_x = mdates.num2date(event.xdata)
+
+                txt.set_position((new_x, y))
+
+                txt._line.set_xdata([new_x, new_x])
+
+            else:
+
+                txt.set_position((event.xdata, event.ydata))
+
             canvas.draw_idle()
+            return
 
     def on_tree_select(event):
         tree = event.widget
@@ -2773,6 +2795,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         artist = event.artist
 
         if getattr(artist, "_is_measurement_text", False):
+            mouse_pressed["state"] = True
             selected_text["obj"] = artist
             return
 
@@ -2817,10 +2840,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         color="blue",
                         ha="center",
                         va="bottom",
-                        picker=True
+                        picker=10
                     )
 
                     txt._is_measurement_text = True
+                    txt._line = line
+                    txt._measurement_type = "x"
                     measurement_items.extend([line, txt])
 
                 elif mode["measure"] == "y":
@@ -2843,10 +2868,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         color="magenta",
                         ha="left",
                         va="center",
-                        picker=True
+                        picker=10
                     )
 
                     txt._is_measurement_text = True
+                    txt._line = line
+                    txt._measurement_type = "y"
                     measurement_items.extend([line, txt])
 
                 selected_measurement_points.clear()
