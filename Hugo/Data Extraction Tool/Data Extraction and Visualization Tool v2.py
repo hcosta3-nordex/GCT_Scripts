@@ -2466,8 +2466,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     mode = {
     "type": None,
-    "measure": None  # None, "x", "y"
-}
+    "measure": None,
+    "delete_line": False,
+    "delete_measure": False
+    }
+
     selected_text = {"obj": None}
     mouse_pressed = {"state": False}
     selected_line = {"obj": None}
@@ -2548,6 +2551,17 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 break
         rebuild_axes()
 
+    def delete_single_line_mode():
+
+        mode["delete_line"] = True
+        mode["delete_measure"] = False
+
+
+    def delete_single_measure_mode():
+
+        mode["delete_measure"] = True
+        mode["delete_line"] = False
+
     def create_vertical_balls(ax, nearest_time,line):
         x_num = mdates.date2num(nearest_time)
 
@@ -2582,6 +2596,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             ball._is_measure_ball = True
             ball._ball_x = x_num
             ball._ball_y = y
+
+            ball._signal = signal._var
 
             ball._parent_line = line
             ball._ball_index = len(line._balls)
@@ -2633,6 +2649,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         ball._is_measure_ball = True
                         ball._ball_x = cross_x_num
                         ball._ball_y = float(y)
+
+                        ball._signal = signal._var
 
                         ball._parent_line = line
                         ball._ball_index = len(line._balls)
@@ -2840,6 +2858,156 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         artist = event.artist
 
+        if mode["delete_measure"]:
+
+            if isinstance(artist, Line2D):
+
+                if getattr(artist, "line_type", "") in (
+                    "measure_x",
+                    "measure_y"
+                ):
+
+                    try:
+                        artist.remove()
+                    except:
+                        pass
+
+                    for m in measurements[:]:
+
+                        if m["line"] is artist:
+
+                            try:
+                                m["text"].remove()
+                            except:
+                                pass
+
+                            measurements.remove(m)
+
+                    lines[:] = [
+                        item for item in lines
+                        if item[0] is not artist
+                    ]
+
+                    mode["delete_measure"] = False
+
+                    canvas.draw_idle()
+                    return
+
+        if mode["delete_line"]:
+
+            if isinstance(artist, Line2D):
+
+                line_type = getattr(artist, "line_type", "")
+
+                if line_type in ("vertical", "horizontal"):
+
+                    for line, txt, ax in lines[:]:
+
+                        if line is artist:
+
+                            to_remove = []
+
+                            for m in measurements:
+
+                                if m["type"] == "x":
+
+                                    if (
+                                        m["line1"] is line or
+                                        m["line2"] is line
+                                    ):
+                                        to_remove.append(m)
+
+                                else:
+
+                                    if (
+                                        m["cursor1"] is line or
+                                        m["cursor2"] is line
+                                    ):
+                                        to_remove.append(m)
+
+                            for m in to_remove:
+
+                                try:
+                                    m["line"].remove()
+                                except:
+                                    pass
+
+                                try:
+                                    m["text"].remove()
+                                except:
+                                    pass
+
+                                measurements.remove(m)
+
+                            lines[:] = [
+                                item for item in lines
+                                if item[0] not in [m["line"] for m in to_remove]
+                            ]
+
+                            for ball in getattr(line, "_balls", []):
+
+                                try:
+                                    ball.remove()
+                                except:
+                                    pass
+
+                            try:
+                                line.remove()
+                            except:
+                                pass
+
+                            try:
+                                txt.remove()
+                            except:
+                                pass
+
+                            lines.remove((line, txt, ax))
+
+                            break
+
+                    mode["delete_line"] = False
+
+                    canvas.draw_idle()
+                    return
+
+        if mode["delete_line"]:
+
+            if isinstance(artist, Line2D):
+
+                line_type = getattr(artist, "line_type", "")
+
+                if line_type in ("vertical", "horizontal"):
+
+                    for line, txt, ax in lines[:]:
+
+                        if line is artist:
+
+                            for ball in getattr(line, "_balls", []):
+
+                                try:
+                                    ball.remove()
+                                except:
+                                    pass
+
+                            try:
+                                line.remove()
+                            except:
+                                pass
+
+                            try:
+                                txt.remove()
+                            except:
+                                pass
+
+                            lines.remove((line, txt, ax))
+
+                            break
+
+                    mode["delete_line"] = False
+
+                    canvas.draw_idle()
+                    return
+
         if isinstance(artist, Line2D):
 
             if getattr(artist, "line_type", "") in (
@@ -2856,7 +3024,38 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         selected_line["obj"] = (l, t, a)
                         mouse_pressed["state"] = True
                         return 
-            
+
+        if mode["delete_measure"]:
+
+            if getattr(artist, "_is_measurement_text", False):
+
+                line = artist._line
+
+                try:
+                    line.remove()
+                except:
+                    pass
+
+                try:
+                    artist.remove()
+                except:
+                    pass
+
+                measurements[:] = [
+                    m for m in measurements
+                    if m["line"] is not line
+                ]
+
+                lines[:] = [
+                    item for item in lines
+                    if item[0] is not line
+                ]
+
+                mode["delete_measure"] = False
+
+                canvas.draw_idle()
+                return
+
         if getattr(artist, "_is_measurement_text", False):
             mouse_pressed["state"] = True
             selected_text["obj"] = artist
@@ -2914,9 +3113,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     measurements.append({
                         "type": "x",
                         "line1": p1._parent_line,
-                        "idx1": p1._ball_index,
+                        "signal1": p1._signal,
                         "line2": p2._parent_line,
-                        "idx2": p2._ball_index,
+                        "signal2": p2._signal,
                         "line": line,
                         "text": txt
                     })
@@ -2955,10 +3154,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     measurements.append({
                         "type": "y",
-                        "line1": p1._parent_line,
-                        "idx1": p1._ball_index,
-                        "line2": p2._parent_line,
-                        "idx2": p2._ball_index,
+                        "cursor1": p1._parent_line,
+                        "cursor2": p2._parent_line,
                         "line": line,
                         "text": txt
                     })
@@ -3013,10 +3210,18 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         for m in measurements:
 
             try:
-                p1 = m["line1"]._balls[m["idx1"]]
-                p2 = m["line2"]._balls[m["idx2"]]
 
                 if m["type"] == "x":
+
+                    p1 = next(
+                        b for b in m["line1"]._balls
+                        if b._signal == m["signal1"]
+                    )
+
+                    p2 = next(
+                        b for b in m["line2"]._balls
+                        if b._signal == m["signal2"]
+                    )
 
                     dx = abs(p2._ball_x - p1._ball_x) * 86400
 
@@ -3024,6 +3229,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     x1 = mdates.num2date(p1._ball_x)
                     x2 = mdates.num2date(p2._ball_x)
+
                     xmid = mdates.num2date(
                         (p1._ball_x + p2._ball_x) / 2
                     )
@@ -3036,26 +3242,42 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 else:
 
-                    dy = abs(p2._ball_y - p1._ball_y)
+                    y1 = m["cursor1"].get_ydata()[0]
+                    y2 = m["cursor2"].get_ydata()[0]
 
-                    x_level = mdates.num2date(p1._ball_x)
+                    dy = abs(y2 - y1)
 
-                    m["line"].set_xdata([x_level, x_level])
+                    measurement_ax = m["line"].axes
+
+                    x_center_num = np.mean(
+                        measurement_ax.get_xlim()
+                    )
+
+                    x_center = mdates.num2date(
+                        x_center_num
+                    )
+
+                    m["line"].set_xdata(
+                        [x_center, x_center]
+                    )
+
                     m["line"].set_ydata(
-                        [p1._ball_y, p2._ball_y]
+                        [y1, y2]
                     )
 
                     m["text"].set_position(
-                        (x_level,
-                        (p1._ball_y + p2._ball_y) / 2)
+                        (
+                            x_center,
+                            (y1 + y2) / 2
+                        )
                     )
 
                     m["text"].set_text(
                         f"{dy:.3f}".rstrip("0").rstrip(".")
                     )
 
-            except:
-                pass
+            except Exception as e:
+                print("Measurement update error:", repr(e))
 
     def clear_measurements():
 
@@ -3766,7 +3988,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     tk.Button(toolbar, text="│*", command=lambda: open_manual_vline(), relief="flat").pack(side="left")
     tk.Button(toolbar, text="─*", command=lambda: open_manual_hline(), relief="flat").pack(side="left")
-    tk.Button(toolbar, text="🗑", command=clear_lines, relief="flat").pack(side="left")
+    tk.Button(toolbar, text="│─1🗑", command=delete_single_line_mode, relief="flat").pack(side="left")
+    tk.Button(toolbar, text="│─🗑", command=clear_lines, relief="flat").pack(side="left")
 
     def measure_x():
         selected_measurement_points.clear()
@@ -3778,6 +4001,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     tk.Button(toolbar,text="↔X",command=measure_x,relief="flat").pack(side="left")
     tk.Button(toolbar,text="↕Y",command=measure_y,relief="flat").pack(side="left")
+    tk.Button(toolbar,text="↔↕1🗑",command=delete_single_measure_mode,relief="flat").pack(side="left")
     tk.Button(toolbar,text="↔↕🗑",command=clear_measurements,relief="flat").pack(side="left")
     tk.Button(toolbar, text="✂", command=open_cutter, relief="flat").pack(side="left")
 
@@ -3838,6 +4062,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 ball._is_measure_ball = True
                 ball._ball_x = x_num
                 ball._ball_y = y
+                ball._signal = signal._var
                 ball._parent_line = line
                 ball._ball_index = len(line._balls)
 
@@ -3909,7 +4134,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                                 ball._is_measure_ball = True
                                 ball._ball_x = cross_x_num
                                 ball._ball_y = float(y)
-
+                                ball._signal = signal._var
                                 ball._parent_line = line
                                 ball._ball_index = len(line._balls)
 
