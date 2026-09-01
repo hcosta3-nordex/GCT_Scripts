@@ -23,6 +23,7 @@ import sys
 import tkinter as tk
 from win11toast import toast
 import pandas as pd
+from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
@@ -2229,6 +2230,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     lines = []
     measurement_items = []
     selected_measurement_points = []
+    measurements = []
 
     current_csv_file = final_csv_path
 
@@ -2581,6 +2583,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             ball._ball_x = x_num
             ball._ball_y = y
 
+            ball._parent_line = line
+            ball._ball_index = len(line._balls)
+
             line._balls.append(ball)
 
     def create_horizontal_balls(ax, y,line):
@@ -2629,6 +2634,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         ball._ball_x = cross_x_num
                         ball._ball_y = float(y)
 
+                        ball._parent_line = line
+                        ball._ball_index = len(line._balls)
+
                         line._balls.append(ball)
 
     def on_release(event):
@@ -2642,6 +2650,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         selected_line["obj"] = None
 
     def on_press(event):
+
+        mouse_pressed["state"] = False
+
         if event.inaxes is None:
             return
 
@@ -2655,7 +2666,13 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             contains, _ = line.contains(event)
 
             if contains:
-                selected_line["obj"] = (line, txt, line_ax)
+
+                selected_line["obj"] = (
+                    line,
+                    txt,
+                    line_ax
+                )
+
                 mouse_pressed["state"] = True
                 return
 
@@ -2669,6 +2686,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         if selected_line["obj"] is not None:
 
             line, txt, ax = selected_line["obj"]
+            line_type = getattr(line, "line_type", "")
 
             if getattr(line, "line_type", "") == "vertical":
 
@@ -2706,6 +2724,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         .rstrip(".")
                     )
 
+                update_measurements()
+
             elif getattr(line, "line_type", "") == "horizontal":
 
                 line.set_ydata([event.ydata, event.ydata])
@@ -2722,9 +2742,36 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 txt.set_text(
                     f"{event.ydata:.3f}".rstrip("0").rstrip(".")
                 )
+
+                update_measurements()
+
+            elif getattr(line, "line_type", "") == "measure_x":
+            
+                        y = event.ydata
+            
+                        line.set_ydata([y, y])
+            
+                        txt.set_position((
+                            mdates.num2date(
+                                np.mean(mdates.date2num(line.get_xdata()))
+                            ),
+                            y
+                        ))
+            
+            elif getattr(line, "line_type", "") == "measure_y":
+            
+                x = mdates.num2date(event.xdata)
+            
+                line.set_xdata([x, x])
+            
+                txt.set_position((
+                    x,
+                    np.mean(line.get_ydata())
+                ))
             
             canvas.draw_idle()
             return
+
 
         if selected_text["obj"] is not None:
 
@@ -2785,7 +2832,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     fm_tree.bind("<<TreeviewSelect>>", on_tree_select)
 
     canvas.mpl_connect("button_release_event", on_release)
-    canvas.mpl_connect("button_press_event", lambda e: mouse_pressed.update(state=True))
     canvas.mpl_connect("button_press_event", on_press)
     canvas.mpl_connect("motion_notify_event", on_motion)
     canvas.mpl_connect("button_release_event", on_release)
@@ -2794,6 +2840,23 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         artist = event.artist
 
+        if isinstance(artist, Line2D):
+
+            if getattr(artist, "line_type", "") in (
+                "measure_x",
+                "measure_y",
+                "vertical",
+                "horizontal"
+            ):
+
+                for l, t, a in lines:
+
+                    if l is artist:
+
+                        selected_line["obj"] = (l, t, a)
+                        mouse_pressed["state"] = True
+                        return 
+            
         if getattr(artist, "_is_measurement_text", False):
             mouse_pressed["state"] = True
             selected_text["obj"] = artist
@@ -2806,9 +2869,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             artist.set_color("red")
 
-            selected_measurement_points.append(
-                (artist._ball_x, artist._ball_y)
-            )
+            selected_measurement_points.append(artist)
 
             if len(selected_measurement_points) == 2:
 
@@ -2819,19 +2880,26 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 if mode["measure"] == "x":
 
-                    dx = abs(p2[0] - p1[0]) * 86400
+                    dx = abs(p2._ball_x - p1._ball_x) * 86400
 
-                    y_level = min(p1[1], p2[1])
-                    x1 = mdates.num2date(p1[0])
-                    x2 = mdates.num2date(p2[0])
-                    xmid = mdates.num2date((p1[0] + p2[0]) / 2)
+                    y_level = min(p1._ball_y, p2._ball_y)
+
+                    x1 = mdates.num2date(p1._ball_x)
+                    x2 = mdates.num2date(p2._ball_x)
+
+                    xmid = mdates.num2date(
+                        (p1._ball_x + p2._ball_x) / 2
+                    )
 
                     line = ax.plot(
                         [x1, x2],
                         [y_level, y_level],
                         color="blue",
-                        linewidth=2
+                        linewidth=2,
+                        picker=5
                     )[0]
+
+                    line.line_type = "measure_x"
 
                     txt = ax.text(
                         xmid,
@@ -2843,27 +2911,41 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         picker=10
                     )
 
+                    measurements.append({
+                        "type": "x",
+                        "line1": p1._parent_line,
+                        "idx1": p1._ball_index,
+                        "line2": p2._parent_line,
+                        "idx2": p2._ball_index,
+                        "line": line,
+                        "text": txt
+                    })
+
                     txt._is_measurement_text = True
                     txt._line = line
                     txt._measurement_type = "x"
+                    lines.append((line, txt, ax))
                     measurement_items.extend([line, txt])
 
                 elif mode["measure"] == "y":
 
-                    dy = abs(p2[1] - p1[1])
+                    dy = abs(p2._ball_y - p1._ball_y)
 
-                    x_level = mdates.num2date(p1[0])
+                    x_level = mdates.num2date(p1._ball_x)
 
                     line = ax.plot(
                         [x_level, x_level],
-                        [p1[1], p2[1]],
+                        [p1._ball_y, p2._ball_y],
                         color="magenta",
-                        linewidth=2
+                        linewidth=2,
+                        picker=5
                     )[0]
+
+                    line.line_type = "measure_y"
 
                     txt = ax.text(
                         x_level,
-                        (p1[1] + p2[1]) / 2,
+                        (p1._ball_y + p2._ball_y) / 2,
                         f"{dy:.3f}",
                         color="magenta",
                         ha="left",
@@ -2871,9 +2953,20 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         picker=10
                     )
 
+                    measurements.append({
+                        "type": "y",
+                        "line1": p1._parent_line,
+                        "idx1": p1._ball_index,
+                        "line2": p2._parent_line,
+                        "idx2": p2._ball_index,
+                        "line": line,
+                        "text": txt
+                    })
+
                     txt._is_measurement_text = True
                     txt._line = line
                     txt._measurement_type = "y"
+                    lines.append((line, txt, ax))
                     measurement_items.extend([line, txt])
 
                 selected_measurement_points.clear()
@@ -2915,17 +3008,84 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     canvas.mpl_connect("pick_event", on_pick)
 
+    def update_measurements():
+
+        for m in measurements:
+
+            try:
+                p1 = m["line1"]._balls[m["idx1"]]
+                p2 = m["line2"]._balls[m["idx2"]]
+
+                if m["type"] == "x":
+
+                    dx = abs(p2._ball_x - p1._ball_x) * 86400
+
+                    y_level = min(p1._ball_y, p2._ball_y)
+
+                    x1 = mdates.num2date(p1._ball_x)
+                    x2 = mdates.num2date(p2._ball_x)
+                    xmid = mdates.num2date(
+                        (p1._ball_x + p2._ball_x) / 2
+                    )
+
+                    m["line"].set_xdata([x1, x2])
+                    m["line"].set_ydata([y_level, y_level])
+
+                    m["text"].set_position((xmid, y_level))
+                    m["text"].set_text(f"{dx:.3f} s")
+
+                else:
+
+                    dy = abs(p2._ball_y - p1._ball_y)
+
+                    x_level = mdates.num2date(p1._ball_x)
+
+                    m["line"].set_xdata([x_level, x_level])
+                    m["line"].set_ydata(
+                        [p1._ball_y, p2._ball_y]
+                    )
+
+                    m["text"].set_position(
+                        (x_level,
+                        (p1._ball_y + p2._ball_y) / 2)
+                    )
+
+                    m["text"].set_text(
+                        f"{dy:.3f}".rstrip("0").rstrip(".")
+                    )
+
+            except:
+                pass
+
     def clear_measurements():
+
         selected_measurement_points.clear()
 
         for item in measurement_items:
-
             try:
                 item.remove()
             except:
                 pass
 
+        for line_obj, _, _ in lines:
+
+            for ball in getattr(line_obj, "_balls", []):
+
+                try:
+                    ball.set_color("orange")
+                except:
+                    pass
+
+        lines[:] = [
+            item for item in lines
+            if getattr(item[0], "line_type", "")
+            not in ("measure_x", "measure_y")
+            ]
         measurement_items.clear()
+        measurements.clear()
+
+        selected_text["obj"] = None
+        selected_line["obj"] = None
 
         canvas.draw_idle()
 
@@ -3524,6 +3684,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     lines.append((line, txt, ax))
                     create_vertical_balls(ax, nearest_time,line)
+                    update_measurements()
 
                 canvas.draw()
                 win.destroy()
@@ -3677,6 +3838,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 ball._is_measure_ball = True
                 ball._ball_x = x_num
                 ball._ball_y = y
+                ball._parent_line = line
+                ball._ball_index = len(line._balls)
 
                 line._balls.append(ball)
 
@@ -3746,6 +3909,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                                 ball._is_measure_ball = True
                                 ball._ball_x = cross_x_num
                                 ball._ball_y = float(y)
+
+                                ball._parent_line = line
+                                ball._ball_index = len(line._balls)
 
                                 line._balls.append(ball)
 
