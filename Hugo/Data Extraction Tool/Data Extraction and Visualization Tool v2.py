@@ -2248,7 +2248,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             tw.wm_overrideredirect(True)
             tw.wm_geometry(f"+{x}+{y}")
 
-            tk.Label(tw,text=self.text,bg="white",fg="black",relief="solid",borderwidth=1,padx=6,pady=2).pack()
+            tk.Label(tw,text=self.text,bg="#F0F0F0",fg="black",relief="solid",borderwidth=1,padx=6,pady=2).pack()
 
         def hide_tip(self, event=None):
             if self.tipwindow:
