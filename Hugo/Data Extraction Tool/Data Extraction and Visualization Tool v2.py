@@ -2227,6 +2227,34 @@ def averaging_mfr(final_output_file, increment_ms):
 
 def open_plot_window(parent, final_csv_path, source_selected="", new_window=False):
 
+    class ToolTip:
+        def __init__(self, widget, text):
+            self.widget = widget
+            self.text = text
+            self.tipwindow = None
+
+            widget.bind("<Enter>", self.show_tip)
+            widget.bind("<Leave>", self.hide_tip)
+
+        def show_tip(self, event=None):
+
+            if self.tipwindow:
+                return
+
+            x = self.widget.winfo_rootx() + self.widget.winfo_width() + 5
+            y = self.widget.winfo_rooty()
+
+            self.tipwindow = tw = tk.Toplevel(self.widget)
+            tw.wm_overrideredirect(True)
+            tw.wm_geometry(f"+{x}+{y}")
+
+            tk.Label(tw,text=self.text,bg="white",fg="black",relief="solid",borderwidth=1,padx=6,pady=2).pack()
+
+        def hide_tip(self, event=None):
+            if self.tipwindow:
+                self.tipwindow.destroy()
+                self.tipwindow = None
+
     lines = []
     measurement_items = []
     selected_measurement_points = []
@@ -3335,8 +3363,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         canvas.draw()
 
-    tk.Button(toolbar, text="│", command=set_vline, relief="flat").pack(side="left")
-    tk.Button(toolbar, text="─", command=set_hline, relief="flat").pack(side="left")
+    btn =tk.Button(toolbar, text="│", command=set_vline, relief="flat")
+    btn.pack(side="left")
+    ToolTip(btn, "Add vertical line")
+    btn1 = tk.Button(toolbar, text="─", command=set_hline, relief="flat")
+    btn1.pack(side="left")
+    ToolTip(btn1, "Add horizontal line")
 
     def open_cutter():
         cutter_win = tk.Toplevel(root)
@@ -3986,10 +4018,18 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         ttk.Button(win,text="Apply",command=apply).pack(pady=10)
 
-    tk.Button(toolbar, text="│*", command=lambda: open_manual_vline(), relief="flat").pack(side="left")
-    tk.Button(toolbar, text="─*", command=lambda: open_manual_hline(), relief="flat").pack(side="left")
-    tk.Button(toolbar, text="│─1🗑", command=delete_single_line_mode, relief="flat").pack(side="left")
-    tk.Button(toolbar, text="│─🗑", command=clear_lines, relief="flat").pack(side="left")
+    btn2 = tk.Button(toolbar, text="│*", command=lambda: open_manual_vline(), relief="flat")
+    btn2.pack(side="left")
+    ToolTip(btn2, "Add specific vertical line")
+    btn3 = tk.Button(toolbar, text="─*", command=lambda: open_manual_hline(), relief="flat")
+    btn3.pack(side="left")
+    ToolTip(btn3, "Add specific horizontal line")
+    btn4 = tk.Button(toolbar, text="│─1🗑", command=delete_single_line_mode, relief="flat")
+    btn4.pack(side="left")
+    ToolTip(btn4, "Delete one line")
+    btn5 = tk.Button(toolbar, text="│─🗑", command=clear_lines, relief="flat")
+    btn5.pack(side="left")
+    ToolTip(btn5, "Delete all lines")
 
     def measure_x():
         selected_measurement_points.clear()
@@ -3999,11 +4039,21 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         selected_measurement_points.clear()
         mode["measure"] = "y"
 
-    tk.Button(toolbar,text="↔X",command=measure_x,relief="flat").pack(side="left")
-    tk.Button(toolbar,text="↕Y",command=measure_y,relief="flat").pack(side="left")
-    tk.Button(toolbar,text="↔↕1🗑",command=delete_single_measure_mode,relief="flat").pack(side="left")
-    tk.Button(toolbar,text="↔↕🗑",command=clear_measurements,relief="flat").pack(side="left")
-    tk.Button(toolbar, text="✂", command=open_cutter, relief="flat").pack(side="left")
+    btn6 = tk.Button(toolbar,text="↔X",command=measure_x,relief="flat")
+    btn6.pack(side="left")
+    ToolTip(btn6, "Measure X distance")
+    btn7 = tk.Button(toolbar,text="↕Y",command=measure_y,relief="flat")
+    btn7.pack(side="left")
+    ToolTip(btn7, "Measure Y distance")
+    btn8 = tk.Button(toolbar,text="↔↕1🗑",command=delete_single_measure_mode,relief="flat")
+    btn8.pack(side="left")
+    ToolTip(btn8, "Delete one measurement")
+    btn9 = tk.Button(toolbar,text="↔↕🗑",command=clear_measurements,relief="flat")
+    btn9.pack(side="left")
+    ToolTip(btn9, "Delete all measurements")
+    btn10 = tk.Button(toolbar, text="✂", command=open_cutter, relief="flat")
+    btn10.pack(side="left")
+    ToolTip(btn10, "Cutter")
 
     def on_click(event):
         if mode["type"] is None:
