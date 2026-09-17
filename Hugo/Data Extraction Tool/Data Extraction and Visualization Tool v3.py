@@ -2826,6 +2826,10 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     x,
                     np.mean(line.get_ydata())
                 ))
+
+            elif getattr(txt, "_is_slope_text", False):
+
+                txt.set_position((mdates.num2date(event.xdata),event.ydata))
             
             canvas.draw_idle()
             return
@@ -2917,6 +2921,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     mode["delete_slope"] = False
                     canvas.draw_idle()
                     return
+        
         if mode["delete_slope"]:
 
             if getattr(artist, "_is_slope_text", False):
@@ -3142,6 +3147,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 return
 
         if getattr(artist, "_is_measurement_text", False):
+            mouse_pressed["state"] = True
+            selected_text["obj"] = artist
+            return
+
+        if getattr(artist, "_is_slope_text", False):
             mouse_pressed["state"] = True
             selected_text["obj"] = artist
             return
