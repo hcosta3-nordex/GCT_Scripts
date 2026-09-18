@@ -29,6 +29,7 @@ import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import numpy as np
+from matplotlib.legend import Legend
 
 
 selected_ids = set()
@@ -2507,9 +2508,34 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     selected_text = {"obj": None}
     mouse_pressed = {"state": False}
     selected_line = {"obj": None}
+    selected_legend = {"obj": None}
     dragged = {"var": None}
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    def create_draggable_label(ax,x,y,text,color="black",ha="center",va="center"):
+        ann = ax.annotate(
+            text,
+            xy=(x, y),
+            xytext=(0, 0),
+            textcoords="offset points",
+            bbox=dict(
+                boxstyle="round,pad=0.35",
+                fc="white",
+                ec=color,
+                alpha=0.95
+            ),
+            color=color,
+            ha=ha,
+            va=va,
+            picker=True,
+            zorder=500
+        )
+
+        ann._is_draggable_label = True
+        ann._manual_position = False
+
+        return ann
 
     def rebuild_axes():
         fig.clf()
@@ -2548,9 +2574,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             if lines_local:
                 legend = ax.legend(lines_local, labels, fontsize=8)
-                legend.set_draggable(True)
+                legend.set_picker(True)
+                legend.set_draggable(True, use_blit=True)
+
                 for txt, line_obj, var in zip(legend.get_texts(), lines_local, plot_data[i]):
-                    txt.set_picker(True)
+                    txt._is_legend_text = True
+                    txt.set_picker(5)
                     txt._line = line_obj
                     txt._var = var
                     txt._axis = i
@@ -2699,15 +2728,26 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         dragged["var"] = None
         selected_text["obj"] = None
         selected_line["obj"] = None
+        selected_legend["obj"] = None
 
         update_visible_min_max()
 
     def on_press(event):
 
-        mouse_pressed["state"] = False
-
+        if selected_text["obj"] is not None:
+            return
+        
         if event.inaxes is None:
             return
+
+        legend = event.inaxes.get_legend()
+
+        if legend is not None:
+
+            contains, _ = legend.contains(event)
+
+            if contains:
+                return
 
         selected_line["obj"] = None
 
@@ -2739,6 +2779,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         if event.inaxes is None:
             return
 
+        legend = event.inaxes.get_legend()
+
+        if legend is not None:
+
+            contains, _ = legend.contains(event)
+
+            if contains:
+                return
+
         if selected_line["obj"] is not None:
 
             line, txt, ax = selected_line["obj"]
@@ -2759,7 +2808,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 create_vertical_balls(ax,nearest_time,line)
 
-                txt.set_x(nearest_time)
+                if not getattr(txt, "_manual_position", False):
+                    txt.xy = (
+                        nearest_time,
+                        txt.xy[1]
+                    )
 
                 if source_selected.lower() in ["opclogger", "mfr opclogger"]:
                     txt.set_text(nearest_time.strftime("%H:%M:%S"))
@@ -2780,6 +2833,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         .rstrip(".")
                     )
 
+                    if not getattr(txt, "_manual_position", False):
+                        txt.xy = (
+                            nearest_time,
+                            txt.xy[1]
+                        )
+
                 update_measurements()
                 update_slopes()
 
@@ -2794,42 +2853,50 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 create_horizontal_balls(ax, event.ydata,line)
 
-                txt.set_y(event.ydata)
+                if not getattr(txt, "_manual_position", False):
+                    txt.xy = (
+                        txt.xy[0],
+                        event.ydata
+                    )
 
                 txt.set_text(
                     f"{event.ydata:.3f}".rstrip("0").rstrip(".")
                 )
 
+                if not getattr(txt, "_manual_position", False):
+                    txt.xy = (
+                        txt.xy[0],
+                        event.ydata
+                    )
+
                 update_measurements()
                 update_slopes()
 
             elif getattr(line, "line_type", "") == "measure_x":
-            
-                        y = event.ydata
-            
-                        line.set_ydata([y, y])
-            
-                        txt.set_position((
-                            mdates.num2date(
-                                np.mean(mdates.date2num(line.get_xdata()))
-                            ),
-                            y
-                        ))
+
+                y = event.ydata
+
+                line.set_ydata([y, y])
+
+                if not getattr(txt, "_manual_position", False):
+                    txt.xy = (
+                        mdates.num2date(
+                            np.mean(mdates.date2num(line.get_xdata()))
+                        ),
+                        y
+                    )
             
             elif getattr(line, "line_type", "") == "measure_y":
-            
+
                 x = mdates.num2date(event.xdata)
-            
+
                 line.set_xdata([x, x])
-            
-                txt.set_position((
-                    x,
-                    np.mean(line.get_ydata())
-                ))
 
-            elif getattr(txt, "_is_slope_text", False):
-
-                txt.set_position((mdates.num2date(event.xdata),event.ydata))
+                if not getattr(txt, "_manual_position", False):
+                    txt.xy = (
+                        x,
+                        np.mean(line.get_ydata())
+                    )
             
             canvas.draw_idle()
             return
@@ -2839,27 +2906,43 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             txt = selected_text["obj"]
 
-            x, y = txt.get_position()
+            new_x = mdates.num2date(event.xdata)
+            new_y = event.ydata
+
+            if getattr(txt, "_is_legend_text", False):
+
+                txt.set_position((event.xdata, event.ydata))
+
+                canvas.draw_idle()
+                return
 
             if getattr(txt, "_measurement_type", "") == "x":
 
-                new_y = event.ydata
+                txt.xy = (new_x, new_y)
 
-                txt.set_position((x, new_y))
-
-                txt._line.set_ydata([new_y, new_y])
+                txt._manual_position = True
 
             elif getattr(txt, "_measurement_type", "") == "y":
 
-                new_x = mdates.num2date(event.xdata)
+                txt.xy = (new_x, new_y)
 
-                txt.set_position((new_x, y))
+                txt._manual_position = True
 
-                txt._line.set_xdata([new_x, new_x])
+            elif getattr(txt, "_is_slope_text", False):
+
+                txt.xy = (new_x, new_y)
+
+                txt._manual_position = True
+
+            elif getattr(txt, "_is_cursor_label", False):
+
+                txt.xy = (new_x, new_y)
+
+                txt._manual_position = True
 
             else:
 
-                txt.set_position((event.xdata, event.ydata))
+                txt.xy = (new_x, new_y)
 
             canvas.draw_idle()
             return
@@ -2900,6 +2983,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     def on_pick(event):
 
         artist = event.artist
+
+        if isinstance(artist, Legend):
+            selected_legend["obj"] = artist
+            mouse_pressed["state"] = True
+            return
 
         if mode["delete_slope"]:
 
@@ -3146,12 +3234,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 canvas.draw_idle()
                 return
 
-        if getattr(artist, "_is_measurement_text", False):
-            mouse_pressed["state"] = True
-            selected_text["obj"] = artist
-            return
-
-        if getattr(artist, "_is_slope_text", False):
+        if (getattr(artist, "_is_measurement_text", False) or getattr(artist, "_is_slope_text", False) or getattr(artist, "_is_cursor_label", False)or getattr(artist, "_is_draggable_label", False)):
             mouse_pressed["state"] = True
             selected_text["obj"] = artist
             return
@@ -3193,12 +3276,14 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     line.line_type = "slope"
 
-                    txt = ax.text(
-                        mdates.num2date((p1._ball_x + p2._ball_x)/2),
-                        (p1._ball_y + p2._ball_y)/2,
+                    txt = create_draggable_label(
+                        ax,
+                        mdates.num2date(
+                            (p1._ball_x + p2._ball_x) / 2
+                        ),
+                        (p1._ball_y + p2._ball_y) / 2,
                         f"Slope={slope:.6f}",
-                        color="darkorange",
-                        picker=True
+                        color="darkorange"
                     )
 
                     txt._is_slope_text = True
@@ -3260,14 +3345,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     line.line_type = "measure_x"
 
-                    txt = ax.text(
+                    txt = create_draggable_label(
+                        ax,
                         xmid,
                         y_level,
                         f"{dx:.3f} s",
-                        color="blue",
-                        ha="center",
-                        va="bottom",
-                        picker=10
+                        color="blue"
                     )
 
                     measurements.append({
@@ -3302,14 +3385,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     line.line_type = "measure_y"
 
-                    txt = ax.text(
+                    txt = create_draggable_label(
+                        ax,
                         x_level,
                         (p1._ball_y + p2._ball_y) / 2,
                         f"{dy:.3f}",
-                        color="magenta",
-                        ha="left",
-                        va="center",
-                        picker=10
+                        color="magenta"
                     )
 
                     measurements.append({
@@ -3343,6 +3424,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             rebuild_axes()
             return
 
+        if getattr(artist, "_is_legend_text", False):
+
+            selected_text["obj"] = artist
+            mouse_pressed["state"] = True
+            return
+
         if txt in legend_links:
             line = txt._line
             var = txt._var
@@ -3356,10 +3443,20 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     plot_data[ax_idx].remove(var)
                 legend_state.pop(var, None)
             else:
-                legend_state[var] = not line.get_visible()
 
-            rebuild_axes()
-            return
+                visible = not line.get_visible()
+
+                line.set_visible(visible)
+                legend_state[var] = visible
+
+                tick = "☑" if visible else "☐"
+
+                txt.set_text(
+                    f"{tick} {var}    ⨯"
+                )
+
+                canvas.draw_idle()
+                return
 
         selected_text["obj"] = txt
 
@@ -3397,10 +3494,14 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 s["line"].set_xdata([x1, x2])
                 s["line"].set_ydata([y1, y2])
 
-                s["text"].set_position((
-                    mdates.num2date((p1._ball_x + p2._ball_x) / 2),
-                    (y1 + y2) / 2
-                ))
+                if not getattr(s["text"], "_manual_position", False):
+
+                    s["text"].xy = (
+                        mdates.num2date(
+                            (p1._ball_x + p2._ball_x) / 2
+                        ),
+                        (y1 + y2) / 2
+                    )
 
                 s["text"].set_text(
                     f"Slope={slope:.6f}"
@@ -3463,7 +3564,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     m["line"].set_xdata([x1, x2])
                     m["line"].set_ydata([y_level, y_level])
 
-                    m["text"].set_position((xmid, y_level))
+                    if not getattr(m["text"], "_manual_position", False):
+                        m["text"].xy = (xmid, y_level)
+
                     m["text"].set_text(f"{dx:.3f} s")
 
                 else:
@@ -3491,12 +3594,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         [y1, y2]
                     )
 
-                    m["text"].set_position(
-                        (
+                    if not getattr(m["text"], "_manual_position", False):
+                        m["text"].xy = (
                             x_center,
                             (y1 + y2) / 2
                         )
-                    )
 
                     m["text"].set_text(
                         f"{dy:.3f}".rstrip("0").rstrip(".")
@@ -4122,17 +4224,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     ylim = ax.get_ylim()
 
-                    txt = ax.text(
+                    txt = create_draggable_label(
+                        ax,
                         nearest_time,
                         ylim[1] - (ylim[1] - ylim[0]) * 0.05,
                         label,
-                        rotation=90,
-                        color="red",
-                        ha="right",
-                        va="top",
-                        picker=True
+                        color="red"
                     )
-                    txt.set_clip_on(True)
+
+                    txt._is_cursor_label = True
 
                     lines.append((line, txt, ax))
                     create_vertical_balls(ax, nearest_time,line)
@@ -4194,17 +4294,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 xlim = ax.get_xlim()
 
-                txt = ax.text(
-                    xlim[1] - (xlim[1] - xlim[0]) * 0.01,
+                txt = create_draggable_label(
+                    ax,
+                    mdates.num2date(xlim[1]),
                     y,
                     f"{y:.3f}".rstrip("0").rstrip("."),
-                    color="green",
-                    ha="right",
-                    va="bottom",
-                    picker=True
+                    color="green"
                 )
 
-                txt.set_clip_on(True)
+                txt._is_cursor_label = True
 
                 lines.append((line, txt, ax))
                 create_horizontal_balls(ax, y,line)
@@ -4399,16 +4497,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 line._balls.append(ball)
 
-            txt = ax.text(
-                x_time,
+            txt = create_draggable_label(
+                ax,
+                nearest_time,
                 ylim[1] - (ylim[1] - ylim[0]) * 0.05,
                 label,
-                rotation=90,
-                color="red",
-                ha="right",
-                va="top",
-                picker=True
+                color="red"
             )
+
+            txt._is_cursor_label = True
 
         else:
             y = event.ydata
@@ -4471,15 +4568,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                                 line._balls.append(ball)
 
-            txt = ax.text(
-                xlim[1] - (xlim[1] - xlim[0]) * 0.01,
+            txt = create_draggable_label(
+                ax,
+                mdates.num2date(xlim[1]),
                 y,
                 f"{y:.3f}".rstrip("0").rstrip("."),
-                color="green",
-                ha="right",
-                va="bottom",
-                picker=True
+                color="green"
             )
+
+            txt._is_cursor_label = True
 
         txt.set_clip_on(True)
 
@@ -4488,8 +4585,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         mode["type"] = None
 
     canvas.mpl_connect("button_press_event", on_click)
-
-    canvas.mpl_connect("motion_notify_event", on_motion)
 
     def clear_all():
         plot_data.clear()
