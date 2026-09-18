@@ -2297,7 +2297,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         paned.sash_place(0,total_width - 350,0)
 
     if new_window:
-        plot_win.after(1000, set_pane_size)
+        plot_win.title("Plot")
+        plot_win.geometry("1000x650")
     
     df = None
     analog_signals = []
@@ -2538,6 +2539,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         return ann
 
     def rebuild_axes():
+        selected_text["obj"] = None
+        selected_line["obj"] = None
+        selected_legend["obj"] = None
+        mouse_pressed["state"] = False
+
         fig.clf()
         axes.clear()
         legend_links.clear()
@@ -2572,17 +2578,26 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 tick = "☑" if legend_state[var] else "☐"
                 labels.append(f"{tick} {var}    ⨯")
 
+            legend = ax.get_legend()
+            if legend:
+                legend.remove()
+
             if lines_local:
                 legend = ax.legend(lines_local, labels, fontsize=8)
                 legend.set_picker(True)
-                legend.set_draggable(True, use_blit=True)
+                legend.set_draggable(True, use_blit=False)
 
-                for txt, line_obj, var in zip(legend.get_texts(), lines_local, plot_data[i]):
+                for txt, line_obj, var in zip(
+                    legend.get_texts(),
+                    lines_local,
+                    plot_data[i]
+                ):
                     txt._is_legend_text = True
                     txt.set_picker(5)
                     txt._line = line_obj
                     txt._var = var
                     txt._axis = i
+
                     legend_links[txt] = line_obj
 
             ax.set_xlim(df.index.min(), df.index.max())
@@ -3426,36 +3441,40 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         if getattr(artist, "_is_legend_text", False):
 
-            selected_text["obj"] = artist
-            mouse_pressed["state"] = True
-            return
+            txt = artist
 
-        if txt in legend_links:
-            line = txt._line
-            var = txt._var
-            ax_idx = txt._axis
+            if txt in legend_links:
 
-            bbox = txt.get_window_extent()
-            click_x = event.mouseevent.x
+                line = txt._line
+                var = txt._var
+                ax_idx = txt._axis
 
-            if click_x > bbox.x0 + bbox.width * 0.7:
-                if var in plot_data[ax_idx]:
-                    plot_data[ax_idx].remove(var)
-                legend_state.pop(var, None)
-            else:
+                bbox = txt.get_window_extent()
+                click_x = event.mouseevent.x
+
+                if click_x > bbox.x0 + bbox.width * 0.7:
+
+                    if var in plot_data[ax_idx]:
+                        plot_data[ax_idx].remove(var)
+
+                    legend_state.pop(var, None)
+
+                    rebuild_axes()
+
+                    return
 
                 visible = not line.get_visible()
 
                 line.set_visible(visible)
+
                 legend_state[var] = visible
 
                 tick = "☑" if visible else "☐"
 
-                txt.set_text(
-                    f"{tick} {var}    ⨯"
-                )
+                txt.set_text(f"{tick} {var}    ⨯")
 
                 canvas.draw_idle()
+
                 return
 
         selected_text["obj"] = txt
@@ -3646,22 +3665,32 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         mode["type"] = "h"
 
     def clear_lines():
-        for l, t, _ in lines:
 
-            for ball in getattr(l, "_balls", []):
+        for l, t, _ in lines[:]:
+
+            for ball in getattr(l, "_balls", [])[:]:
                 try:
-                    ball.remove()
-                except:
+                    if ball.axes:
+                        ball.remove()
+                except Exception:
                     pass
 
-            l.remove()
-            t.remove()
+            try:
+                if l.axes:
+                    l.remove()
+            except Exception:
+                pass
+
+            try:
+                if t.axes:
+                    t.remove()
+            except Exception:
+                    pass
 
         lines.clear()
-
         selected_measurement_points.clear()
 
-        canvas.draw()
+        canvas.draw_idle()
 
     btn =tk.Button(custom_toolbar, text="│", command=set_vline, relief="flat")
     btn.pack(side="left", padx=3)
@@ -3936,6 +3965,10 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     plotted.remove(var)
 
                 legend_state.pop(var, None)
+
+                update_plot()
+
+                return
 
             else:
 
