@@ -3274,7 +3274,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         mode["slope"] = False
                         return
 
-                    slope = (p2._ball_y - p1._ball_y) / dt
+                    slope = ((p2._ball_y - p1._ball_y) / dt)*60 # slope per minute 
 
                     ax = artist.axes
 
