@@ -2289,12 +2289,22 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     paned.add(center_frame, stretch="always")
     paned.add(right_frame)
 
-    def set_pane_size():
-        paned.update_idletasks()
+    def on_mouse_move(event):
 
-        total_width = paned.winfo_width()
+        if event.inaxes is None:
+            canvas.get_tk_widget().config(cursor="")
+            return
 
-        paned.sash_place(0,total_width - 350,0)
+        ax = event.inaxes
+
+        bbox = ax.get_window_extent()
+
+        distance = abs(event.x - bbox.x0)
+
+        if distance < 5:
+            canvas.get_tk_widget().config(cursor="sb_h_double_arrow")
+        else:
+            canvas.get_tk_widget().config(cursor="")
 
     if new_window:
         plot_win.title("Plot")
@@ -2511,6 +2521,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     selected_line = {"obj": None}
     selected_legend = {"obj": None}
     dragged = {"var": None}
+    resizing_left_margin = {"active": False}
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
@@ -2735,6 +2746,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         line._balls.append(ball)
 
     def on_release(event):
+
+        resizing_left_margin["active"] = False
+
         mouse_pressed["state"] = False
 
         if dragged["var"] and event.inaxes:
@@ -2748,6 +2762,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         update_visible_min_max()
 
     def on_press(event):
+
+        for ax in axes:
+
+            bbox = ax.get_window_extent()
+
+            if abs(event.x - bbox.x0) < 5:
+
+                resizing_left_margin["active"] = True
+                return
 
         if selected_text["obj"] is not None:
             return
@@ -2788,6 +2811,25 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 return
 
     def on_motion(event):
+
+        if resizing_left_margin["active"]:
+
+            left = max(0.05,min(event.x / fig.bbox.width,0.35))
+
+            for ax in axes:
+
+                pos = ax.get_position()
+
+                ax.set_position([
+                    left,
+                    pos.y0,
+                    0.98 - left,
+                    pos.height
+                ])
+
+            canvas.draw_idle()
+            return
+
         if not mouse_pressed["state"]:
             return
 
@@ -2989,6 +3031,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     canvas.mpl_connect("button_press_event", on_press)
     canvas.mpl_connect("motion_notify_event", on_motion)
+    canvas.mpl_connect("motion_notify_event", on_mouse_move)
     canvas.mpl_connect("button_release_event", on_release)
 
     def on_pick(event):
