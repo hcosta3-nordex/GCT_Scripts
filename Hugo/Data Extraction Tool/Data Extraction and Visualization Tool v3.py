@@ -2868,21 +2868,17 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 create_horizontal_balls(ax, event.ydata,line)
 
+                ylim = ax.get_ylim()
+
                 if not getattr(txt, "_manual_position", False):
                     txt.xy = (
                         txt.xy[0],
-                        event.ydata
+                        event.ydata + 0.03 * (ylim[1] - ylim[0])
                     )
 
                 txt.set_text(
                     f"{event.ydata:.3f}".rstrip("0").rstrip(".")
                 )
-
-                if not getattr(txt, "_manual_position", False):
-                    txt.xy = (
-                        txt.xy[0],
-                        event.ydata
-                    )
 
                 update_measurements()
                 update_slopes()
@@ -3291,13 +3287,20 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     line.line_type = "slope"
 
+                    mid_x = mdates.num2date(
+                        (p1._ball_x + p2._ball_x) / 2
+                    )
+
+                    mid_y = (
+                        (p1._ball_y + p2._ball_y) / 2
+                        + 0.03 * (ax.get_ylim()[1] - ax.get_ylim()[0])
+                    )
+
                     txt = create_draggable_label(
                         ax,
-                        mdates.num2date(
-                            (p1._ball_x + p2._ball_x) / 2
-                        ),
-                        (p1._ball_y + p2._ball_y) / 2,
-                        f"Slope={slope:.6f}",
+                        mid_x,
+                        mid_y,
+                        f"Slope={slope:.6f}/min",
                         color="darkorange"
                     )
 
@@ -3502,7 +3505,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 if dt == 0:
                     continue
 
-                slope = (p2._ball_y - p1._ball_y) / dt
+                slope = ((p2._ball_y - p1._ball_y) / dt)*60 #per minute
 
                 x1 = mdates.num2date(p1._ball_x)
                 x2 = mdates.num2date(p2._ball_x)
@@ -3523,7 +3526,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     )
 
                 s["text"].set_text(
-                    f"Slope={slope:.6f}"
+                    f"Slope={slope:.6f}/min"
                 )
 
             except Exception as e:
@@ -3571,7 +3574,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     dx = abs(p2._ball_x - p1._ball_x) * 86400
 
-                    y_level = min(p1._ball_y, p2._ball_y)
+                    y_level = m["line"].get_ydata()[0]
 
                     x1 = mdates.num2date(p1._ball_x)
                     x2 = mdates.num2date(p2._ball_x)
@@ -3595,27 +3598,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     dy = abs(y2 - y1)
 
-                    measurement_ax = m["line"].axes
+                    x_level = m["line"].get_xdata()[0]
 
-                    x_center_num = np.mean(
-                        measurement_ax.get_xlim()
-                    )
+                    m["line"].set_xdata([x_level, x_level])
 
-                    x_center = mdates.num2date(
-                        x_center_num
-                    )
-
-                    m["line"].set_xdata(
-                        [x_center, x_center]
-                    )
-
-                    m["line"].set_ydata(
-                        [y1, y2]
-                    )
+                    m["line"].set_ydata([y1, y2])
 
                     if not getattr(m["text"], "_manual_position", False):
                         m["text"].xy = (
-                            x_center,
+                            x_level,
                             (y1 + y2) / 2
                         )
 
@@ -4257,6 +4248,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     ylim = ax.get_ylim()
 
+                    x_offset = (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.01
+
                     txt = create_draggable_label(
                         ax,
                         nearest_time,
@@ -4327,10 +4320,15 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 xlim = ax.get_xlim()
 
+                x_label = xlim[0] + 0.95 * (xlim[1] - xlim[0])
+
+                ylim = ax.get_ylim()
+                label_y = y + 0.03 * (ylim[1] - ylim[0])
+
                 txt = create_draggable_label(
                     ax,
-                    mdates.num2date(xlim[1]),
-                    y,
+                    mdates.num2date(x_label),
+                    label_y,
                     f"{y:.3f}".rstrip("0").rstrip("."),
                     color="green"
                 )
@@ -4530,6 +4528,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 line._balls.append(ball)
 
+            x_offset = (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.01
+
             txt = create_draggable_label(
                 ax,
                 nearest_time,
@@ -4601,10 +4601,14 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                                 line._balls.append(ball)
 
+            x_label = xlim[0] + 0.95 * (xlim[1] - xlim[0])
+
+            label_y = y + 0.03 * (ylim[1] - ylim[0])
+
             txt = create_draggable_label(
                 ax,
-                mdates.num2date(xlim[1]),
-                y,
+                mdates.num2date(x_label),
+                label_y,
                 f"{y:.3f}".rstrip("0").rstrip("."),
                 color="green"
             )
