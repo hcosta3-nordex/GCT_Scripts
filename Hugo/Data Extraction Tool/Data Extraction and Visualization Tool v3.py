@@ -2555,11 +2555,13 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         errors="coerce"
                     )
 
+                    tol = max(abs(ymax - ymin) * 0.001, 1e-9)
+
                     visible = series.loc[
                         (series.index >= start) &
                         (series.index <= end) &
-                        (series >= ymin) &
-                        (series <= ymax)
+                        (series >= ymin - tol) &
+                        (series <= ymax + tol)
                     ]
 
                     vmin = visible.min()
@@ -2658,7 +2660,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         gs = gridspec.GridSpec(len(plot_data), 1, figure=fig)
 
         for i in range(len(plot_data)):
-            ax = fig.add_subplot(gs[i, 0], sharex=axes[0] if axes else None)
+
+            ax = fig.add_subplot(gs[i, 0])
 
             if i > 0:
                 close_txt = ax.text(0.995,0.99,"✖",transform=ax.transAxes,ha="right",va="top",color="black",fontsize=12,fontweight="bold",picker=True)
@@ -4138,15 +4141,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             for i in range(n):
 
-                if i == 0:
-                    ax = fig2.add_subplot(n, 1, i + 1)
-                else:
-                    ax = fig2.add_subplot(
-                        n,
-                        1,
-                        i + 1,
-                        sharex=axes[0]
-                    )
+                ax = fig2.add_subplot(n,1,i + 1)
 
                 axes.append(ax)
 
@@ -4318,15 +4313,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             for i in range(n):
 
-                if i == 0:
-                    ax = fig2.add_subplot(n, 1, i + 1)
-                else:
-                    ax = fig2.add_subplot(
-                        n,
-                        1,
-                        i + 1,
-                        sharex=axes[0]
-                    )
+                ax = fig2.add_subplot(n,1,i + 1)
 
                 axes.append(ax)
 
