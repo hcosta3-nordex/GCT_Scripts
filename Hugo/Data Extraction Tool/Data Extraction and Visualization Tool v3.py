@@ -2497,6 +2497,101 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     toolbar = NavigationToolbar2Tk(canvas,center_frame,pack_toolbar=False)
 
+    old_home = toolbar.home
+
+    def update_visible_min_max():
+
+        if not axes or df is None:
+
+            return
+
+        for tree in (analog_tree, fm_tree, st_tree):
+
+            for item in tree.get_children():
+
+                signal = tree.item(item)["values"][0]
+
+                if signal not in df.columns:
+                        continue
+
+                axis_idx = None
+
+                for i, plotted_signals in enumerate(plot_data):
+
+                    if signal in plotted_signals:
+                        axis_idx = i
+                        break
+
+                if axis_idx is None:
+
+                    series = pd.to_numeric(
+                        df[signal]
+                        .astype(str)
+                        .str.replace(",", ".", regex=False),
+                        errors="coerce"
+                    )
+
+                    vmin = series.min()
+                    vmax = series.max()
+
+                else:
+
+                    xmin, xmax = axes[axis_idx].get_xlim()
+
+                    start = pd.to_datetime(
+                        mdates.num2date(xmin)
+                    ).tz_localize(None)
+
+                    end = pd.to_datetime(
+                        mdates.num2date(xmax)
+                    ).tz_localize(None)
+
+                    ymin, ymax = axes[axis_idx].get_ylim()
+
+                    series = pd.to_numeric(
+                        df[signal]
+                        .astype(str)
+                        .str.replace(",", ".", regex=False),
+                        errors="coerce"
+                    )
+
+                    visible = series.loc[
+                        (series.index >= start) &
+                        (series.index <= end) &
+                        (series >= ymin) &
+                        (series <= ymax)
+                    ]
+
+                    vmin = visible.min()
+                    vmax = visible.max()
+
+                if signal.upper().startswith(("FM", "ST")):
+
+                    min_txt = (str(int(vmin)) if pd.notna(vmin)else "")
+
+                    max_txt = (str(int(vmax)) if pd.notna(vmax)else "")
+
+                else:
+
+                    min_txt = (f"{vmin:.3f}" if pd.notna(vmin)else "")
+
+                    max_txt = ( f"{vmax:.3f}" if pd.notna(vmax)else "")
+
+                tree.item(item, values=(signal, min_txt, max_txt))
+
+    def custom_home(*args):
+
+        old_home(*args)
+
+        canvas.draw_idle()
+
+        container.after(
+            50,
+            update_visible_min_max
+        )
+
+    toolbar.home = custom_home
+
     toolbar.update()
     toolbar.pack(side="bottom",fill="x")
     toolbar.set_message = lambda s: None
@@ -2550,6 +2645,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         return ann
 
     def rebuild_axes():
+
         selected_text["obj"] = None
         selected_line["obj"] = None
         selected_legend["obj"] = None
@@ -2622,9 +2718,14 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         fig.tight_layout()
         canvas.draw()
 
+
     if not empty_mode:
+
         rebuild_axes()
+        update_visible_min_max()
+
     else:
+
         ax = fig.add_subplot(111)
         canvas.draw()
 
@@ -2758,6 +2859,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         selected_text["obj"] = None
         selected_line["obj"] = None
         selected_legend["obj"] = None
+
+        updating_minmax = {"active": False}
 
         update_visible_min_max()
 
@@ -3033,6 +3136,17 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     canvas.mpl_connect("motion_notify_event", on_motion)
     canvas.mpl_connect("motion_notify_event", on_mouse_move)
     canvas.mpl_connect("button_release_event", on_release)
+
+    def on_draw(event):
+
+        if empty_mode:
+            return
+
+        updating_minmax = {"active": False}
+
+        update_visible_min_max()
+
+    canvas.mpl_connect("draw_event", on_draw)
 
     def on_pick(event):
 
@@ -4415,72 +4529,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         selected_measurement_points.clear()
         mode["measure"] = "y"
 
-    def update_visible_min_max():
-
-        for tree in (analog_tree, fm_tree, st_tree):
-
-            for item in tree.get_children():
-
-                values = list(tree.item(item)["values"])
-
-                signal = values[0]
-
-                if signal not in df.columns:
-                    continue
-
-                xmin, xmax = axes[0].get_xlim()
-
-                start = pd.Timestamp(
-                    mdates.num2date(xmin)
-                ).tz_localize(None)
-
-                end = pd.Timestamp(
-                    mdates.num2date(xmax)
-                ).tz_localize(None)
-
-                visible = df.loc[start:end, signal]
-
-                visible = pd.to_numeric(
-                    visible.astype(str).str.replace(",", "."),
-                    errors="coerce"
-                )
-
-                vmin = visible.min()
-                vmax = visible.max()
-
-                if signal.upper().startswith(("FM", "ST")):
-
-                    min_txt = (
-                        str(int(vmin))
-                        if pd.notna(vmin)
-                        else ""
-                    )
-
-                    max_txt = (
-                        str(int(vmax))
-                        if pd.notna(vmax)
-                        else ""
-                    )
-
-                else:
-
-                    min_txt = (
-                        f"{vmin:.3f}"
-                        if pd.notna(vmin)
-                        else ""
-                    )
-
-                    max_txt = (
-                        f"{vmax:.3f}"
-                        if pd.notna(vmax)
-                        else ""
-                    )
-
-                tree.item(
-                    item,
-                    values=(signal, min_txt, max_txt)
-                )
-
     btn6 = tk.Button(custom_toolbar,text="↔X",command=measure_x,relief="flat")
     btn6.pack(side="left", padx=3)
     ToolTip(btn6, "Measure X distance")
@@ -4683,6 +4731,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     ttk.Button(button_frame,text="Add Plot Area",command=add_subplot).grid(row=0, column=0, padx=2, sticky="ew")
     ttk.Button(button_frame,text="Clear All",command=clear_all).grid(row=0, column=1, padx=2, sticky="ew")
     ttk.Button(button_frame,text="New Window",command=lambda: open_plot_window(None,current_csv_file,source_selected,new_window=True)).grid(row=0, column=2, padx=2, sticky="ew")
+
+    if not empty_mode:
+
+        updating_minmax = {"active": False}
+
+        update_visible_min_max()
 
 def detect_source(csv_file):
     try:
