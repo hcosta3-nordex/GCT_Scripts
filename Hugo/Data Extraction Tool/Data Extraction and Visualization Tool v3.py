@@ -2290,17 +2290,59 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         x_dt = mdates.num2date(event.xdata)
         y_val = event.ydata
 
+        if source_selected.lower() in ["opclogger", "mfr opclogger"]:
+
+            time_txt = x_dt.strftime("%H:%M:%S")
+
+        elif source_selected.lower() == "mfr tsdl":
+
+            time_txt = (
+                f"{x_dt.strftime('%H:%M:%S')}."
+                f"{x_dt.microsecond:06d}"
+            ).rstrip("0").rstrip(".")
+
+        else:
+
+            ms = int(x_dt.microsecond / 1000)
+
+            time_txt = (
+                f"{x_dt.strftime('%H:%M:%S')}."
+                f"{ms:03d}"
+            ).rstrip("0").rstrip(".")
+        
         txt = (
-            f"{x_dt.strftime('%H:%M:%S.%f')[:-3]}\n"
+            f"{time_txt}\n"
             f"{y_val:.3f}"
         )
+
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+
+        xmid = (xmin + xmax) / 2
+        ymid = (ymin + ymax) / 2
+
+        if event.xdata < xmid:
+            x_offset = 15
+            ha = "left"
+        else:
+            x_offset = -15
+            ha = "right"
+
+        if event.ydata < ymid:
+            y_offset = 15
+            va = "bottom"
+        else:
+            y_offset = -15
+            va = "top"
 
         hover_info["label"] = ax.annotate(
             txt,
             xy=(event.xdata, event.ydata),
             xycoords="data",
-            xytext=(15, 15),
+            xytext=(x_offset, y_offset),
             textcoords="offset points",
+            ha=ha,
+            va=va,
             bbox=dict(
                 boxstyle="round",
                 fc="lightyellow",
