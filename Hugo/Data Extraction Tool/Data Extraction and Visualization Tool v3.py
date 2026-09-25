@@ -2261,7 +2261,70 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     selected_measurement_points = []
     measurements = []
     slopes = []
-    slope_items = []
+    hover_info = {
+        "event": None,
+        "job": None,
+        "label": None,
+        "x": None,
+        "y": None
+    }  
+
+    def show_hover_coordinates():
+
+        if hover_info["event"] is None:
+            return
+
+        event = hover_info["event"]
+
+        if event.inaxes is None:
+            return
+
+        ax = event.inaxes
+
+        if hover_info["label"] is not None:
+            try:
+                hover_info["label"].remove()
+            except:
+                pass
+
+        x_dt = mdates.num2date(event.xdata)
+        y_val = event.ydata
+
+        txt = (
+            f"{x_dt.strftime('%H:%M:%S.%f')[:-3]}\n"
+            f"{y_val:.3f}"
+        )
+
+        hover_info["label"] = ax.annotate(
+            txt,
+            xy=(event.xdata, event.ydata),
+            xycoords="data",
+            xytext=(15, 15),
+            textcoords="offset points",
+            bbox=dict(
+                boxstyle="round",
+                fc="lightyellow",
+                ec="black",
+                alpha=0.9
+            ),
+            fontsize=8,
+            zorder=1000
+        )
+
+        canvas.draw_idle()
+
+    def hide_hover_coordinates():
+
+        if hover_info["label"] is not None:
+
+            try:
+                hover_info["label"].remove()
+            except:
+                pass
+
+            hover_info["label"] = None
+
+            canvas.draw_idle()
 
     current_csv_file = final_csv_path
 
@@ -2289,23 +2352,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     paned.add(center_frame, stretch="always")
     paned.add(right_frame)
 
-    def on_mouse_move(event):
-
-        if event.inaxes is None:
-            canvas.get_tk_widget().config(cursor="")
-            return
-
-        ax = event.inaxes
-
-        bbox = ax.get_window_extent()
-
-        distance = abs(event.x - bbox.x0)
-
-        if distance < 5:
-            canvas.get_tk_widget().config(cursor="sb_h_double_arrow")
-        else:
-            canvas.get_tk_widget().config(cursor="")
-
     if new_window:
         plot_win.title("Plot")
         plot_win.geometry("1000x650")
@@ -2319,6 +2365,53 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     fig = plt.figure()
     canvas = FigureCanvasTkAgg(fig, master=center_frame)
     canvas.get_tk_widget().pack(fill="both", expand=True)
+
+    def on_mouse_move(event):
+    
+        if event.inaxes is None:
+
+            canvas.get_tk_widget().config(cursor="")
+
+            hide_hover_coordinates()
+
+            if hover_info["job"]:
+                center_frame.after_cancel(hover_info["job"])
+                hover_info["job"] = None
+
+            return
+
+        ax = event.inaxes
+
+        bbox = ax.get_window_extent()
+
+        distance = abs(event.x - bbox.x0)
+
+        if distance < 5:
+            canvas.get_tk_widget().config(cursor="sb_h_double_arrow")
+        else:
+            canvas.get_tk_widget().config(cursor="")
+
+        moved = (
+            hover_info["x"] is None
+            or abs(event.x - hover_info["x"]) > 3
+            or abs(event.y - hover_info["y"]) > 3
+        )
+
+        if moved:
+
+            hover_info["x"] = event.x
+            hover_info["y"] = event.y
+            hover_info["event"] = event
+
+            hide_hover_coordinates()
+
+            if hover_info["job"]:
+                center_frame.after_cancel(hover_info["job"])
+
+            hover_info["job"] = center_frame.after(
+                1000,
+                show_hover_coordinates
+            )
 
     if final_csv_path:
 
