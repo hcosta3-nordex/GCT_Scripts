@@ -3166,6 +3166,114 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 update_measurements()
                 update_slopes()
 
+            elif getattr(line, "line_type", "") == "tracker":
+
+                new_time = pd.Timestamp(
+                    mdates.num2date(event.xdata)
+                ).tz_localize(None)
+
+                nearest_time = min(
+                    df.index,
+                    key=lambda t: abs(t - new_time)
+                )
+
+                x_num = mdates.date2num(nearest_time)
+
+                line.set_xdata(
+                    [nearest_time, nearest_time]
+                )
+
+                for signal_name, marker, label in line._tracker_items:
+
+                    signal = next(
+                        (
+                            s for s in ax.get_lines()
+                            if getattr(s, "_var", None) == signal_name
+                        ),
+                        None
+                    )
+
+                    if signal is None:
+                        continue
+
+                    xsignal = mdates.date2num(
+                        pd.to_datetime(signal.get_xdata())
+                    )
+
+                    idx = np.argmin(
+                        np.abs(xsignal - x_num)
+                    )
+
+                    y = float(signal.get_ydata()[idx])
+
+                    marker.set_data(
+                        [nearest_time],
+                        [y]
+                    )
+
+                    marker._ball_x = x_num
+                    marker._ball_y = y
+
+                    if not getattr(
+                        label,
+                        "_manual_position",
+                        False
+                    ):
+                        label.xy = (
+                            nearest_time,
+                            y
+                        )
+
+                    label.set_text(
+                        f"{y:.3f}".rstrip("0").rstrip(".")
+                    )
+
+                    visible = signal.get_visible()
+
+                    marker.set_visible(visible)
+                    label.set_visible(visible)
+
+                if source_selected.lower() in ["opclogger", "mfr opclogger"]:
+
+                    txt.set_text(
+                        nearest_time.strftime("%H:%M:%S")
+                    )
+
+                elif source_selected.lower() == "mfr tsdl":
+
+                    txt.set_text(
+                        f"{nearest_time.strftime('%H:%M:%S')}."
+                        f"{nearest_time.microsecond:06d}"
+                        .rstrip("0")
+                        .rstrip(".")
+                    )
+
+                else:
+
+                    ms = int(nearest_time.microsecond / 1000)
+
+                    txt.set_text(
+                        f"{nearest_time.strftime('%H:%M:%S')}."
+                        f"{ms:03d}"
+                        .rstrip("0")
+                        .rstrip(".")
+                    )
+
+                if not getattr(
+                    txt,
+                    "_manual_position",
+                    False
+                ):
+                    txt.xy = (
+                        nearest_time,
+                        txt.xy[1]
+                    )
+
+                update_measurements()
+                update_slopes()
+
+                canvas.draw_idle()
+
             elif getattr(line, "line_type", "") == "measure_x":
 
                 y = event.ydata
@@ -3275,6 +3383,26 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     canvas.mpl_connect("motion_notify_event", on_mouse_move)
     canvas.mpl_connect("button_release_event", on_release)
 
+    def remove_line_extras(line):
+
+        for ball in getattr(line, "_balls", [])[:]:
+            try:
+                ball.remove()
+            except:
+                pass
+
+        for _, marker, label in getattr(line, "_tracker_items", [])[:]:
+            try:
+                marker.remove()
+            except:
+                pass
+
+            try:
+                label.remove()
+            except:
+                pass
+
+
     def on_draw(event):
 
         if empty_mode:
@@ -3383,7 +3511,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 line_type = getattr(artist, "line_type", "")
 
-                if line_type in ("vertical", "horizontal"):
+                if line_type in ("vertical", "horizontal", "tracker"):
 
                     for line, txt, ax in lines[:]:
 
@@ -3428,12 +3556,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                                 if item[0] not in [m["line"] for m in to_remove]
                             ]
 
-                            for ball in getattr(line, "_balls", []):
-
-                                try:
-                                    ball.remove()
-                                except:
-                                    pass
+                            remove_line_extras(line)
 
                             try:
                                 line.remove()
@@ -3460,18 +3583,13 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 line_type = getattr(artist, "line_type", "")
 
-                if line_type in ("vertical", "horizontal"):
+                if line_type in ("vertical", "horizontal", "tracker"):
 
                     for line, txt, ax in lines[:]:
 
                         if line is artist:
 
-                            for ball in getattr(line, "_balls", []):
-
-                                try:
-                                    ball.remove()
-                                except:
-                                    pass
+                            remove_line_extras(line)
 
                             try:
                                 line.remove()
@@ -3498,7 +3616,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 "measure_x",
                 "measure_y",
                 "vertical",
-                "horizontal"
+                "horizontal",
+                "tracker"
             ):
 
                 for l, t, a in lines:
@@ -3767,6 +3886,90 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 legend_state[var] = visible
 
+                for tracker_line, _, tracker_ax in lines:
+
+                    if getattr(tracker_line, "line_type", "") != "tracker":
+                        continue
+
+                    if tracker_ax != line.axes:
+                        continue
+
+                    for signal_name, marker, label in getattr(
+                        tracker_line,
+                        "_tracker_items",
+                        []
+                    ):
+
+                        if signal_name == var:
+
+                            marker.set_visible(visible)
+                            label.set_visible(visible)
+
+                for cursor_line, _, _ in lines:
+
+                    for ball in getattr(cursor_line, "_balls", []):
+
+                        if getattr(ball, "_signal", None) == var:
+
+                            ball.set_visible(visible)
+
+                for m in measurements:
+
+                    show = True
+
+                    if m["type"] == "x":
+
+                        if (
+                            m["signal1"] == var or
+                            m["signal2"] == var
+                        ):
+                            show = visible
+
+                    else:
+
+                        signals_visible = []
+
+                        for sig in [var]:
+
+                            for b in getattr(
+                                m["cursor1"],
+                                "_balls",
+                                []
+                            ):
+                                if getattr(b, "_signal", None) == sig:
+                                    signals_visible.append(
+                                        b.get_visible()
+                                    )
+
+                            for b in getattr(
+                                m["cursor2"],
+                                "_balls",
+                                []
+                            ):
+                                if getattr(b, "_signal", None) == sig:
+                                    signals_visible.append(
+                                        b.get_visible()
+                                    )
+
+                        if signals_visible:
+                            show = all(signals_visible)
+
+                    m["line"].set_visible(show)
+                    m["text"].set_visible(show)
+
+                for s in slopes:
+
+                    show = True
+
+                    if (
+                        s["p1_signal"] == var or
+                        s["p2_signal"] == var
+                    ):
+                        show = visible
+
+                    s["line"].set_visible(show)
+                    s["text"].set_visible(show)
+
                 tick = "☑" if visible else "☐"
 
                 txt.set_text(f"{tick} {var}    ⨯")
@@ -3954,26 +4157,22 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         for l, t, _ in lines[:]:
 
-            for ball in getattr(l, "_balls", [])[:]:
-                try:
-                    if ball.axes:
-                        ball.remove()
-                except Exception:
-                    pass
+            remove_line_extras(l)
 
             try:
                 if l.axes:
                     l.remove()
-            except Exception:
+            except:
                 pass
 
             try:
                 if t.axes:
                     t.remove()
-            except Exception:
-                    pass
+            except:
+                pass
 
         lines.clear()
+
         selected_measurement_points.clear()
 
         canvas.draw_idle()
@@ -4631,6 +4830,78 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     btn3 = tk.Button(custom_toolbar, text="─*", command=lambda: open_manual_hline(), relief="flat")
     btn3.pack(side="left", padx=3)
     ToolTip(btn3, "Add specific horizontal line")
+
+    def set_tracker():
+        mode["type"] = "tracker"
+
+    def create_tracker_labels(ax, nearest_time, line):
+
+        x_num = mdates.date2num(nearest_time)
+
+        line._tracker_items = []
+        line._balls = []
+
+        for signal in ax.get_lines():
+
+            if not hasattr(signal, "_var"):
+                continue
+
+            xdata = signal.get_xdata()
+            ydata = signal.get_ydata()
+
+            if len(xdata) == 0:
+                continue
+
+            xsignal = mdates.date2num(
+                pd.to_datetime(xdata)
+            )
+
+            idx = np.argmin(np.abs(xsignal - x_num))
+
+            y = float(ydata[idx])
+
+            color = signal.get_color()
+
+            marker, = ax.plot(
+                [nearest_time],
+                [y],
+                marker="o",
+                markersize=5,
+                color="orange",
+                linestyle="None",
+                picker=5,
+                zorder=300
+            )
+
+            marker._is_measure_ball = True
+
+            marker._ball_x = x_num
+            marker._ball_y = y
+
+            marker._signal = signal._var
+
+            marker._parent_line = line
+
+            line._balls.append(marker)
+
+            label = create_draggable_label(
+                ax,
+                nearest_time,
+                y,
+                f"{y:.3f}".rstrip("0").rstrip("."),
+                color=color
+            )
+
+            label._is_cursor_label = True
+            label._manual_position = False
+
+            line._tracker_items.append(
+                (signal._var, marker, label)
+            )
+
+    btn_tracker = tk.Button(custom_toolbar,text="│─",command=set_tracker,relief="flat")
+    btn_tracker.pack(side="left", padx=3)
+    ToolTip(btn_tracker, "Vertical cursor with Y values")
     btn4 = tk.Button(custom_toolbar, text="│─1🗑", command=delete_single_line_mode, relief="flat")
     btn4.pack(side="left",padx=3)
     ToolTip(btn4, "Delete one line")
@@ -4752,6 +5023,65 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             )
 
             txt._is_cursor_label = True
+
+        elif mode["type"] == "tracker":
+
+            x_time = mdates.num2date(event.xdata)
+            x_time = pd.Timestamp(x_time).tz_localize(None)
+
+            nearest_time = min(
+                df.index,
+                key=lambda t: abs(t - x_time)
+            )
+
+            line = ax.axvline(
+                nearest_time,
+                color="red",
+                linestyle="--",
+                linewidth=1.5,
+                picker=5
+            )
+
+            line.line_type = "tracker"
+
+            create_tracker_labels(
+                ax,
+                nearest_time,
+                line
+            )
+
+            if source_selected.lower() in ["opclogger", "mfr opclogger"]:
+                label = nearest_time.strftime("%H:%M:%S")
+
+            elif source_selected.lower() == "mfr tsdl":
+                label = (
+                    f"{nearest_time.strftime('%H:%M:%S')}."
+                    f"{nearest_time.microsecond:06d}"
+                ).rstrip("0").rstrip(".")
+
+            else:
+                ms = int(nearest_time.microsecond / 1000)
+
+                label = (
+                    f"{nearest_time.strftime('%H:%M:%S')}."
+                    f"{ms:03d}"
+                ).rstrip("0").rstrip(".")
+
+            txt = create_draggable_label(
+                ax,
+                nearest_time,
+                ylim[1] - (ylim[1]-ylim[0])*0.05,
+                label,
+                color="red"
+            )
+
+            txt._is_cursor_label = True
+
+            lines.append((line, txt, ax))
+
+            canvas.draw()
+
+            mode["type"] = None
 
         else:
             y = event.ydata
