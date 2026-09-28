@@ -3493,6 +3493,18 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                             except:
                                 pass
 
+                            if "helper1" in m:
+                                try:
+                                    m["helper1"].remove()
+                                except:
+                                    pass
+
+                            if "helper2" in m:
+                                try:
+                                    m["helper2"].remove()
+                                except:
+                                    pass
+
                             measurements.remove(m)
 
                     lines[:] = [
@@ -3643,6 +3655,22 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     artist.remove()
                 except:
                     pass
+
+                for m in measurements:
+
+                    if m["line"] is line:
+
+                        if "helper1" in m:
+                            try:
+                                m["helper1"].remove()
+                            except:
+                                pass
+
+                        if "helper2" in m:
+                            try:
+                                m["helper2"].remove()
+                            except:
+                                pass
 
                 measurements[:] = [
                     m for m in measurements
@@ -3805,7 +3833,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     dy = abs(p2._ball_y - p1._ball_y)
 
-                    x_level = mdates.num2date(p1._ball_x)
+                    offset = (p2._ball_x - p1._ball_x) * 0.2
+
+                    x_level = mdates.num2date(p1._ball_x + offset)
 
                     line = ax.plot(
                         [x_level, x_level],
@@ -3825,13 +3855,45 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         color="magenta"
                     )
 
-                    measurements.append({
+                    tracker_measure = (
+                        getattr(p1._parent_line, "line_type", "") == "tracker"
+                        and
+                        getattr(p2._parent_line, "line_type", "") == "tracker"
+                    )
+
+                    measurement = {
                         "type": "y",
                         "cursor1": p1._parent_line,
                         "cursor2": p2._parent_line,
+                        "signal1": p1._signal,
+                        "signal2": p2._signal,
                         "line": line,
                         "text": txt
-                    })
+                    }
+
+                    if tracker_measure:
+
+                        helper1 = ax.axhline(
+                            p1._ball_y,
+                            color="magenta",
+                            linestyle=":",
+                            linewidth=1,
+                            picker=False
+                        )
+
+                        helper2 = ax.axhline(
+                            p2._ball_y,
+                            color="magenta",
+                            linestyle=":",
+                            linewidth=1,
+                            picker=False
+                        )
+
+                        measurement["tracker_measure"] = True
+                        measurement["helper1"] = helper1
+                        measurement["helper2"] = helper2
+
+                    measurements.append(measurement)
 
                     txt._is_measurement_text = True
                     txt._line = line
@@ -4089,6 +4151,45 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     m["text"].set_text(f"{dx:.3f} s")
 
+                elif m.get("tracker_measure", False):
+
+                    p1 = next(
+                        b for b in m["cursor1"]._balls
+                        if b._signal == m["signal1"]
+                    )
+
+                    p2 = next(
+                        b for b in m["cursor2"]._balls
+                        if b._signal == m["signal2"]
+                    )
+
+                    y1 = p1._ball_y
+                    y2 = p2._ball_y
+
+                    dy = abs(y2 - y1)
+
+                    offset = (p2._ball_x - p1._ball_x) * 0.2
+
+                    x_level = mdates.num2date(
+                        p1._ball_x + offset
+                    )
+
+                    m["line"].set_xdata([x_level, x_level])
+                    m["line"].set_ydata([y1, y2])
+
+                    m["helper1"].set_ydata([y1, y1])
+                    m["helper2"].set_ydata([y2, y2])
+
+                    if not getattr(m["text"], "_manual_position", False):
+                        m["text"].xy = (
+                            x_level,
+                            (y1 + y2) / 2
+                        )
+
+                    m["text"].set_text(
+                        f"{dy:.3f}".rstrip("0").rstrip(".")
+                    )
+
                 else:
 
                     y1 = m["cursor1"].get_ydata()[0]
@@ -4140,6 +4241,23 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             not in ("measure_x", "measure_y")
             ]
         measurement_items.clear()
+
+        for m in measurements:
+
+            if m["type"] == "y":
+
+                if "helper1" in m:
+                    try:
+                        m["helper1"].remove()
+                    except:
+                        pass
+
+                if "helper2" in m:
+                    try:
+                        m["helper2"].remove()
+                    except:
+                        pass
+
         measurements.clear()
 
         selected_text["obj"] = None
