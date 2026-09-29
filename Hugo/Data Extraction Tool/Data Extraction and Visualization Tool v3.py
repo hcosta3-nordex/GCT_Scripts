@@ -1902,38 +1902,61 @@ def averaging_tsdl_csv(final_output_file, increment_ms):
                 rows.pop(i + 1)
                 continue           
 
-            gap = abs(t2 - t1)
-            if gap <= increment:
+            gap = t2 - t1
+
+            num_steps = int(gap.total_seconds() / increment.total_seconds())
+
+            if num_steps <= 1:
                 i += 1
                 continue
 
-            mid_time = t1 + increment
-            end_of_day = datetime.strptime("23:59:59.999000", "%H:%M:%S.%f").time()
-            date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+            new_rows = []
 
-            if mid_time.time() > end_of_day:
-                date_obj += timedelta(days=1)
+            for step in range(1, num_steps):
+                current_time = t1 + increment * step
 
-            mid_row = row1.copy()
-            mid_row[0] = date_obj.strftime("%Y-%m-%d")
-            mid_row[1] = format_timestamp(mid_time)
+                fraction = (
+                    (current_time - t1).total_seconds()
+                    / gap.total_seconds()
+                )
 
-            for col_index, col_name in enumerate(col_names):
-                if col_index < 2:
-                    continue
-                v1 = row1[col_index]
-                v2 = row2[col_index]
-                if col_name.startswith(("ANA", "TR")):
-                    try:
-                        avg_val = (float(v1) + float(v2)) / 2
-                        mid_row[col_index] = preserve_decimal_format(v1, avg_val)
-                    except:
-                        mid_row[col_index] = v1
-                else:
-                    mid_row[col_index] = v1
+                new_row = row1.copy()
 
-            rows.insert(i + 1, mid_row)
-            i += 1
+                date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+                if current_time.time() < t1.time():
+                    date_obj += timedelta(days=1)
+
+                new_row[0] = date_obj.strftime("%Y-%m-%d")
+                new_row[1] = format_timestamp(current_time)
+
+                for col_index, col_name in enumerate(col_names):
+                    if col_index < 2:
+                        continue
+
+                    v1 = row1[col_index]
+                    v2 = row2[col_index]
+
+                    if col_name.startswith(("ANA", "TR")):
+                        try:
+                            val1 = float(v1)
+                            val2 = float(v2)
+
+                            interpolated = val1 + (val2 - val1) * fraction
+
+                            new_row[col_index] = preserve_decimal_format(
+                                v1,
+                                interpolated
+                            )
+                        except:
+                            new_row[col_index] = v1
+                    else:
+                        new_row[col_index] = v1
+
+                new_rows.append(new_row)
+
+            rows[i + 1:i + 1] = new_rows
+
+            i += len(new_rows) + 1
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=",")
@@ -1993,38 +2016,61 @@ def averaging_tsdl_bin(final_output_file, increment_ms):
                 rows.pop(i + 1)
                 continue
 
-            gap = abs(t2 - t1)
-            if gap <= increment:
+            gap = t2 - t1
+
+            num_steps = int(gap.total_seconds() / increment.total_seconds())
+
+            if num_steps <= 1:
                 i += 1
                 continue
 
-            mid_time = t1 + increment
-            end_of_day = datetime.strptime("23:59:59.999000", "%H:%M:%S.%f").time()
-            date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+            new_rows = []
 
-            if mid_time.time() > end_of_day:
-                date_obj += timedelta(days=1)
+            for step in range(1, num_steps):
+                current_time = t1 + increment * step
 
-            mid_row = row1.copy()
-            mid_row[0] = date_obj.strftime("%Y-%m-%d")
-            mid_row[1] = format_timestamp(mid_time)
+                fraction = (
+                    (current_time - t1).total_seconds()
+                    / gap.total_seconds()
+                )
 
-            for col_index, col_name in enumerate(col_names):
-                if col_index < 2:
-                    continue
-                v1 = row1[col_index]
-                v2 = row2[col_index]
-                if col_name.startswith(("ANA", "TR")):
-                    try:
-                        avg_val = (float(v1) + float(v2)) / 2
-                        mid_row[col_index] = preserve_decimal_format(v1, avg_val)
-                    except:
-                        mid_row[col_index] = v1
-                else:
-                    mid_row[col_index] = v1
+                new_row = row1.copy()
 
-            rows.insert(i + 1, mid_row)
-            i += 1
+                date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+                if current_time.time() < t1.time():
+                    date_obj += timedelta(days=1)
+
+                new_row[0] = date_obj.strftime("%Y-%m-%d")
+                new_row[1] = format_timestamp(current_time)
+
+                for col_index, col_name in enumerate(col_names):
+                    if col_index < 2:
+                        continue
+
+                    v1 = row1[col_index]
+                    v2 = row2[col_index]
+
+                    if col_name.startswith(("ANA", "TR")):
+                        try:
+                            val1 = float(v1)
+                            val2 = float(v2)
+
+                            interpolated = val1 + (val2 - val1) * fraction
+
+                            new_row[col_index] = preserve_decimal_format(
+                                v1,
+                                interpolated
+                            )
+                        except:
+                            new_row[col_index] = v1
+                    else:
+                        new_row[col_index] = v1
+
+                new_rows.append(new_row)
+
+            rows[i + 1:i + 1] = new_rows
+
+            i += len(new_rows) + 1
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=",")
@@ -2086,44 +2132,62 @@ def averaging_opclogger(final_output_file, increment_ms):
                 rows.pop(i + 1)
                 continue
 
-            gap = abs(t2 - t1)
+            gap = t2 - t1
 
-            if gap <= increment:
+            num_steps = int(gap.total_seconds() / increment.total_seconds())
+
+            if num_steps <= 1:
                 i += 1
                 continue
 
-            mid_time = t1 + increment
-            end_of_day = datetime.strptime("23:59:59", "%H:%M:%S").time()
+            new_rows = []
 
-            date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+            for step in range(1, num_steps):
+                current_time = t1 + increment * step
 
-            if mid_time.time() > end_of_day:
-                date_obj += timedelta(days=1)
+                fraction = (
+                    (current_time - t1).total_seconds()
+                    / gap.total_seconds()
+                )
 
-            mid_row = row1.copy()
-            mid_row[0] = date_obj.strftime("%Y-%m-%d")
-            mid_row[1] = format_timestamp(mid_time)
+                new_row = row1.copy()
 
-            for col_index in range(len(header)):
-                if col_index < 2:
-                    continue
+                date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+                if current_time.time() < t1.time():
+                    date_obj += timedelta(days=1)
 
-                col_name = header[col_index]
-                v1 = row1[col_index]
-                v2 = row2[col_index]
+                new_row[0] = date_obj.strftime("%Y-%m-%d")
+                new_row[1] = format_timestamp(current_time)
 
-                if col_name.startswith(("ANA", "TR")):
-                    try:
-                        avg_val = (float(v1) + float(v2)) / 2
-                        mid_row[col_index] = preserve_decimal_format(v1, avg_val)
-                    except:
-                        mid_row[col_index] = v1
-                else:
-                    mid_row[col_index] = v1
+                for col_index in range(len(header)):
+                    if col_index < 2:
+                        continue
 
-            rows.insert(i + 1, mid_row)
+                    col_name = header[col_index]
+                    v1 = row1[col_index]
+                    v2 = row2[col_index]
 
-            i += 1
+                    if col_name.startswith(("ANA", "TR")):
+                        try:
+                            val1 = float(v1)
+                            val2 = float(v2)
+
+                            interpolated = val1 + (val2 - val1) * fraction
+
+                            new_row[col_index] = preserve_decimal_format(
+                                v1,
+                                interpolated
+                            )
+                        except:
+                            new_row[col_index] = v1
+                    else:
+                        new_row[col_index] = v1
+
+                new_rows.append(new_row)
+
+            rows[i + 1:i + 1] = new_rows
+
+            i += len(new_rows) + 1
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=",")
@@ -2183,38 +2247,60 @@ def averaging_mfr(final_output_file, increment_ms):
                 rows.pop(i + 1)
                 continue
 
-            gap = abs(t2 - t1)
-            if gap <= increment:
+            gap = t2 - t1
+
+            num_steps = int(gap.total_seconds() / increment.total_seconds())
+
+            if num_steps <= 1:
                 i += 1
                 continue
 
-            mid_time = t1 + increment
-            end_of_day = datetime.strptime("23:59:59.999000", "%H:%M:%S.%f").time()
-            date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+            new_rows = []
 
-            if mid_time.time() > end_of_day:
-                date_obj += timedelta(days=1)
+            for step in range(1, num_steps):
+                current_time = t1 + increment * step
 
-            mid_row = row1.copy()
-            mid_row[0] = date_obj.strftime("%Y-%m-%d")
-            mid_row[1] = format_timestamp(mid_time)
+                fraction = (
+                    (current_time - t1).total_seconds()
+                    / gap.total_seconds()
+                )
 
-            for col_index, col_name in enumerate(col_names):
-                if col_index < 2:
-                    continue
-                v1 = row1[col_index]
-                v2 = row2[col_index]
-                if col_name.startswith(("ANA", "TR")):
-                    try:
-                        avg_val = (float(v1) + float(v2)) / 2
-                        mid_row[col_index] = preserve_decimal_format(v1, avg_val)
-                    except:
-                        mid_row[col_index] = v1
-                else:
-                    mid_row[col_index] = v1
+                new_row = row1.copy()
 
-            rows.insert(i + 1, mid_row)
-            i += 1
+                date_obj = datetime.strptime(row1[0].strip(), "%Y-%m-%d")
+                if current_time.time() < t1.time():
+                    date_obj += timedelta(days=1)
+
+                new_row[0] = date_obj.strftime("%Y-%m-%d")
+                new_row[1] = format_timestamp(current_time)
+
+                for col_index, col_name in enumerate(col_names):
+                    if col_index < 2:
+                        continue
+
+                    v1 = row1[col_index]
+                    v2 = row2[col_index]
+
+                    if col_name.startswith(("ANA", "TR")):
+                        try:
+                            val1 = float(v1)
+                            val2 = float(v2)
+
+                            interpolated = val1 + (val2 - val1) * fraction
+
+                            new_row[col_index] = preserve_decimal_format(
+                                v1,
+                                interpolated
+                            )
+                        except:
+                            new_row[col_index] = v1
+                    else:
+                        new_row[col_index] = v1
+
+                new_rows.append(new_row)
+
+            rows[i + 1:i + 1] = new_rows
+            i += len(new_rows) + 1
 
         with open(final_output_file, mode="w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile, delimiter=",")
@@ -5002,10 +5088,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             line._balls.append(marker)
 
+            ylim = ax.get_ylim()
+
             label = create_draggable_label(
                 ax,
                 nearest_time,
-                y,
+                y + 0.03 * (ylim[1] - ylim[0]),
                 f"{y:.3f}".rstrip("0").rstrip("."),
                 color=color
             )
