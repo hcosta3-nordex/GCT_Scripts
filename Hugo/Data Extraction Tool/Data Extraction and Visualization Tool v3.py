@@ -2718,8 +2718,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     toolbar = NavigationToolbar2Tk(canvas,center_frame,pack_toolbar=False)
 
-    old_home = toolbar.home
-
     def update_visible_min_max():
 
         if not axes or df is None:
@@ -2804,9 +2802,21 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     def custom_home(*args):
 
-        old_home(*args)
+        for i, ax in enumerate(axes):
+
+            if i not in initial_limits:
+                continue
+
+            ax.set_xlim(
+                initial_limits[i]["xlim"]
+            )
+
+            ax.set_ylim(
+                initial_limits[i]["ylim"]
+            )
 
         canvas.draw_idle()
+
 
         container.after(
             50,
@@ -2815,12 +2825,20 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     toolbar.home = custom_home
 
+    try:
+        toolbar._buttons["Home"].configure(
+        command=custom_home
+    )
+    except Exception as e:
+        print("Home rebind failed:", e)
+
     toolbar.update()
     toolbar.pack(side="bottom",fill="x")
     toolbar.set_message = lambda s: None
 
     axes = []
     plot_data = [[]]
+    initial_limits = {}
 
     legend_state = {}
     legend_links = {}
@@ -2840,6 +2858,17 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     selected_legend = {"obj": None}
     dragged = {"var": None}
     resizing_left_margin = {"active": False}
+    zoom_x_drag = {
+        "active": False,
+        "start_x": None,
+        "xlim": None
+    }
+
+    zoom_y_drag = {
+        "active": False,
+        "start_y": None,
+        "ylim": None
+    }
 
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
@@ -2931,8 +2960,12 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                     legend_links[txt] = line_obj
 
+            ax.relim()
+            ax.autoscale_view()
+
             ax.set_xlim(df.index.min(), df.index.max())
-            ax.margins(x=0)      
+
+            ax.margins(x=0)
 
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
             ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.3f}".rstrip("0").rstrip(".")))
@@ -2942,6 +2975,14 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         fig.tight_layout()
         canvas.draw()
 
+        initial_limits.clear()
+
+        for i, ax in enumerate(axes):
+
+            initial_limits[i] = {
+                "xlim": ax.get_xlim(),
+                "ylim": ax.get_ylim()
+            }
 
     if not empty_mode:
 
@@ -3072,6 +3113,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     def on_release(event):
 
+        zoom_x_drag["active"] = False
+        zoom_y_drag["active"] = False
+
         resizing_left_margin["active"] = False
 
         mouse_pressed["state"] = False
@@ -3090,13 +3134,38 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     def on_press(event):
 
+        renderer = canvas.get_renderer()
+
         for ax in axes:
 
             bbox = ax.get_window_extent()
 
             if abs(event.x - bbox.x0) < 5:
-
                 resizing_left_margin["active"] = True
+                return
+
+            if (
+                bbox.x0 - 60 <= event.x <= bbox.x0
+                and
+                bbox.y0 <= event.y <= bbox.y1
+            ):
+
+                zoom_y_drag["active"] = True
+                zoom_y_drag["start_y"] = event.y
+                zoom_y_drag["ylim"] = ax.get_ylim()
+                selected_line["obj"] = ax
+                return
+
+            if (
+                bbox.x0 <= event.x <= bbox.x1
+                and
+                bbox.y0 - 35 <= event.y <= bbox.y0
+            ):
+
+                zoom_x_drag["active"] = True
+                zoom_x_drag["start_x"] = event.x
+                zoom_x_drag["xlim"] = ax.get_xlim()
+                selected_line["obj"] = ax
                 return
 
         if selected_text["obj"] is not None:
@@ -3138,6 +3207,55 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 return
 
     def on_motion(event):
+
+        if zoom_x_drag["active"]:
+
+
+            ax = selected_line["obj"]
+
+            dx = event.x - zoom_x_drag["start_x"]
+
+            factor = 1 - dx * 0.01
+
+            factor = max(0.05, min(20, factor))
+
+            xmin, xmax = zoom_x_drag["xlim"]
+
+            center = (xmin + xmax) / 2
+            width = (xmax - xmin) * factor
+
+            ax.set_xlim(
+                center - width / 2,
+                center + width / 2
+            )
+
+            canvas.draw_idle()
+
+            return
+
+        if zoom_y_drag["active"]:
+
+            ax = selected_line["obj"]
+
+            dy = event.y - zoom_y_drag["start_y"]
+
+            factor = 1 + dy * 0.01
+
+            factor = max(0.05, min(20, factor))
+
+            ymin, ymax = zoom_y_drag["ylim"]
+
+            center = (ymin + ymax) / 2
+            height = (ymax - ymin) * factor
+
+            ax.set_ylim(
+                center - height / 2,
+                center + height / 2
+            )
+
+            canvas.draw_idle()
+
+            return
 
         if resizing_left_margin["active"]:
 
