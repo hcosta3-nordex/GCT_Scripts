@@ -617,7 +617,7 @@ def _inspect_zip_contents(zip_file):
                     result["mode_hints"].append("MFR")
 
     except Exception as e:
-        print(f"ZIP inspection failed: {e}")
+        toast("Data Extraction Tool",f"ZIP inspection failed: {e}")
 
     return result
 
@@ -2831,7 +2831,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         command=custom_home
     )
     except Exception as e:
-        print("Home rebind failed:", e)
+        toast("Data Extraction Tool",f"Home rebind failed: {e}")
 
     toolbar.update()
     toolbar.pack(side="bottom",fill="x")
@@ -4776,7 +4776,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 )
 
             except Exception as e:
-                print("Slope update error:", e)
+                toast("Data Extraction Tool",f"Slope update error: {e}")
 
     def delete_single_slope_mode():
 
@@ -4900,7 +4900,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     )
 
             except Exception as e:
-                print("Measurement update error:", repr(e))
+                toast("Data Extraction Tool",f"Measurement update error: {e}")
 
     def clear_measurements():
 
