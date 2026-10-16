@@ -5734,10 +5734,26 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         win = tk.Toplevel(root)
 
         win.title("Python Signal")
-        win.geometry("700x500")
+        win.geometry("1100x600")
+
+        paned = tk.PanedWindow(
+            win,
+            orient=tk.HORIZONTAL
+        )
+
+        paned.pack(
+            fill="both",
+            expand=True
+        )
+
+        left_frame = tk.Frame(paned)
+        right_frame = tk.Frame(paned)
+
+        paned.add(left_frame, stretch="always")
+        paned.add(right_frame, minsize=350)
 
         txt = tk.Text(
-            win,
+            left_frame,
             font=("Consolas", 10)
         )
 
@@ -5751,6 +5767,148 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         txt.insert(
             "1.0",
             'new_signal = signals["ANA0 MP1 Voltage L1-L2 [kV]"] * 0.9\n\nprint(new_signal)'
+        )
+
+        search_var = tk.StringVar()
+
+        tk.Label(
+            right_frame,
+            text="Search Signal"
+        ).pack(
+            anchor="w",
+            padx=5,
+            pady=(5,0)
+        )
+
+        search_entry = tk.Entry(
+            right_frame,
+            textvariable=search_var
+        )
+
+        search_entry.pack(
+            fill="x",
+            padx=5,
+            pady=5
+        )
+
+        list_frame = tk.Frame(right_frame)
+
+        list_frame.pack(
+            fill="both",
+            expand=True,
+            padx=5,
+            pady=5
+        )
+
+        sig_scroll = tk.Scrollbar(
+            list_frame,
+            orient="vertical"
+        )
+
+        signal_list = tk.Listbox(
+            list_frame,
+            font=("Consolas", 9),
+            yscrollcommand=sig_scroll.set,
+            exportselection=False
+        )
+
+        sig_scroll.config(
+            command=signal_list.yview
+        )
+
+        signal_list.pack(
+            side="left",
+            fill="both",
+            expand=True
+        )
+
+        sig_scroll.pack(
+            side="right",
+            fill="y"
+        )
+
+        def refresh_signal_list(*args):
+
+            def signal_sort_key(sig):
+
+                sig_upper = sig.upper()
+
+                m = re.search(r"ANA(\d+)", sig_upper)
+
+                if m:
+                    return (
+                        0,
+                        int(m.group(1)),
+                        sig_upper
+                    )
+
+                m = re.search(r"FM(\d+)", sig_upper)
+
+                if m:
+                    return (
+                        1,
+                        int(m.group(1)),
+                        sig_upper
+                    )
+
+                m = re.search(r"ST(\d+)", sig_upper)
+
+                if m:
+                    return (
+                        2,
+                        int(m.group(1)),
+                        sig_upper
+                    )
+
+                return (
+                    999,
+                    sig_upper
+                )
+
+            search = search_var.get().lower()
+
+            signal_list.delete(0, tk.END)
+
+            for sig in sorted(
+                variables,
+                key=signal_sort_key
+            ):
+
+                if search in sig.lower():
+
+                    signal_list.insert(
+                        tk.END,
+                        sig
+                    )
+
+
+        refresh_signal_list()
+
+        search_var.trace_add(
+            "write",
+            refresh_signal_list
+        )
+
+        def copy_signal_to_clipboard(event):
+
+            selection = signal_list.curselection()
+
+            if not selection:
+                return
+
+            signal = signal_list.get(selection[0])
+
+            win.clipboard_clear()
+
+            win.clipboard_append(
+                f'signals["{signal}"]'
+            )
+
+            win.update()
+
+        signal_list.bind(
+            "<<ListboxSelect>>",
+            copy_signal_to_clipboard
         )
 
         def create_signal():
@@ -5820,12 +5978,92 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         f"Calc_{len(calculated_signals)+1}"
                     )
 
+                replaced_signal = False
+
+                if signal_name in df.columns:
+
+                    choice = {"value": None}
+
+                    dlg = tk.Toplevel(win)
+                    dlg.title("Signal already exists")
+                    dlg.geometry("320x120")
+                    dlg.transient(win)
+                    dlg.grab_set()
+
+                    tk.Label(
+                        dlg,
+                        text=f'"{signal_name}" already exists'
+                    ).pack(pady=15)
+
+                    btn_frame = tk.Frame(dlg)
+                    btn_frame.pack(pady=5)
+
+                    def select_replace():
+                        choice["value"] = "replace"
+                        dlg.destroy()
+
+                    def select_keep():
+                        choice["value"] = "keep"
+                        dlg.destroy()
+
+                    def select_abort():
+                        choice["value"] = "abort"
+                        dlg.destroy()
+
+                    ttk.Button(
+                        btn_frame,
+                        text="Replace",
+                        command=select_replace
+                    ).pack(side="left", padx=5)
+
+                    ttk.Button(
+                        btn_frame,
+                        text="Keep Both",
+                        command=select_keep
+                    ).pack(side="left", padx=5)
+
+                    ttk.Button(
+                        btn_frame,
+                        text="Abort",
+                        command=select_abort
+                    ).pack(side="left", padx=5)
+
+                    win.wait_window(dlg)
+
+                    if choice["value"] == "abort":
+                        
+                        return
+
+                    if choice["value"] == "replace":
+                        replaced_signal = True
+
+                    if choice["value"] == "keep":
+
+                        base_name = signal_name
+                        counter = 1
+
+                        while signal_name in df.columns:
+
+                            signal_name = (
+                                f"{base_name}_{counter}"
+                            )
+
+                            counter += 1
+
                 result = pd.Series(
                     result,
                     index=df.index
                 )
 
                 df[signal_name] = result
+
+                if replaced_signal:
+
+                    rebuild_axes()
+
+                    update_visible_min_max()
+
+                    canvas.draw_idle()
 
                 if signal_name not in variables:
 
@@ -5837,16 +6075,38 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     signal_name
                 )
 
-                analog_tree.insert(
-                    "",
-                    "end",
-                    values=(
-                        signal_name,
-                        f"{result.min():.3f}",
-                        f"{result.max():.3f}",
-                        "✖"
+                if replaced_signal:
+
+                    for item in analog_tree.get_children():
+
+                        values = analog_tree.item(item)["values"]
+
+                        if values and values[0] == signal_name:
+
+                            analog_tree.item(
+                                item,
+                                values=(
+                                    signal_name,
+                                    f"{result.min():.3f}",
+                                    f"{result.max():.3f}",
+                                    "✖"
+                                )
+                            )
+
+                            break
+
+                else:
+
+                    analog_tree.insert(
+                        "",
+                        "end",
+                        values=(
+                            signal_name,
+                            f"{result.min():.3f}",
+                            f"{result.max():.3f}",
+                            "✖"
+                        )
                     )
-                )
 
                 win.destroy()
 
@@ -6354,7 +6614,7 @@ plot_file_container.pack(fill="both", expand=True)
 root.after(100, lambda: open_plot_window(plot_tab, None, ""))
 root.after(100, lambda: open_plot_window(plot_file_container, None, ""))
 
-root.geometry("1000x650")
+root.geometry("1100x650")
 
 Label(data_tab, text="ZIP File:").grid(row=0, column=0, pady=(5, 0), padx=10)
 zip_path_entry = Entry(data_tab, width=110)
