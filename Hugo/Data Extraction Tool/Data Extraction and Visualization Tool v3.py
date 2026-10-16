@@ -2353,7 +2353,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         "label": None,
         "x": None,
         "y": None
-    }  
+    }
+    calculated_signals = set()
 
     def show_hover_coordinates():
 
@@ -2606,17 +2607,16 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     right_panel.rowconfigure(3, weight=0)
     right_panel.columnconfigure(0, weight=1)
 
-
     analog_frame = ttk.LabelFrame(right_panel, text="ANA/TR")
     analog_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=3)
 
     analog_scroll = ttk.Scrollbar(analog_frame, orient="vertical")
 
     analog_tree = ttk.Treeview(
-        analog_frame,
-        columns=("Signal", "Min", "Max"),
-        show="headings",
-        yscrollcommand=analog_scroll.set
+    analog_frame,
+    columns=("Signal", "Min", "Max"),
+    show="headings",
+    yscrollcommand=analog_scroll.set
     )
 
     analog_scroll.config(command=analog_tree.yview)
@@ -5729,6 +5729,142 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         selected_measurement_points.clear()
         mode["measure"] = "y"
 
+    def open_signal_creator():
+
+        win = tk.Toplevel(root)
+
+        win.title("Python Signal")
+        win.geometry("700x500")
+
+        txt = tk.Text(
+            win,
+            font=("Consolas", 10)
+        )
+
+        txt.pack(
+            fill="both",
+            expand=True,
+            padx=5,
+            pady=5
+        )
+
+        txt.insert(
+            "1.0",
+            'new_signal = signals["ANA0 MP1 Voltage L1-L2 [kV]"] * 0.9\n\nprint(new_signal)'
+        )
+
+        def create_signal():
+
+            try:
+
+                script = txt.get(
+                    "1.0",
+                    "end"
+                )
+
+                local_vars = {}
+
+                signals = {}
+
+                for col in variables:
+
+                    signals[col] = pd.to_numeric(
+                        df[col]
+                        .astype(str)
+                        .str.replace(",", ".", regex=False),
+                        errors="coerce"
+                    )
+
+                local_vars["signals"] = signals
+                local_vars["pd"] = pd
+                local_vars["np"] = np
+
+                result_holder = {}
+
+                def capture_print(obj):
+
+                    result_holder["value"] = obj
+
+                local_vars["print"] = capture_print
+
+                exec(
+                    script,
+                    {},
+                    local_vars
+                )
+
+                if "value" not in result_holder:
+
+                    messagebox.showerror(
+                        "Error",
+                        "No print() found"
+                    )
+                    return
+
+                result = result_holder["value"]
+
+                import re
+
+                m = re.search(
+                    r"print\s*\(\s*([A-Za-z_]\w*)\s*\)",
+                    script
+                )
+
+                if m:
+
+                    signal_name = m.group(1)
+
+                else:
+
+                    signal_name = (
+                        f"Calc_{len(calculated_signals)+1}"
+                    )
+
+                result = pd.Series(
+                    result,
+                    index=df.index
+                )
+
+                df[signal_name] = result
+
+                if signal_name not in variables:
+
+                    variables.append(
+                        signal_name
+                    )
+
+                calculated_signals.add(
+                    signal_name
+                )
+
+                analog_tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        signal_name,
+                        f"{result.min():.3f}",
+                        f"{result.max():.3f}",
+                        "✖"
+                    )
+                )
+
+                win.destroy()
+
+            except Exception as e:
+
+                messagebox.showerror(
+                    "Python Error",
+                    str(e)
+                )
+
+        ttk.Button(
+            win,
+            text="Create Signal",
+            command=create_signal
+        ).pack(
+            pady=5
+        )
+
     btn6 = tk.Button(custom_toolbar,text="↔X",command=measure_x,relief="flat")
     btn6.pack(side="left", padx=3)
     ToolTip(btn6, "Measure X distance")
@@ -5751,6 +5887,10 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     btn13 = tk.Button(custom_toolbar,text="∕🗑",command=clear_slopes,relief="flat")
     btn13.pack(side="left", padx=3)
     ToolTip(btn13, "Delete all slopes")
+    ttk.Separator(custom_toolbar,orient="vertical").pack(side="left", fill="y", padx=8)
+    btn_calc = tk.Button(custom_toolbar,text="Σ",command=open_signal_creator,relief="flat")
+    btn_calc.pack(side="left",padx=3)
+    ToolTip(btn_calc,"Create calculated signal")
     ttk.Separator(custom_toolbar,orient="vertical").pack(side="left", fill="y", padx=8)
     btn10 = tk.Button(custom_toolbar, text="✂", command=open_cutter, relief="flat")
     btn10.pack(side="left", padx=3)
