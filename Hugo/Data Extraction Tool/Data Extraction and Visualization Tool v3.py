@@ -3210,7 +3210,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         if zoom_x_drag["active"]:
 
-
             ax = selected_line["obj"]
 
             dx = event.x - zoom_x_drag["start_x"]
@@ -3549,6 +3548,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             else:
 
                 txt.xy = (new_x, new_y)
+                txt._manual_position = True
 
             canvas.draw_idle()
             return
@@ -3618,9 +3618,492 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
     canvas.mpl_connect("draw_event", on_draw)
 
+    editing_widget = {"entry": None}
+
+    def start_inline_edit(label, click_x, click_y):
+
+        if editing_widget["entry"] is not None:
+
+            try:
+                editing_widget["entry"].destroy()
+            except:
+                pass
+
+        widget = canvas.get_tk_widget()
+
+        height = widget.winfo_height()
+
+        tk_y = height - click_y
+
+        entry = tk.Entry(widget)
+
+        entry.insert(
+            0,
+            label.get_text()
+        )
+
+        entry.place(
+            x=click_x - 40,
+            y=tk_y - 12,
+            width=140,
+            height=24
+        )
+
+        entry.focus_set()
+        entry.select_range(0, tk.END)
+
+        editing_widget["entry"] = entry
+
+        def finish():
+
+            try:
+
+                apply_label_edit(
+                    label,
+                    entry.get().strip()
+                )
+
+            finally:
+
+                try:
+                    entry.destroy()
+                except:
+                    pass
+
+                editing_widget["entry"] = None
+
+        entry.bind(
+            "<Return>",
+            lambda e: finish()
+        )
+
+        entry.bind(
+            "<Escape>",
+            lambda e: (
+                entry.destroy(),
+                editing_widget.update(
+                    {"entry": None}
+                )
+            )
+        )
+
+        entry.bind(
+            "<FocusOut>",
+            lambda e: finish()
+        )
+
+    def apply_label_edit(label, value):
+
+        try:
+
+            for line_obj, cursor_label, axis in lines:
+
+                if getattr(line_obj, "line_type", "") != "tracker":
+                    continue
+
+                for signal_name, marker, tracker_label in getattr(
+                    line_obj,
+                    "_tracker_items",
+                    []
+                ):
+
+                    if tracker_label is not label:
+                        continue
+
+                    target_y = pd.to_numeric(
+                        value.replace(",", "."),
+                        errors="coerce"
+                    )
+
+                    if pd.isna(target_y):
+                        return
+
+                    signal = next(
+                        (
+                            s for s in axis.get_lines()
+                            if getattr(s, "_var", None) == signal_name
+                        ),
+                        None
+                    )
+
+                    if signal is None:
+                        return
+
+                    ydata = np.asarray(
+                        signal.get_ydata(),
+                        dtype=float
+                    )
+
+                    idx = np.nanargmin(
+                        np.abs(ydata - target_y)
+                    )
+
+                    nearest_time = pd.Timestamp(
+                        signal.get_xdata()[idx]
+                    ).tz_localize(None)
+
+                    x_num = mdates.date2num(nearest_time)
+
+                    line_obj.set_xdata(
+                        [nearest_time, nearest_time]
+                    )
+
+                    if not getattr(
+                        cursor_label,
+                        "_manual_position",
+                        False
+                    ):
+                        cursor_label.xy = (
+                            nearest_time,
+                            cursor_label.xy[1]
+                        )
+
+                    for sig_name, mk, lbl in line_obj._tracker_items:
+
+                        sig = next(
+                            (
+                                s for s in axis.get_lines()
+                                if getattr(
+                                    s,
+                                    "_var",
+                                    None
+                                ) == sig_name
+                            ),
+                            None
+                        )
+
+                        if sig is None:
+                            continue
+
+                        xsignal = mdates.date2num(
+                            pd.to_datetime(
+                                sig.get_xdata()
+                            )
+                        )
+
+                        idx2 = np.argmin(
+                            np.abs(
+                                xsignal - x_num
+                            )
+                        )
+
+                        y = float(
+                            sig.get_ydata()[idx2]
+                        )
+
+                        mk.set_data(
+                            [nearest_time],
+                            [y]
+                        )
+
+                        mk._ball_x = x_num
+                        mk._ball_y = y
+
+                        if not getattr(
+                            lbl,
+                            "_manual_position",
+                            False
+                        ):
+                            lbl.xy = (
+                                nearest_time,
+                                y
+                            )
+
+                        lbl.set_text(
+                            f"{y:.3f}"
+                            .rstrip("0")
+                            .rstrip(".")
+                        )
+
+                    if source_selected.lower() in (
+                        "opclogger",
+                        "mfr opclogger"
+                    ):
+
+                        cursor_label.set_text(
+                            nearest_time.strftime(
+                                "%H:%M:%S"
+                            )
+                        )
+
+                    elif source_selected.lower() == "mfr tsdl":
+
+                        cursor_label.set_text(
+                            f"{nearest_time.strftime('%H:%M:%S')}."
+                            f"{nearest_time.microsecond:06d}"
+                            .rstrip("0")
+                            .rstrip(".")
+                        )
+
+                    else:
+
+                        ms = int(
+                            nearest_time.microsecond / 1000
+                        )
+
+                        cursor_label.set_text(
+                            f"{nearest_time.strftime('%H:%M:%S')}."
+                            f"{ms:03d}"
+                            .rstrip("0")
+                            .rstrip(".")
+                        )
+
+                    update_measurements()
+                    update_slopes()
+
+                    canvas.draw_idle()
+
+                    return
+
+            line = None
+            axis = None
+
+            for l, txt, ax in lines:
+
+                if txt is label:
+
+                    line = l
+                    axis = ax
+                    break
+
+            if line is None:
+                return
+
+            line_type = getattr(
+                line,
+                "line_type",
+                ""
+            )
+
+            if line_type in (
+                "vertical",
+                "tracker"
+            ):
+
+                parsed = pd.to_datetime(
+                    value,
+                    format="mixed",
+                    errors="coerce"
+                )
+
+                if pd.isna(parsed):
+                    return
+
+                target = parsed.time()
+
+                nearest_time = min(
+                    df.index,
+                    key=lambda t: abs(
+                        (
+                            t.hour * 3600
+                            + t.minute * 60
+                            + t.second
+                            + t.microsecond / 1e6
+                        )
+                        -
+                        (
+                            target.hour * 3600
+                            + target.minute * 60
+                            + target.second
+                            + target.microsecond / 1e6
+                        )
+                    )
+                )
+
+                line.set_xdata(
+                    [nearest_time, nearest_time]
+                )
+
+                label.xy = (
+                    nearest_time,
+                    label.xy[1]
+                )
+
+                if source_selected.lower() in (
+                    "opclogger",
+                    "mfr opclogger"
+                ):
+
+                    label.set_text(
+                        nearest_time.strftime(
+                            "%H:%M:%S"
+                        )
+                    )
+
+                elif source_selected.lower() == "mfr tsdl":
+
+                    label.set_text(
+                        (
+                            f"{nearest_time.strftime('%H:%M:%S')}."
+                            f"{nearest_time.microsecond:06d}"
+                        ).rstrip("0").rstrip(".")
+                    )
+
+                else:
+
+                    ms = int(
+                        nearest_time.microsecond / 1000
+                    )
+
+                    label.set_text(
+                        (
+                            f"{nearest_time.strftime('%H:%M:%S')}."
+                            f"{ms:03d}"
+                        ).rstrip("0").rstrip(".")
+                    )
+
+                if line_type == "tracker":
+
+                    x_num = mdates.date2num(
+                        nearest_time
+                    )
+
+                    for signal_name, marker, tracker_label in line._tracker_items:
+
+                        signal = next(
+                            (
+                                s
+                                for s in axis.get_lines()
+                                if getattr(
+                                    s,
+                                    "_var",
+                                    None
+                                ) == signal_name
+                            ),
+                            None
+                        )
+
+                        if signal is None:
+                            continue
+
+                        xsignal = mdates.date2num(
+                            pd.to_datetime(
+                                signal.get_xdata()
+                            )
+                        )
+
+                        idx = np.argmin(
+                            np.abs(
+                                xsignal - x_num
+                            )
+                        )
+
+                        y = float(
+                            signal.get_ydata()[idx]
+                        )
+
+                        marker.set_data(
+                            [nearest_time],
+                            [y]
+                        )
+
+                        marker._ball_x = x_num
+                        marker._ball_y = y
+
+                        if not getattr(
+                            tracker_label,
+                            "_manual_position",
+                            False
+                        ):
+                            tracker_label.xy = (
+                                nearest_time,
+                                y
+                            )
+
+                        tracker_label.set_text(
+                            f"{y:.3f}"
+                            .rstrip("0")
+                            .rstrip(".")
+                        )
+
+                else:
+
+                    for ball in line._balls:
+
+                        try:
+                            ball.remove()
+                        except:
+                            pass
+
+                    line._balls.clear()
+
+                    create_vertical_balls(
+                        axis,
+                        nearest_time,
+                        line
+                    )
+
+                update_measurements()
+                update_slopes()
+
+                canvas.draw_idle()
+
+            elif line_type == "horizontal":
+
+                y = pd.to_numeric(
+                    value.replace(",", "."),
+                    errors="coerce"
+                )
+
+                if pd.isna(y):
+                    return
+
+                line.set_ydata([y, y])
+
+                ylim = axis.get_ylim()
+
+                label.xy = (
+                    label.xy[0],
+                    y + 0.03 * (ylim[1] - ylim[0])
+                )
+
+                for ball in line._balls:
+
+                    try:
+                        ball.remove()
+                    except:
+                        pass
+
+                line._balls.clear()
+
+                create_horizontal_balls(
+                    axis,
+                    y,
+                    line
+                )
+
+                label.set_text(
+                    f"{y:.3f}"
+                    .rstrip("0")
+                    .rstrip(".")
+                )
+
+                update_measurements()
+                update_slopes()
+
+                canvas.draw_idle()
+
+        except Exception as e:
+
+            import traceback
+
+            traceback.print_exc()
+            print(
+                "Inline edit error:",
+                repr(e)
+            )
+    
     def on_pick(event):
 
         artist = event.artist
+
+        if event.mouseevent.dblclick:
+
+            if getattr(artist, "_is_cursor_label", False):
+
+                start_inline_edit(artist,event.mouseevent.x,event.mouseevent.y)
+
+            return
 
         if isinstance(artist, Legend):
             selected_legend["obj"] = artist
