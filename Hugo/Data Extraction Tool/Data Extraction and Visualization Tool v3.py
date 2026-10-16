@@ -30,6 +30,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import numpy as np
 from matplotlib.legend import Legend
+import traceback
 
 
 selected_ids = set()
@@ -4085,8 +4086,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         except Exception as e:
 
-            import traceback
-
             traceback.print_exc()
             print(
                 "Inline edit error:",
@@ -5752,21 +5751,120 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         paned.add(left_frame, stretch="always")
         paned.add(right_frame, minsize=350)
 
-        txt = tk.Text(
+        editor_paned = tk.PanedWindow(
             left_frame,
-            font=("Consolas", 10)
+            orient=tk.VERTICAL
+        )
+
+        left_frame.rowconfigure(0, weight=1)
+        left_frame.rowconfigure(1, weight=0)
+        left_frame.columnconfigure(0, weight=1)
+
+        editor_paned.grid(
+            row=0,
+            column=0,
+            sticky="nsew"
+        )
+
+        editor_frame = tk.Frame(editor_paned)
+        console_frame = tk.Frame(editor_paned)
+
+        editor_paned.add(
+            editor_frame,
+            stretch="always"
+        )
+
+        editor_paned.add(
+            console_frame,
+            minsize=80
+        )
+
+        txt = tk.Text(
+            editor_frame,
+            font=("Consols", 10)
         )
 
         txt.pack(
             fill="both",
             expand=True,
             padx=5,
-            pady=5
+            pady=(5, 0)
         )
+
+        console_scroll = tk.Scrollbar(
+        console_frame,
+        orient="vertical"
+        )
+
+        console = tk.Text(
+            console_frame,
+            wrap="word",
+            bg="white",
+            fg="red",
+            font=("Consolas", 9),
+            yscrollcommand=console_scroll.set
+        )
+
+        console_scroll.config(
+            command=console.yview
+        )
+
+        console.pack(
+            side="left",
+            fill="both",
+            expand=True
+        )
+
+        console_scroll.pack(
+            side="right",
+            fill="y"
+        )
+
+        console.insert(
+            "1.0",
+            "Ready.\n"
+        )
+
+        console.config(
+            state="disabled"
+        )
+
+        if source_selected.lower() in ["opclogger", "mfr opclogger"]:
+
+            start_txt = df.index.min().strftime("%H:%M:%S")
+            end_txt = df.index.max().strftime("%H:%M:%S")
+
+        elif source_selected.lower() == "mfr tsdl":
+
+            start_txt = (
+                f"{df.index.min().strftime('%Y-%m-%d %H:%M:%S')}."
+                f"{df.index.min().microsecond:06d}"
+            )
+
+            end_txt = (
+                f"{df.index.max().strftime('%Y-%m-%d %H:%M:%S')}."
+                f"{df.index.max().microsecond:06d}"
+            )
+
+        else:
+
+            start_txt = df.index.min().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            end_txt = df.index.max().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
         txt.insert(
             "1.0",
-            'new_signal = signals["ANA0 MP1 Voltage L1-L2 [kV]"] * 0.9\n\nprint(new_signal)'
+            f'start = pd.Timestamp("{start_txt}")\n'
+            f'end   = pd.Timestamp("{end_txt}")\n'
+            '\n'
+            'new_signal = signals["ANA6 MP1 P [MW]"].copy()\n'
+            '\n'
+            'for i, t in enumerate(time):\n'
+            '\t if start <= t <= end:\n'
+            '\t\t new_signal.iloc[i] *= 0.9\n'
+            '\t else:\n'
+            '\t\t new_signal.iloc[i] *= 0\n'
+            '\n'
+            'print(new_signal)'
         )
 
         search_var = tk.StringVar()
@@ -5911,6 +6009,22 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             copy_signal_to_clipboard
         )
 
+        def write_console(text):
+
+            console.config(state="normal")
+
+            console.delete(
+                "1.0",
+                tk.END
+            )
+
+            console.insert(
+                tk.END,
+                text
+            )
+
+            console.config(state="disabled")
+
         def create_signal():
 
             try:
@@ -5936,6 +6050,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 local_vars["signals"] = signals
                 local_vars["pd"] = pd
                 local_vars["np"] = np
+                local_vars["time"] = df.index
 
                 result_holder = {}
 
@@ -5953,9 +6068,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 if "value" not in result_holder:
 
-                    messagebox.showerror(
-                        "Error",
-                        "No print() found"
+                    write_console(
+                        "No print() found.\n\nExample:\nprint(new_signal)"
                     )
                     return
 
@@ -6108,22 +6222,30 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                         )
                     )
 
-                win.destroy()
-
-            except Exception as e:
-
-                messagebox.showerror(
-                    "Python Error",
-                    str(e)
+                write_console(
+                    f'Signal "{signal_name}" successfully created.'
                 )
 
-        ttk.Button(
-            win,
-            text="Create Signal",
-            command=create_signal
-        ).pack(
+            except Exception:
+
+                write_console(
+                    "ERROR:\n\n" +
+                    traceback.format_exc()
+                )
+
+        button_frame = tk.Frame(left_frame)
+        button_frame.grid(
+            row=1,
+            column=0,
+            sticky="ew",
             pady=5
         )
+
+        ttk.Button(
+            button_frame,
+            text="Create Signal",
+            command=create_signal
+        ).pack()
 
     btn6 = tk.Button(custom_toolbar,text="↔X",command=measure_x,relief="flat")
     btn6.pack(side="left", padx=3)
