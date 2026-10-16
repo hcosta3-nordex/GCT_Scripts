@@ -5831,8 +5831,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         if source_selected.lower() in ["opclogger", "mfr opclogger"]:
 
-            start_txt = df.index.min().strftime("%H:%M:%S")
-            end_txt = df.index.max().strftime("%H:%M:%S")
+            start_txt = df.index.min().strftime("%Y-%m-%d %H:%M:%S")
+            end_txt = df.index.max().strftime("%Y-%m-%d %H:%M:%S")
 
         elif source_selected.lower() == "mfr tsdl":
 
