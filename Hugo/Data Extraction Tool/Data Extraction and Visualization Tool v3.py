@@ -5733,7 +5733,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         win = tk.Toplevel(root)
 
         win.title("Python Signal")
-        win.geometry("1100x600")
+        win.geometry("1100x800")
 
         paned = tk.PanedWindow(
             win,
@@ -5853,18 +5853,38 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         txt.insert(
             "1.0",
-            f'start = pd.Timestamp("{start_txt}")\n'
+            '# Example 1 #' 
+            '\n'
+            '# Create a time based signal'
+            '\n'
+            '\n'
+            f'"""start = pd.Timestamp("{start_txt}")\n'
             f'end   = pd.Timestamp("{end_txt}")\n'
             '\n'
-            'new_signal = signals["ANA6 MP1 P [MW]"].copy()\n'
+            'new_signal = signals["ANA6 MP1 P [MW]"].copy()' \
+            '\n'
             '\n'
             'for i, t in enumerate(time):\n'
             '\t if start <= t <= end:\n'
-            '\t\t new_signal.iloc[i] *= 0.9\n'
+            '\t\t new_signal.iloc[i] *= 1.1\n'
             '\t else:\n'
             '\t\t new_signal.iloc[i] *= 0\n'
             '\n'
-            'print(new_signal)'
+            'print(new_signal)"""'
+            '\n'
+            '\n'
+            '# Example 2 #'
+            '\n'
+            '# Create a "normal" signal'
+            '\n'
+            '\n'
+            '"""new_signal = signals["ANA6 MP1 P [MW]"].copy()'
+            '\n'
+            '\n'
+            'new_signal = new_signal*0.9'
+            '\n'
+            '\n'
+            'print(new_signal)"""'
         )
 
         search_var = tk.StringVar()
