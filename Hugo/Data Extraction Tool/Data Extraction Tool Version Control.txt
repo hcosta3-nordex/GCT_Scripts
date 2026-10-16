@@ -103,3 +103,22 @@ Integration of advanced cutting tool inside of the plot window.
 Separated ANA, FM and ST on both the plot area and on main window).
 Automatic attribution of Source, export, timestamp and sometimes the XML file (namespaces).
 Introduced "plot from file" which allows the visualization of data from previous exports!
+
+v1
+
+Added the close buttons on plots.
+Added measurements on both x and y axis. 
+
+v2
+
+Added movement on vertical and horizontal lines. Created some new plotting features.
+
+v3
+
+Added vertical lines with y labels.
+Improved interpolation on averaging.
+Created slope calculation.
+Dragging axis to zoom or zoom out available.
+Double click to change the axis position.
+Python based creation of signals.
+
