@@ -5732,7 +5732,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         win = tk.Toplevel(root)
 
-        win.title("Python Signal")
+        win.title("Python Signal Creator")
         win.geometry("1100x800")
 
         paned = tk.PanedWindow(
@@ -6082,7 +6082,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 exec(
                     script,
-                    {},
+                    local_vars,
                     local_vars
                 )
 
