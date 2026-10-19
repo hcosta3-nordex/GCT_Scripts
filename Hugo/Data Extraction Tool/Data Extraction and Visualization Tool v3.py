@@ -5779,8 +5779,27 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             minsize=80
         )
 
+        editor_container = tk.Frame(editor_frame)
+
+        editor_container.pack(
+            fill="both",
+            expand=True
+        )
+
+        line_numbers = tk.Canvas(
+            editor_container,
+            width=50,
+            bg="#f0f0f0",
+            highlightthickness=0
+        )
+
+        line_numbers.pack(
+            side="left",
+            fill="y"
+        )
+
         editor_scroll_y = tk.Scrollbar(
-            editor_frame,
+            editor_container,
             orient="vertical"
         )
 
@@ -5789,15 +5808,42 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             orient="horizontal"
         )
 
+        def on_text_scroll(*args):
+        
+            editor_scroll_y.set(*args)
+
+            redraw_line_numbers()
+
+        def on_mousewheel(event):
+
+            redraw_line_numbers()
+
+        def on_paste(event=None):
+
+            win.after(
+                1,
+                lambda: (
+                    txt.see("insert"),
+                    redraw_line_numbers()
+                )
+            )
+
         txt = tk.Text(
-            editor_frame,
+            editor_container,
             font=("Consolas", 10),
             wrap="none",
-            yscrollcommand=editor_scroll_y.set,
+            undo=True,
+            yscrollcommand=on_text_scroll,
             xscrollcommand=editor_scroll_x.set
         )
 
-        editor_scroll_y.config(command=txt.yview)
+        def yview_with_line_numbers(*args):
+
+            txt.yview(*args)
+
+            redraw_line_numbers()
+
+        editor_scroll_y.config(command=yview_with_line_numbers)
         editor_scroll_x.config(command=txt.xview)
 
         editor_scroll_y.pack(side="right", fill="y")
@@ -5865,6 +5911,34 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             "matches": [],
             "index": -1
         }
+
+        def redraw_line_numbers(event=None):
+
+            line_numbers.delete("all")
+
+            index = txt.index("@0,0")
+
+            while True:
+
+                dline = txt.dlineinfo(index)
+
+                if dline is None:
+                    break
+
+                y = dline[1]
+
+                line_number = index.split(".")[0]
+
+                line_numbers.create_text(
+                    45,
+                    y,
+                    anchor="ne",
+                    text=line_number,
+                    font=("Consolas", 10),
+                    fill="gray30"
+                )
+
+                index = txt.index(f"{index}+1line")
 
         if source_selected.lower() in ["opclogger", "mfr opclogger"]:
 
@@ -6099,7 +6173,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             search_state["matches"].clear()
             search_state["index"] = -1
 
-
         def show_current_match():
 
             txt.tag_remove(
@@ -6127,7 +6200,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             )
 
             txt.see(pos)
-
 
         def do_search(term):
 
@@ -6303,25 +6375,6 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 padx=10
             )
 
-            def close_find():
-            
-                txt.tag_remove(
-                    "search_match",
-                    "1.0",
-                    tk.END
-                )
-
-                txt.tag_remove(
-                    "search_current",
-                    "1.0",
-                    tk.END
-                )
-
-                search_state["matches"].clear()
-                search_state["index"] = -1
-
-                find_win.destroy()
-
             def replace_current():
 
                 if not search_state["matches"]:
@@ -6330,18 +6383,26 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                 if not search_state["matches"]:
                     return
 
+                current_insert = txt.index(tk.INSERT)
+
                 pos, end = search_state["matches"][
                     search_state["index"]
                 ]
 
                 txt.delete(pos, end)
+                txt.insert(pos, replace_var.get())
 
-                txt.insert(
-                    pos,
-                    replace_var.get()
+                search_state["matches"].pop(
+                    search_state["index"]
                 )
 
-                do_search(find_var.get())
+                txt.tag_remove(
+                    "search_current",
+                    "1.0",
+                    tk.END
+                )
+
+                txt.mark_set(tk.INSERT, current_insert)
 
             def replace_all():
 
@@ -6649,6 +6710,41 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             lambda e: previous_match()
         )
 
+        txt.bind(
+            "<KeyRelease>",
+            redraw_line_numbers
+        )
+
+        txt.bind(
+            "<Configure>",
+            redraw_line_numbers
+        )
+
+        txt.bind(
+            "<ButtonRelease-1>",
+            redraw_line_numbers
+        )
+
+        txt.bind(
+            "<MouseWheel>",
+            on_mousewheel
+        )
+
+        txt.bind(
+            "<<Paste>>",
+            on_paste
+        )
+
+        txt.bind(
+            "<Control-v>",
+            on_paste
+        )
+
+        txt.bind(
+            "<Control-V>",
+            on_paste
+        )
+
         def undo(event=None):
             try:
                 txt.edit_undo()
@@ -6665,6 +6761,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         txt.bind("<Control-z>", undo)
         txt.bind("<Control-y>", redo)
+
+        win.after(
+            100,
+            redraw_line_numbers
+        )
 
     btn6 = tk.Button(custom_toolbar,text="↔X",command=measure_x,relief="flat")
     btn6.pack(side="left", padx=3)
