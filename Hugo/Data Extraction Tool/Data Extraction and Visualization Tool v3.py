@@ -4536,7 +4536,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     txt = create_draggable_label(
                         ax,
                         x_level,
-                        (p1._ball_y + p2._ball_y) / 2,
+                        ((p1._ball_y + p2._ball_y) / 2)*0.3,
                         f"{dy:.3f}",
                         color="magenta"
                     )
