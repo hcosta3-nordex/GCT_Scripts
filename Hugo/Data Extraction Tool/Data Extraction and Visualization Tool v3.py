@@ -5779,16 +5779,48 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             minsize=80
         )
 
-        txt = tk.Text(
+        editor_scroll_y = tk.Scrollbar(
             editor_frame,
-            font=("Consols", 10)
+            orient="vertical"
         )
 
+        editor_scroll_x = tk.Scrollbar(
+            editor_frame,
+            orient="horizontal"
+        )
+
+        txt = tk.Text(
+            editor_frame,
+            font=("Consolas", 10),
+            wrap="none",
+            yscrollcommand=editor_scroll_y.set,
+            xscrollcommand=editor_scroll_x.set
+        )
+
+        editor_scroll_y.config(command=txt.yview)
+        editor_scroll_x.config(command=txt.xview)
+
+        editor_scroll_y.pack(side="right", fill="y")
+        editor_scroll_x.pack(side="bottom", fill="x")
+
         txt.pack(
+            side="left",
             fill="both",
             expand=True,
             padx=5,
             pady=(5, 0)
+        )
+
+        txt.tag_configure(
+            "search_match",
+            background="yellow",
+            foreground="black"
+        )
+
+        txt.tag_configure(
+            "search_current",
+            background="orange",
+            foreground="black"
         )
 
         console_scroll = tk.Scrollbar(
@@ -5828,6 +5860,11 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         console.config(
             state="disabled"
         )
+
+        search_state = {
+            "matches": [],
+            "index": -1
+        }
 
         if source_selected.lower() in ["opclogger", "mfr opclogger"]:
 
@@ -6044,6 +6081,331 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             )
 
             console.config(state="disabled")
+
+        def clear_search():
+
+            txt.tag_remove(
+                "search_match",
+                "1.0",
+                tk.END
+            )
+
+            txt.tag_remove(
+                "search_current",
+                "1.0",
+                tk.END
+            )
+
+            search_state["matches"].clear()
+            search_state["index"] = -1
+
+
+        def show_current_match():
+
+            txt.tag_remove(
+                "search_current",
+                "1.0",
+                tk.END
+            )
+
+            if not search_state["matches"]:
+                return
+
+            pos, end = search_state["matches"][
+                search_state["index"]
+            ]
+
+            txt.tag_add(
+                "search_current",
+                pos,
+                end
+            )
+
+            txt.mark_set(
+                tk.INSERT,
+                pos
+            )
+
+            txt.see(pos)
+
+
+        def do_search(term):
+
+            clear_search()
+
+            if not term:
+                return
+
+            start = "1.0"
+
+            while True:
+
+                pos = txt.search(
+                    term,
+                    start,
+                    stopindex=tk.END,
+                    nocase=True
+                )
+
+                if not pos:
+                    break
+
+                end = f"{pos}+{len(term)}c"
+
+                txt.tag_add(
+                    "search_match",
+                    pos,
+                    end
+                )
+
+                search_state["matches"].append(
+                    (pos, end)
+                )
+
+                start = end
+
+            if search_state["matches"]:
+                search_state["index"] = 0
+                show_current_match()
+
+
+        def next_match():
+
+            if not search_state["matches"]:
+                return
+
+            search_state["index"] = (
+                search_state["index"] + 1
+            ) % len(search_state["matches"])
+
+            show_current_match()
+
+
+        def previous_match():
+
+            if not search_state["matches"]:
+                return
+
+            search_state["index"] = (
+                search_state["index"] - 1
+            ) % len(search_state["matches"])
+
+            show_current_match()
+
+        def open_find_replace(event=None):
+
+            find_win = tk.Toplevel(win)
+            find_win.title("")
+            find_win.geometry("420x240")
+            find_win.transient(win)
+
+            notebook = ttk.Notebook(find_win)
+            notebook.pack(
+                fill="both",
+                expand=True,
+                padx=5,
+                pady=5
+            )
+
+            find_tab = ttk.Frame(notebook)
+            replace_tab = ttk.Frame(notebook)
+
+            notebook.add(find_tab, text="Find")
+            notebook.add(replace_tab, text="Replace")
+
+            find_var = tk.StringVar()
+            replace_var = tk.StringVar()
+
+            ttk.Label(
+                find_tab,
+                text="Find:"
+            ).pack(
+                anchor="w",
+                padx=10,
+                pady=(10,2)
+            )
+
+            find_entry = ttk.Entry(
+                find_tab,
+                textvariable=find_var
+            )
+
+            find_entry.pack(
+                fill="x",
+                padx=10
+            )
+
+            nav_frame = ttk.Frame(find_tab)
+            nav_frame.pack(
+                pady=10
+            )
+
+            ttk.Button(
+                nav_frame,
+                text="Find",
+                command=lambda: do_search(
+                    find_var.get()
+                )
+            ).pack(
+                side="left",
+                padx=3
+            )
+
+            ttk.Button(
+                nav_frame,
+                text="▲",
+                command=previous_match
+            ).pack(
+                side="left",
+                padx=3
+            )
+
+            ttk.Button(
+                nav_frame,
+                text="▼",
+                command=next_match
+            ).pack(
+                side="left",
+                padx=3
+            )
+
+            ttk.Label(
+                replace_tab,
+                text="Find:"
+            ).pack(
+                anchor="w",
+                padx=10,
+                pady=(10,2)
+            )
+
+            ttk.Entry(
+                replace_tab,
+                textvariable=find_var
+            ).pack(
+                fill="x",
+                padx=10
+            )
+
+            ttk.Label(
+                replace_tab,
+                text="Replace With:"
+            ).pack(
+                anchor="w",
+                padx=10,
+                pady=(10,2)
+            )
+
+            ttk.Entry(
+                replace_tab,
+                textvariable=replace_var
+            ).pack(
+                fill="x",
+                padx=10
+            )
+
+            def close_find():
+            
+                txt.tag_remove(
+                    "search_match",
+                    "1.0",
+                    tk.END
+                )
+
+                txt.tag_remove(
+                    "search_current",
+                    "1.0",
+                    tk.END
+                )
+
+                search_state["matches"].clear()
+                search_state["index"] = -1
+
+                find_win.destroy()
+
+            def replace_current():
+
+                if not search_state["matches"]:
+                    do_search(find_var.get())
+
+                if not search_state["matches"]:
+                    return
+
+                pos, end = search_state["matches"][
+                    search_state["index"]
+                ]
+
+                txt.delete(pos, end)
+
+                txt.insert(
+                    pos,
+                    replace_var.get()
+                )
+
+                do_search(find_var.get())
+
+            def replace_all():
+
+                find_text = find_var.get()
+
+                if not find_text:
+                    return
+
+                content = txt.get(
+                    "1.0",
+                    tk.END
+                )
+
+                content = content.replace(
+                    find_text,
+                    replace_var.get()
+                )
+
+                txt.delete(
+                    "1.0",
+                    tk.END
+                )
+
+                txt.insert(
+                    "1.0",
+                    content
+                )
+
+                do_search(find_text)
+
+            btn_frame = ttk.Frame(
+                replace_tab
+            )
+
+            btn_frame.pack(
+                pady=15
+            )
+
+            ttk.Button(
+                btn_frame,
+                text="Replace Current",
+                command=replace_current
+            ).pack(
+                side="left",
+                padx=5
+            )
+
+            ttk.Button(
+                btn_frame,
+                text="Replace All",
+                command=replace_all
+            ).pack(
+                side="left",
+                padx=5
+            )
+
+            find_entry.focus_set()
+
+            find_entry.bind(
+                "<Return>",
+                lambda e: do_search(
+                    find_var.get()
+                )
+            )
 
         def create_signal():
 
@@ -6266,6 +6628,43 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             text="Create Signal",
             command=create_signal
         ).pack()
+
+        txt.bind(
+            "<Control-f>",
+            open_find_replace
+        )
+
+        txt.bind(
+            "<Control-F>",
+            open_find_replace
+        )
+
+        txt.bind(
+            "<F3>",
+            lambda e: next_match()
+        )
+
+        txt.bind(
+            "<Shift-F3>",
+            lambda e: previous_match()
+        )
+
+        def undo(event=None):
+            try:
+                txt.edit_undo()
+            except tk.TclError:
+                pass
+            return "break"
+
+        def redo(event=None):
+            try:
+                txt.edit_redo()
+            except tk.TclError:
+                pass
+            return "break"
+
+        txt.bind("<Control-z>", undo)
+        txt.bind("<Control-y>", redo)
 
     btn6 = tk.Button(custom_toolbar,text="↔X",command=measure_x,relief="flat")
     btn6.pack(side="left", padx=3)
