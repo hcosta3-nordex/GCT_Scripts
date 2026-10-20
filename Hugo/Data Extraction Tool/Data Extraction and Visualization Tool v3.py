@@ -3418,14 +3418,13 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
                     marker._ball_x = x_num
                     marker._ball_y = y
 
-                    if not getattr(
-                        label,
-                        "_manual_position",
-                        False
-                    ):
+                    if not getattr(label, "_manual_position", False):
+                        ylim = ax.get_ylim()
+                        offset = 0.03 * (ylim[1] - ylim[0])
+
                         label.xy = (
                             nearest_time,
-                            y
+                            y + offset
                         )
 
                     label.set_text(
@@ -3917,7 +3916,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
                 label.xy = (
                     nearest_time,
-                    label.xy[1]
+                    (label.xy[1])
                 )
 
                 if source_selected.lower() in (
