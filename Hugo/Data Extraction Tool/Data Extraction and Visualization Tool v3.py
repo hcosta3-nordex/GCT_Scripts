@@ -31,6 +31,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import numpy as np
 from matplotlib.legend import Legend
 import traceback
+import win32clipboard
 
 
 selected_ids = set()
@@ -5700,9 +5701,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             label._is_cursor_label = True
             label._manual_position = False
 
-            line._tracker_items.append(
-                (signal._var, marker, label)
-            )
+            line._tracker_items.append((signal._var, marker, label))
 
     btn_tracker = tk.Button(custom_toolbar,text="│─",command=set_tracker,relief="flat")
     btn_tracker.pack(side="left", padx=3)
@@ -5734,15 +5733,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         win.title("Python Signal Creator")
         win.geometry("1100x800")
 
-        paned = tk.PanedWindow(
-            win,
-            orient=tk.HORIZONTAL
-        )
-
-        paned.pack(
-            fill="both",
-            expand=True
-        )
+        paned = tk.PanedWindow(win,orient=tk.HORIZONTAL)
+        paned.pack(fill="both",expand=True)
 
         left_frame = tk.Frame(paned)
         right_frame = tk.Frame(paned)
@@ -5750,62 +5742,26 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         paned.add(left_frame, stretch="always")
         paned.add(right_frame, minsize=350)
 
-        editor_paned = tk.PanedWindow(
-            left_frame,
-            orient=tk.VERTICAL
-        )
+        editor_paned = tk.PanedWindow(left_frame,orient=tk.VERTICAL)
 
         left_frame.rowconfigure(0, weight=1)
         left_frame.rowconfigure(1, weight=0)
         left_frame.columnconfigure(0, weight=1)
 
-        editor_paned.grid(
-            row=0,
-            column=0,
-            sticky="nsew"
-        )
-
+        editor_paned.grid(row=0,column=0,sticky="nsew")
         editor_frame = tk.Frame(editor_paned)
         console_frame = tk.Frame(editor_paned)
 
-        editor_paned.add(
-            editor_frame,
-            stretch="always"
-        )
-
-        editor_paned.add(
-            console_frame,
-            minsize=80
-        )
-
+        editor_paned.add(editor_frame,stretch="always")
+        editor_paned.add(console_frame,minsize=80)
         editor_container = tk.Frame(editor_frame)
+        editor_container.pack(fill="both",expand=True)
 
-        editor_container.pack(
-            fill="both",
-            expand=True
-        )
+        line_numbers = tk.Canvas(editor_container,width=50,bg="#f0f0f0",highlightthickness=0)
+        line_numbers.pack(side="left",fill="y")
 
-        line_numbers = tk.Canvas(
-            editor_container,
-            width=50,
-            bg="#f0f0f0",
-            highlightthickness=0
-        )
-
-        line_numbers.pack(
-            side="left",
-            fill="y"
-        )
-
-        editor_scroll_y = tk.Scrollbar(
-            editor_container,
-            orient="vertical"
-        )
-
-        editor_scroll_x = tk.Scrollbar(
-            editor_frame,
-            orient="horizontal"
-        )
+        editor_scroll_y = tk.Scrollbar(editor_container,orient="vertical")
+        editor_scroll_x = tk.Scrollbar(editor_frame,orient="horizontal")
 
         def on_text_scroll(*args):
         
@@ -5819,22 +5775,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         def on_paste(event=None):
 
-            win.after(
-                1,
-                lambda: (
-                    txt.see("insert"),
-                    redraw_line_numbers()
-                )
-            )
+            win.after(1,lambda: (txt.see("insert"),redraw_line_numbers()))
 
-        txt = tk.Text(
-            editor_container,
-            font=("Consolas", 10),
-            wrap="none",
-            undo=True,
-            yscrollcommand=on_text_scroll,
-            xscrollcommand=editor_scroll_x.set
-        )
+        txt = tk.Text(editor_container,font=("Consolas", 10),wrap="none",undo=True,yscrollcommand=on_text_scroll,xscrollcommand=editor_scroll_x.set)
 
         def yview_with_line_numbers(*args):
 
@@ -5848,68 +5791,19 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         editor_scroll_y.pack(side="right", fill="y")
         editor_scroll_x.pack(side="bottom", fill="x")
 
-        txt.pack(
-            side="left",
-            fill="both",
-            expand=True,
-            padx=5,
-            pady=(5, 0)
-        )
+        txt.pack(side="left",fill="both",expand=True,padx=5,pady=(5, 0))
+        txt.tag_configure("search_match",background="yellow",foreground="black")
+        txt.tag_configure("search_current",background="orange",foreground="black")
 
-        txt.tag_configure(
-            "search_match",
-            background="yellow",
-            foreground="black"
-        )
-
-        txt.tag_configure(
-            "search_current",
-            background="orange",
-            foreground="black"
-        )
-
-        console_scroll = tk.Scrollbar(
-        console_frame,
-        orient="vertical"
-        )
-
-        console = tk.Text(
-            console_frame,
-            wrap="word",
-            bg="white",
-            fg="red",
-            font=("Consolas", 9),
-            yscrollcommand=console_scroll.set
-        )
-
-        console_scroll.config(
-            command=console.yview
-        )
-
-        console.pack(
-            side="left",
-            fill="both",
-            expand=True
-        )
-
-        console_scroll.pack(
-            side="right",
-            fill="y"
-        )
-
-        console.insert(
-            "1.0",
-            "Ready.\n"
-        )
-
-        console.config(
-            state="disabled"
-        )
-
-        search_state = {
-            "matches": [],
-            "index": -1
-        }
+        console_scroll = tk.Scrollbar(console_frame,orient="vertical")
+        console = tk.Text(console_frame,wrap="word",bg="white",fg="red",font=("Consolas", 9),yscrollcommand=console_scroll.set)
+        console_scroll.config(command=console.yview)
+        console.pack(side="left",fill="both",expand=True)
+        console_scroll.pack(side="right",fill="y")
+        console.insert("1.0","Ready.\n")
+        console.config(state="disabled")
+        
+        search_state = {"matches": [],"index": -1}
 
         def redraw_line_numbers(event=None):
 
@@ -6766,6 +6660,46 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
             redraw_line_numbers
         )
 
+    def copy_plot_to_clipboard():
+
+        try:
+            buffer = BytesIO()
+
+            fig.savefig(
+                buffer,
+                format="png",
+                dpi=300,
+                bbox_inches="tight"
+            )
+
+            buffer.seek(0)
+
+            image = Image.open(buffer)
+
+            output = BytesIO()
+
+            image.convert("RGB").save(output,"BMP")
+
+            data = output.getvalue()[14:]
+
+            output.close()
+
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(
+                win32clipboard.CF_DIB,
+                data
+            )
+            win32clipboard.CloseClipboard()
+
+            toast(
+                "Data Extraction Tool",
+                "Graph copied to clipboard"
+            )
+
+        except Exception as e:
+            toast("Data Extraction Tool",f"Clipboard copy failed:\n{e}")
+
     btn6 = tk.Button(custom_toolbar,text="↔X",command=measure_x,relief="flat")
     btn6.pack(side="left", padx=3)
     ToolTip(btn6, "Measure X distance")
@@ -6796,6 +6730,10 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
     btn10 = tk.Button(custom_toolbar, text="✂", command=open_cutter, relief="flat")
     btn10.pack(side="left", padx=3)
     ToolTip(btn10, "Cutter")
+    ttk.Separator(custom_toolbar,orient="vertical").pack(side="left", fill="y", padx=8)
+    btn_copy = tk.Button(custom_toolbar,text="⧉",command=copy_plot_to_clipboard,relief="flat")
+    btn_copy.pack(side="left", padx=3)
+    ToolTip(btn_copy,"Copy graph to clipboard")
 
     def on_click(event):
         if mode["type"] is None:
@@ -7130,10 +7068,7 @@ def reload_plot_file():
 
 def plot_from_file():
 
-    csv_file = filedialog.askopenfilename(
-        title="Select CSV File",
-        filetypes=[("CSV Files", "*.csv")]
-    )
+    csv_file = filedialog.askopenfilename(title="Select CSV File",filetypes=[("CSV Files", "*.csv")])
 
     if not csv_file:
         return
