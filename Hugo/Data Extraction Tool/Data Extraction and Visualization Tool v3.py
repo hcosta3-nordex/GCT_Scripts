@@ -6028,10 +6028,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             win.update()
 
-        signal_list.bind(
-            "<<ListboxSelect>>",
-            copy_signal_to_clipboard
-        )
+        signal_list.bind("<<ListboxSelect>>",copy_signal_to_clipboard)
 
         def write_console(text):
 
@@ -6686,16 +6683,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
-            win32clipboard.SetClipboardData(
-                win32clipboard.CF_DIB,
-                data
-            )
+            win32clipboard.SetClipboardData(win32clipboard.CF_DIB,data)
             win32clipboard.CloseClipboard()
-
-            toast(
-                "Data Extraction Tool",
-                "Graph copied to clipboard"
-            )
 
         except Exception as e:
             toast("Data Extraction Tool",f"Clipboard copy failed:\n{e}")
