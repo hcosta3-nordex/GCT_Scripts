@@ -121,4 +121,5 @@ Created slope calculation.
 Dragging axis to zoom or zoom out available.
 Double click to change the axis position.
 Python based creation of signals.
+Possibility to copy the graph to clipboard.
 
