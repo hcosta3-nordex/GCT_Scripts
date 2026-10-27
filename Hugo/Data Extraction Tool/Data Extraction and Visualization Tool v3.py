@@ -5731,7 +5731,7 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
         win = tk.Toplevel(root)
 
         win.title("Python Signal Creator")
-        win.geometry("1100x800")
+        win.geometry("1200x800")
 
         paned = tk.PanedWindow(win,orient=tk.HORIZONTAL)
         paned.pack(fill="both",expand=True)
@@ -5857,6 +5857,8 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         txt.insert(
             "1.0",
+            '# To use any of the examples please remove the """ at the beggining and at the end of the example'
+            '\n'
             '# Example 1 #' 
             '\n'
             '# Create a time based signal'
