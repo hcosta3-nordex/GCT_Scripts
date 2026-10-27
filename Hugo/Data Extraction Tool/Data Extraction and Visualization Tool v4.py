@@ -6421,7 +6421,9 @@ def open_plot_window(parent, final_csv_path, source_selected="", new_window=Fals
 
         ax.legend(fontsize=8)
 
-        ax.set_xlim(0, 5)
+        ax.relim()
+        ax.autoscale_view()
+        ax.margins(x=0)
 
         canvas.draw_idle()
 
@@ -6953,7 +6955,7 @@ plot_file_container.pack(fill="both", expand=True)
 root.after(100, lambda: open_plot_window(plot_tab, None, ""))
 root.after(100, lambda: open_plot_window(plot_file_container, None, ""))
 
-root.geometry("1100x650")
+root.geometry("1200x750")
 
 Label(data_tab, text="ZIP File:").grid(row=0, column=0, pady=(5, 0), padx=10)
 zip_path_entry = Entry(data_tab, width=110)
